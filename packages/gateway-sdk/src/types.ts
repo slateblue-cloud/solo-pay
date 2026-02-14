@@ -5,13 +5,13 @@ export interface SoloPayConfig {
   /** API key for admin routes (merchant, payment methods, refunds, payment detail, history, info) */
   apiKey: string;
   apiUrl?: string;
-  /** Public key (pk_live_xxx or pk_test_xxx) for POST /payments/create. Required when using createPayment(). */
+  /** Public key (pk_live_xxx or pk_test_xxx) for POST /payment. Required when using createPayment(). */
   publicKey?: string;
   /** Origin header value; must match one of merchant allowed_domains. Required when using createPayment(). */
   origin?: string;
 }
 
-/** Params for POST /payments/create (public key + Origin auth). tokenAddress must be whitelisted and enabled for merchant. */
+/** Params for POST /payment (public key + Origin auth). tokenAddress must be whitelisted and enabled for merchant. */
 export interface CreatePaymentParams {
   /** Merchant order ID */
   orderId: string;
@@ -48,22 +48,7 @@ export interface GaslessParams {
   forwardRequest: ForwardRequest;
 }
 
-export interface RelayParams {
-  paymentId: string;
-  transactionData: string;
-  gasEstimate: number;
-}
-
-export interface GetPaymentHistoryParams {
-  /** 블록체인 체인 ID */
-  chainId: number;
-  /** 결제자 지갑 주소 */
-  payer: string;
-  /** 조회할 블록 범위 (기본값: 1000) */
-  limit?: number;
-}
-
-// Response types (matches gateway POST /payments/create 201 response)
+// Response types (matches gateway POST /payment 201 response)
 export interface CreatePaymentResponse {
   /** Present when gateway returns 201; omitted in error paths */
   success?: true;
@@ -87,6 +72,7 @@ export interface CreatePaymentResponse {
   forwarderAddress?: string;
 }
 
+/** Response from GET /payment/:id */
 export interface PaymentStatusResponse {
   success: true;
   data: {
@@ -109,27 +95,228 @@ export interface PaymentStatusResponse {
   };
 }
 
+/** Response from POST /payment/:id/relay (202) */
 export interface GaslessResponse {
   success: true;
-  relayRequestId: string;
   status: 'submitted' | 'mined' | 'failed';
   message: string;
 }
 
-export interface RelayResponse {
-  success: true;
-  relayRequestId: string;
-  transactionHash?: string;
-  status: 'submitted' | 'mined' | 'failed';
-  message: string;
-}
-
+/** Response from GET /payment/:id/relay */
 export interface RelayStatusResponse {
   success: true;
-  relayRequestId: string;
-  transactionHash?: string;
-  status: 'submitted' | 'pending' | 'mined' | 'confirmed' | 'failed';
+  data: {
+    status: 'QUEUED' | 'SUBMITTED' | 'CONFIRMED' | 'FAILED';
+    transactionHash: string | null;
+    errorMessage: string | null;
+    createdAt: string;
+    updatedAt: string;
+  };
 }
+
+// ============================================================================
+// Merchant types (x-api-key auth)
+// ============================================================================
+
+/** Chain info returned from merchant/chains endpoints */
+export interface ChainInfo {
+  id: number;
+  network_id: number;
+  name: string;
+  is_testnet: boolean;
+}
+
+/** Token info */
+export interface TokenInfo {
+  id: number;
+  address: string;
+  symbol: string;
+  decimals: number;
+  chain_id?: number;
+}
+
+/** Payment method with token and chain info */
+export interface PaymentMethod {
+  id: number;
+  is_enabled: boolean;
+  created_at: string;
+  updated_at: string;
+  token: TokenInfo;
+  chain: ChainInfo;
+}
+
+/** Response from GET /merchant */
+export interface MerchantInfoResponse {
+  success: true;
+  merchant: {
+    id: number;
+    merchant_key: string;
+    name: string;
+    chain_id: number | null;
+    chain: ChainInfo | null;
+    webhook_url: string | null;
+    public_key: string | null;
+    allowed_domains: string[] | null;
+    is_enabled: boolean;
+    created_at: string;
+    updated_at: string;
+    payment_methods: PaymentMethod[];
+  };
+  chainTokens: Array<ChainInfo & { tokens: TokenInfo[] }>;
+}
+
+/** Response from GET /merchant/payment-method */
+export interface PaymentMethodListResponse {
+  success: true;
+  payment_methods: PaymentMethod[];
+}
+
+/** Response from POST /merchant/payment-method */
+export interface CreatePaymentMethodResponse {
+  success: true;
+  payment_method: PaymentMethod;
+}
+
+/** Params for POST /merchant/payment-method */
+export interface CreatePaymentMethodParams {
+  tokenAddress: string;
+  is_enabled?: boolean;
+}
+
+/** Params for PATCH /merchant/payment-method/:id */
+export interface UpdatePaymentMethodParams {
+  is_enabled?: boolean;
+}
+
+/** Response from PATCH /merchant/payment-method/:id */
+export interface UpdatePaymentMethodResponse {
+  success: true;
+  payment_method: PaymentMethod;
+}
+
+/** Response from DELETE /merchant/payment-method/:id */
+export interface DeletePaymentMethodResponse {
+  success: true;
+  message: string;
+}
+
+/** Response from GET /merchant/payment (by orderId) and GET /merchant/payment/:id */
+export interface MerchantPaymentDetailResponse {
+  paymentId: string;
+  orderId?: string;
+  status: 'CREATED' | 'PENDING' | 'CONFIRMED' | 'FAILED' | 'EXPIRED';
+  amount: string;
+  tokenSymbol: string;
+  tokenDecimals: number;
+  txHash?: string;
+  payerAddress?: string;
+  createdAt: string;
+  confirmedAt?: string;
+  expiresAt: string;
+}
+
+// ============================================================================
+// Refund types (x-api-key auth)
+// ============================================================================
+
+/** Params for POST /refund */
+export interface CreateRefundParams {
+  paymentId: string;
+  reason?: string;
+}
+
+/** Response from POST /refund */
+export interface CreateRefundResponse {
+  success: true;
+  data: {
+    refundId: string;
+    paymentId: string;
+    amount: string;
+    tokenAddress: string;
+    payerAddress: string;
+    status: string;
+    serverSignature: string;
+    merchantId: string;
+    createdAt: string;
+  };
+}
+
+/** Response from GET /refund/:refundId */
+export interface RefundStatusResponse {
+  success: true;
+  data: {
+    refundId: string;
+    paymentId: string;
+    amount: string;
+    tokenAddress: string;
+    tokenSymbol: string;
+    tokenDecimals: number;
+    payerAddress: string;
+    status: 'PENDING' | 'SUBMITTED' | 'CONFIRMED' | 'FAILED';
+    reason: string | null;
+    txHash: string | null;
+    errorMessage: string | null;
+    createdAt: string;
+    submittedAt: string | null;
+    confirmedAt: string | null;
+  };
+}
+
+/** Refund list item */
+export interface RefundListItem {
+  refundId: string;
+  paymentId: string;
+  amount: string;
+  tokenAddress: string;
+  payerAddress: string;
+  status: 'PENDING' | 'SUBMITTED' | 'CONFIRMED' | 'FAILED';
+  reason: string | null;
+  txHash: string | null;
+  createdAt: string;
+  confirmedAt: string | null;
+}
+
+/** Params for GET /refund */
+export interface GetRefundListParams {
+  page?: number;
+  limit?: number;
+  status?: 'PENDING' | 'SUBMITTED' | 'CONFIRMED' | 'FAILED';
+  paymentId?: string;
+}
+
+/** Response from GET /refund */
+export interface RefundListResponse {
+  success: true;
+  data: {
+    items: RefundListItem[];
+    pagination: {
+      page: number;
+      limit: number;
+      total: number;
+      totalPages: number;
+    };
+  };
+}
+
+// ============================================================================
+// Chains types (public, no auth)
+// ============================================================================
+
+/** Response from GET /chains */
+export interface ChainsResponse {
+  success: true;
+  chains: ChainInfo[];
+}
+
+/** Response from GET /chains/tokens */
+export interface ChainsWithTokensResponse {
+  success: true;
+  chains: Array<ChainInfo & { tokens: TokenInfo[] }>;
+}
+
+// ============================================================================
+// Error types
+// ============================================================================
 
 export interface ErrorDetails {
   message?: string;
@@ -142,37 +329,4 @@ export interface ErrorResponse {
   code: string;
   message: string;
   details?: ErrorDetails[];
-}
-
-// Payment History types
-export interface PaymentHistoryItem {
-  /** 결제 ID (bytes32 해시) */
-  paymentId: string;
-  /** 결제자 주소 */
-  payer: string;
-  /** 트레저리 주소 */
-  treasury: string;
-  /** 토큰 컨트랙트 주소 */
-  token: string;
-  /** 토큰 심볼 */
-  tokenSymbol: string;
-  /** 토큰 소수점 자리수 */
-  decimals: number;
-  /** 결제 금액 (Wei 단위) */
-  amount: string;
-  /** 결제 완료 시간 (Unix timestamp) */
-  timestamp: string;
-  /** 트랜잭션 해시 */
-  transactionHash: string;
-  /** 결제 상태 */
-  status: string;
-  /** Gasless 결제 여부 */
-  isGasless: boolean;
-  /** Relay 요청 ID (Gasless인 경우) */
-  relayId?: string;
-}
-
-export interface PaymentHistoryResponse {
-  success: true;
-  data: PaymentHistoryItem[];
 }

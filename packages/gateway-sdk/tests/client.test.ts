@@ -3,8 +3,6 @@ import { SoloPayClient, SoloPayError } from '../src/index';
 import type {
   CreatePaymentParams,
   GaslessParams,
-  RelayParams,
-  GetPaymentHistoryParams,
 } from '../src/index';
 
 // Mock fetch globally
@@ -127,7 +125,7 @@ describe('SoloPayClient', () => {
       expect(result.orderId).toBe('order-001');
       expect(result.serverSignature).toBeDefined();
       expect(mockFetch).toHaveBeenCalledWith(
-        'http://localhost:3001/api/v1/payments/create',
+        'http://localhost:3001/api/v1/payment',
         expect.objectContaining({
           method: 'POST',
           headers: expect.objectContaining({
@@ -227,7 +225,7 @@ describe('SoloPayClient', () => {
       expect(result.data.paymentId).toBe('pay-123');
       expect(result.data.status).toBe('completed');
       expect(mockFetch).toHaveBeenCalledWith(
-        'http://localhost:3001/api/v1/payments/pay-123/status',
+        'http://localhost:3001/api/v1/payment/pay-123',
         expect.objectContaining({
           method: 'GET',
         })
@@ -302,10 +300,9 @@ describe('SoloPayClient', () => {
     it('TC-005: should submit gasless transaction successfully', async () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
-        status: 200,
+        status: 202,
         json: async () => ({
           success: true,
-          relayRequestId: 'relay-123',
           status: 'submitted',
           message: 'Transaction submitted',
         }),
@@ -314,10 +311,9 @@ describe('SoloPayClient', () => {
       const result = await client.submitGasless(validParams);
 
       expect(result.success).toBe(true);
-      expect(result.relayRequestId).toBe('relay-123');
       expect(result.status).toBe('submitted');
       expect(mockFetch).toHaveBeenCalledWith(
-        'http://localhost:3001/api/v1/payments/pay-123/gasless',
+        'http://localhost:3001/api/v1/payment/pay-123/relay',
         expect.objectContaining({
           method: 'POST',
         })
@@ -330,10 +326,9 @@ describe('SoloPayClient', () => {
       for (const status of statuses) {
         mockFetch.mockResolvedValueOnce({
           ok: true,
-          status: 200,
+          status: 202,
           json: async () => ({
             success: true,
-            relayRequestId: 'relay-123',
             status,
             message: 'Transaction ' + status,
           }),
@@ -354,10 +349,9 @@ describe('SoloPayClient', () => {
 
       mockFetch.mockResolvedValueOnce({
         ok: true,
-        status: 200,
+        status: 202,
         json: async () => ({
           success: true,
-          relayRequestId: 'relay-123',
           status: 'submitted',
           message: 'Transaction submitted',
         }),
@@ -388,10 +382,9 @@ describe('SoloPayClient', () => {
 
       mockFetch.mockResolvedValueOnce({
         ok: true,
-        status: 200,
+        status: 202,
         json: async () => ({
           success: true,
-          relayRequestId: 'relay-456',
           status: 'submitted',
           message: 'Transaction submitted',
         }),
@@ -423,97 +416,169 @@ describe('SoloPayClient', () => {
     });
   });
 
-  describe('executeRelay', () => {
-    const validParams: RelayParams = {
-      paymentId: 'pay-123',
-      transactionData: '0x' + 'b'.repeat(256),
-      gasEstimate: 100000,
-    };
-
-    it('TC-006: should execute relay successfully', async () => {
+  describe('getRelayStatus', () => {
+    it('should get relay status successfully', async () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
         status: 200,
         json: async () => ({
           success: true,
-          relayRequestId: 'relay-123',
-          transactionHash: '0xdef456',
-          status: 'mined',
-          message: 'Relay executed',
+          data: {
+            status: 'CONFIRMED',
+            transactionHash: '0xabc123',
+            errorMessage: null,
+            createdAt: '2025-11-29T10:00:00Z',
+            updatedAt: '2025-11-29T10:05:00Z',
+          },
         }),
       });
 
-      const result = await client.executeRelay(validParams);
+      const result = await client.getRelayStatus('pay-123');
 
       expect(result.success).toBe(true);
-      expect(result.relayRequestId).toBe('relay-123');
-      expect(result.transactionHash).toBe('0xdef456');
-      expect(result.status).toBe('mined');
+      expect(result.data.status).toBe('CONFIRMED');
       expect(mockFetch).toHaveBeenCalledWith(
-        'http://localhost:3001/api/v1/payments/pay-123/relay',
+        'http://localhost:3001/api/v1/payment/pay-123/relay',
+        expect.objectContaining({ method: 'GET' })
+      );
+    });
+  });
+
+  describe('merchant endpoints', () => {
+    it('should get merchant info', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({
+          success: true,
+          merchant: { id: 1, name: 'Test', merchant_key: 'mk_test' },
+          chainTokens: [],
+        }),
+      });
+
+      const result = await client.getMerchantInfo();
+      expect(result.success).toBe(true);
+      expect(mockFetch).toHaveBeenCalledWith(
+        'http://localhost:3001/api/v1/merchant',
         expect.objectContaining({
-          method: 'POST',
+          headers: expect.objectContaining({ 'x-api-key': 'test-api-key' }),
         })
       );
     });
 
-    it('TC-006.1: should handle relay status values', async () => {
-      const statuses = ['submitted', 'mined', 'failed'] as const;
-
-      for (const status of statuses) {
-        mockFetch.mockResolvedValueOnce({
-          ok: true,
-          status: 200,
-          json: async () => ({
-            success: true,
-            relayRequestId: 'relay-123',
-            status,
-            message: 'Relay ' + status,
-          }),
-        });
-
-        const result = await client.executeRelay(validParams);
-        expect(result.status).toBe(status);
-      }
-    });
-
-    it('TC-006.2: should throw SoloPayError on invalid transaction data', async () => {
+    it('should get merchant payment by orderId', async () => {
       mockFetch.mockResolvedValueOnce({
-        ok: false,
-        status: 400,
+        ok: true,
+        status: 200,
         json: async () => ({
-          success: false,
-          code: 'INVALID_TRANSACTION_DATA',
-          message: '잘못된 트랜잭션 데이터',
+          paymentId: '0xabc',
+          orderId: 'order-1',
+          status: 'CONFIRMED',
+          amount: '1000',
+          tokenSymbol: 'TEST',
+          tokenDecimals: 18,
+          createdAt: '2025-01-01T00:00:00Z',
+          expiresAt: '2025-01-01T00:30:00Z',
         }),
       });
 
-      await expect(client.executeRelay(validParams)).rejects.toMatchObject({
-        code: 'INVALID_TRANSACTION_DATA',
-        statusCode: 400,
-      });
+      const result = await client.getMerchantPaymentByOrderId('order-1');
+      expect(result.status).toBe('CONFIRMED');
+      expect(mockFetch).toHaveBeenCalledWith(
+        'http://localhost:3001/api/v1/merchant/payment?orderId=order-1',
+        expect.objectContaining({ method: 'GET' })
+      );
     });
+  });
 
-    it('TC-006.3: should throw SoloPayError on invalid gas estimate', async () => {
+  describe('refund endpoints', () => {
+    it('should create refund', async () => {
       mockFetch.mockResolvedValueOnce({
-        ok: false,
-        status: 400,
+        ok: true,
+        status: 201,
         json: async () => ({
-          success: false,
-          code: 'INVALID_GAS_ESTIMATE',
-          message: '잘못된 가스 추정치',
+          success: true,
+          data: {
+            refundId: '0xrefund',
+            paymentId: '0xpayment',
+            amount: '1000',
+            tokenAddress: '0xtoken',
+            payerAddress: '0xpayer',
+            status: 'PENDING',
+            serverSignature: '0xsig',
+            merchantId: '0xmerchant',
+            createdAt: '2025-01-01T00:00:00Z',
+          },
         }),
       });
 
-      await expect(client.executeRelay(validParams)).rejects.toMatchObject({
-        code: 'INVALID_GAS_ESTIMATE',
-        statusCode: 400,
+      const result = await client.createRefund({ paymentId: '0xpayment' });
+      expect(result.success).toBe(true);
+      expect(mockFetch).toHaveBeenCalledWith(
+        'http://localhost:3001/api/v1/refund',
+        expect.objectContaining({ method: 'POST' })
+      );
+    });
+
+    it('should get refund list', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({
+          success: true,
+          data: { items: [], pagination: { page: 1, limit: 20, total: 0, totalPages: 0 } },
+        }),
       });
+
+      const result = await client.getRefundList({ page: 1, limit: 10 });
+      expect(result.success).toBe(true);
+      expect(mockFetch).toHaveBeenCalledWith(
+        'http://localhost:3001/api/v1/refund?page=1&limit=10',
+        expect.objectContaining({ method: 'GET' })
+      );
+    });
+  });
+
+  describe('chain endpoints', () => {
+    it('should get chains without auth', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({
+          success: true,
+          chains: [{ id: 1, network_id: 31337, name: 'Hardhat', is_testnet: true }],
+        }),
+      });
+
+      const result = await client.getChains();
+      expect(result.success).toBe(true);
+      // Should NOT include x-api-key or x-public-key
+      const callHeaders = mockFetch.mock.calls[0][1].headers;
+      expect(callHeaders).not.toHaveProperty('x-api-key');
+      expect(callHeaders).not.toHaveProperty('x-public-key');
+    });
+
+    it('should get chains with tokens', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({
+          success: true,
+          chains: [{ id: 1, network_id: 31337, name: 'Hardhat', is_testnet: true, tokens: [] }],
+        }),
+      });
+
+      const result = await client.getChainsWithTokens();
+      expect(result.success).toBe(true);
+      expect(mockFetch).toHaveBeenCalledWith(
+        'http://localhost:3001/api/v1/chains/tokens',
+        expect.objectContaining({ method: 'GET' })
+      );
     });
   });
 
   describe('API Key header', () => {
-    it('should include x-api-key header in all requests', async () => {
+    it('should include x-api-key header in api-auth requests', async () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
         status: 200,
@@ -536,6 +601,7 @@ describe('SoloPayClient', () => {
         }),
       });
 
+      // getPaymentStatus uses 'public' auth — when no publicKey, falls through to api-key
       await client.getPaymentStatus('pay-123');
 
       expect(mockFetch).toHaveBeenCalledWith(
@@ -587,163 +653,6 @@ describe('SoloPayClient', () => {
       mockFetch.mockRejectedValueOnce(new Error('Network error'));
 
       await expect(clientWithCreate.createPayment(createParams)).rejects.toThrow('Network error');
-    });
-  });
-
-  describe('getPaymentHistory', () => {
-    const validParams: GetPaymentHistoryParams = {
-      chainId: 31337,
-      payer: '0x1234567890123456789012345678901234567890',
-    };
-
-    it('TC-009.1: should get payment history successfully', async () => {
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        status: 200,
-        json: async () => ({
-          success: true,
-          data: [
-            {
-              paymentId: '0xabc123',
-              payer: '0x1234567890123456789012345678901234567890',
-              treasury: '0x0987654321098765432109876543210987654321',
-              token: '0xTokenAddress1234567890123456789012345678',
-              tokenSymbol: 'USDC',
-              decimals: 6,
-              amount: '1000000',
-              timestamp: '1735689600',
-              transactionHash: '0xtxhash123',
-              status: 'completed',
-              isGasless: false,
-            },
-          ],
-        }),
-      });
-
-      const result = await client.getPaymentHistory(validParams);
-
-      expect(result.success).toBe(true);
-      expect(result.data).toHaveLength(1);
-      expect(result.data[0].paymentId).toBe('0xabc123');
-      expect(result.data[0].tokenSymbol).toBe('USDC');
-      expect(result.data[0].isGasless).toBe(false);
-      expect(mockFetch).toHaveBeenCalledWith(
-        'http://localhost:3001/api/v1/payments/history?chainId=31337&payer=0x1234567890123456789012345678901234567890',
-        expect.objectContaining({
-          method: 'GET',
-          headers: expect.objectContaining({
-            'x-api-key': 'test-api-key',
-          }),
-        })
-      );
-    });
-
-    it('TC-009.2: should include gasless payment with relayId', async () => {
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        status: 200,
-        json: async () => ({
-          success: true,
-          data: [
-            {
-              paymentId: '0xdef456',
-              payer: '0x1234567890123456789012345678901234567890',
-              treasury: '0x0987654321098765432109876543210987654321',
-              token: '0xTokenAddress1234567890123456789012345678',
-              tokenSymbol: 'TEST',
-              decimals: 18,
-              amount: '1000000000000000000',
-              timestamp: '1735689700',
-              transactionHash: '0xtxhash456',
-              status: 'completed',
-              isGasless: true,
-              relayId: 'relay-789',
-            },
-          ],
-        }),
-      });
-
-      const result = await client.getPaymentHistory(validParams);
-
-      expect(result.success).toBe(true);
-      expect(result.data[0].isGasless).toBe(true);
-      expect(result.data[0].relayId).toBe('relay-789');
-    });
-
-    it('TC-009.3: should return empty array when no history', async () => {
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        status: 200,
-        json: async () => ({
-          success: true,
-          data: [],
-        }),
-      });
-
-      const result = await client.getPaymentHistory(validParams);
-
-      expect(result.success).toBe(true);
-      expect(result.data).toHaveLength(0);
-    });
-
-    it('TC-009.4: should include limit parameter when provided', async () => {
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        status: 200,
-        json: async () => ({
-          success: true,
-          data: [],
-        }),
-      });
-
-      await client.getPaymentHistory({
-        ...validParams,
-        limit: 50,
-      });
-
-      expect(mockFetch).toHaveBeenCalledWith(
-        'http://localhost:3001/api/v1/payments/history?chainId=31337&payer=0x1234567890123456789012345678901234567890&limit=50',
-        expect.any(Object)
-      );
-    });
-
-    it('TC-009.5: should throw SoloPayError on invalid chainId', async () => {
-      mockFetch.mockResolvedValueOnce({
-        ok: false,
-        status: 400,
-        json: async () => ({
-          success: false,
-          code: 'INVALID_CHAIN_ID',
-          message: '지원하지 않는 체인 ID입니다',
-        }),
-      });
-
-      await expect(client.getPaymentHistory(validParams)).rejects.toMatchObject({
-        code: 'INVALID_CHAIN_ID',
-        statusCode: 400,
-      });
-    });
-
-    it('TC-009.6: should throw SoloPayError on invalid payer address', async () => {
-      mockFetch.mockResolvedValueOnce({
-        ok: false,
-        status: 400,
-        json: async () => ({
-          success: false,
-          code: 'INVALID_ADDRESS',
-          message: '유효하지 않은 지갑 주소입니다',
-        }),
-      });
-
-      await expect(
-        client.getPaymentHistory({
-          chainId: 31337,
-          payer: 'invalid-address',
-        })
-      ).rejects.toMatchObject({
-        code: 'INVALID_ADDRESS',
-        statusCode: 400,
-      });
     });
   });
 
@@ -821,7 +730,7 @@ describe('SoloPayClient', () => {
       await client.getPaymentStatus('pay-456');
 
       const callUrl = mockFetch.mock.calls[0][0];
-      expect(callUrl).toContain('/payments/pay-456/status');
+      expect(callUrl).toContain('/payment/pay-456');
     });
   });
 });
