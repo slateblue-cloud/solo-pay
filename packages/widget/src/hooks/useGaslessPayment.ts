@@ -8,6 +8,7 @@ import {
   type ForwardRequest,
 } from '../lib/api';
 import type { PaymentDetails } from '../types';
+import { usePermit, ZERO_PERMIT } from './usePermit';
 
 // ============================================================================
 // Types
@@ -33,6 +34,8 @@ export interface UseGaslessPaymentReturn {
   error: Error | null;
   /** Whether gasless is supported (forwarder configured) */
   isGaslessSupported: boolean;
+  /** Whether the token supports EIP-2612 permit */
+  isPermitSupported: boolean | undefined;
 }
 
 // ============================================================================
@@ -43,18 +46,8 @@ export interface UseGaslessPaymentReturn {
  * Hook for executing gasless (meta-transaction) payments
  *
  * Uses ERC2771 forwarder for meta-transactions where the relayer pays gas fees.
- *
- * @example
- * ```tsx
- * const { payGasless, isPayingGasless, isRelayConfirming, error } = useGaslessPayment({
- *   paymentDetails,
- * });
- *
- * // Execute gasless payment
- * const handleGaslessPayment = async () => {
- *   await payGasless();
- * };
- * ```
+ * Automatically uses EIP-2612 permit when the token supports it, eliminating
+ * the need for a separate approve transaction.
  */
 export function useGaslessPayment({
   paymentDetails,
@@ -79,6 +72,17 @@ export function useGaslessPayment({
 
   // Check if gasless is supported
   const isGaslessSupported = !!forwarderAddress;
+
+  // EIP-2612 Permit support
+  const {
+    isPermitSupported,
+    signPermit,
+  } = usePermit({
+    tokenAddress,
+    spenderAddress: gatewayAddress,
+    amount,
+    chainId: paymentDetails?.chainId,
+  });
 
   // Get nonce from forwarder contract
   const { data: nonce, refetch: refetchNonce } = useReadContract({
@@ -119,7 +123,18 @@ export function useGaslessPayment({
         throw new Error('Failed to fetch nonce from Forwarder contract');
       }
 
-      // 1. Encode the PaymentGateway.pay() function call
+      // 1. Try to sign EIP-2612 permit (if token supports it)
+      let permitData = ZERO_PERMIT;
+      if (isPermitSupported) {
+        try {
+          permitData = await signPermit();
+        } catch (err) {
+          console.warn('Permit signing failed, falling back to approve flow:', err);
+          // Continue with zero permit (requires prior approval)
+        }
+      }
+
+      // 2. Encode the PaymentGateway.pay() function call with permit
       const payCallData = encodeFunctionData({
         abi: PAYMENT_GATEWAY_ABI,
         functionName: 'pay',
@@ -131,16 +146,11 @@ export function useGaslessPayment({
           merchantId,
           feeBps,
           serverSignature,
-          {
-            deadline: 0n,
-            v: 0,
-            r: '0x0000000000000000000000000000000000000000000000000000000000000000',
-            s: '0x0000000000000000000000000000000000000000000000000000000000000000',
-          },
+          permitData,
         ],
       });
 
-      // 2. Create EIP-712 typed data for gasless payment forward request
+      // 3. Create EIP-712 typed data for gasless payment forward request
       const domain = {
         name: 'SoloForwarder',
         version: '1',
@@ -173,7 +183,7 @@ export function useGaslessPayment({
         data: payCallData,
       };
 
-      // 3. Request EIP-712 signature from user
+      // 4. Request EIP-712 signature from user
       const signature = await walletClient.signTypedData({
         domain,
         types,
@@ -181,7 +191,7 @@ export function useGaslessPayment({
         message: forwardMessage,
       });
 
-      // 4. Create ForwardRequest for relay
+      // 5. Create ForwardRequest for relay
       const forwardRequest: ForwardRequest = {
         from: walletClient.account.address,
         to: gatewayAddress,
@@ -193,12 +203,12 @@ export function useGaslessPayment({
         signature,
       };
 
-      // 5. Submit to relay service
+      // 6. Submit to relay service
       setIsPayingGasless(false);
       setIsRelayConfirming(true);
 
       const origin = typeof window !== 'undefined' ? window.location.origin : undefined;
-      const submitResponse = await submitGaslessPayment(
+      await submitGaslessPayment(
         paymentId,
         forwarderAddress,
         forwardRequest,
@@ -206,7 +216,7 @@ export function useGaslessPayment({
         { origin }
       );
 
-      // 6. Poll relay status until CONFIRMED/FAILED
+      // 7. Poll relay status until CONFIRMED/FAILED
       const relayOrigin = typeof window !== 'undefined' ? window.location.origin : undefined;
       const relayResult = await waitForRelayTransaction(paymentId, {
         timeout: 120000,
@@ -236,6 +246,8 @@ export function useGaslessPayment({
     paymentDetails?.chainId,
     publicKey,
     refetchNonce,
+    isPermitSupported,
+    signPermit,
   ]);
 
   return {
@@ -245,5 +257,6 @@ export function useGaslessPayment({
     relayTxHash,
     error,
     isGaslessSupported,
+    isPermitSupported,
   };
 }
