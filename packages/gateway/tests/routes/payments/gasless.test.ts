@@ -45,6 +45,12 @@ const createValidPayCalldata = (paymentId: string, amount: string) => {
       merchantId, // bytes32 merchantId
       0, // uint16 feeBps
       ('0x' + 'ab'.repeat(65)) as `0x${string}`, // bytes serverSignature (dummy 65 bytes)
+      {
+        deadline: 0n,
+        v: 0,
+        r: ('0x' + '0'.repeat(64)) as `0x${string}`,
+        s: ('0x' + '0'.repeat(64)) as `0x${string}`,
+      }, // PermitSignature (zero permit for test)
     ],
   });
 };
@@ -87,7 +93,7 @@ const mockPaymentData = {
   recipient_address: '0x70997970C51812dc3A010C7d01b50e0d17dc79C8',
 };
 
-describe('POST /payments/:id/gasless', () => {
+describe('POST /payment/:id/relay', () => {
   let app: FastifyInstance;
   let relayerService: Partial<RelayerService>;
   let relayService: Partial<RelayService>;
@@ -150,7 +156,7 @@ describe('POST /payments/:id/gasless', () => {
 
       const response = await app.inject({
         method: 'POST',
-        url: `${API_V1_BASE_PATH}/payments/payment-123/gasless`,
+        url: `${API_V1_BASE_PATH}/payment/payment-123/relay`,
         headers: { 'x-public-key': TEST_PUBLIC_KEY, origin: TEST_ORIGIN },
         payload: validRequest,
       });
@@ -158,7 +164,6 @@ describe('POST /payments/:id/gasless', () => {
       expect(response.statusCode).toBe(202);
       const body = JSON.parse(response.body);
       expect(body.success).toBe(true);
-      expect(body.relayRequestId).toBeDefined();
       expect(body.status).toBe('submitted');
     });
 
@@ -167,7 +172,7 @@ describe('POST /payments/:id/gasless', () => {
 
       const response = await app.inject({
         method: 'POST',
-        url: `${API_V1_BASE_PATH}/payments/payment-456/gasless`,
+        url: `${API_V1_BASE_PATH}/payment/payment-456/relay`,
         headers: { 'x-public-key': TEST_PUBLIC_KEY, origin: TEST_ORIGIN },
         payload: validRequest,
       });
@@ -175,7 +180,6 @@ describe('POST /payments/:id/gasless', () => {
       expect(response.statusCode).toBe(202);
       const body = JSON.parse(response.body);
       expect(body).toHaveProperty('success');
-      expect(body).toHaveProperty('relayRequestId');
       expect(body).toHaveProperty('status');
       expect(body).toHaveProperty('message');
     });
@@ -189,7 +193,7 @@ describe('POST /payments/:id/gasless', () => {
 
       const response = await app.inject({
         method: 'POST',
-        url: `${API_V1_BASE_PATH}/payments/payment-789/gasless`,
+        url: `${API_V1_BASE_PATH}/payment/payment-789/relay`,
         headers: { 'x-public-key': TEST_PUBLIC_KEY, origin: TEST_ORIGIN },
         payload: invalidRequest,
       });
@@ -208,7 +212,7 @@ describe('POST /payments/:id/gasless', () => {
 
       const response = await app.inject({
         method: 'POST',
-        url: `${API_V1_BASE_PATH}/payments/payment-101/gasless`,
+        url: `${API_V1_BASE_PATH}/payment/payment-101/relay`,
         headers: { 'x-public-key': TEST_PUBLIC_KEY, origin: TEST_ORIGIN },
         payload: invalidRequest,
       });
@@ -227,7 +231,7 @@ describe('POST /payments/:id/gasless', () => {
 
       const response = await app.inject({
         method: 'POST',
-        url: `${API_V1_BASE_PATH}/payments/payment-202/gasless`,
+        url: `${API_V1_BASE_PATH}/payment/payment-202/relay`,
         headers: { 'x-public-key': TEST_PUBLIC_KEY, origin: TEST_ORIGIN },
         payload: incompleteRequest,
       });
@@ -242,7 +246,7 @@ describe('POST /payments/:id/gasless', () => {
 
       const response = await app.inject({
         method: 'POST',
-        url: `${API_V1_BASE_PATH}/payments//gasless`,
+        url: `${API_V1_BASE_PATH}/payment//relay`,
         headers: { 'x-public-key': TEST_PUBLIC_KEY, origin: TEST_ORIGIN },
         payload: validRequest,
       });
@@ -261,7 +265,7 @@ describe('POST /payments/:id/gasless', () => {
 
       const response = await app.inject({
         method: 'POST',
-        url: `${API_V1_BASE_PATH}/payments/payment-404/gasless`,
+        url: `${API_V1_BASE_PATH}/payment/payment-404/relay`,
         headers: { 'x-public-key': TEST_PUBLIC_KEY, origin: TEST_ORIGIN },
         payload: validRequest,
       });
@@ -282,7 +286,7 @@ describe('POST /payments/:id/gasless', () => {
 
       const response = await app.inject({
         method: 'POST',
-        url: `${API_V1_BASE_PATH}/payments/payment-505/gasless`,
+        url: `${API_V1_BASE_PATH}/payment/payment-505/relay`,
         headers: { 'x-public-key': TEST_PUBLIC_KEY, origin: TEST_ORIGIN },
         payload: invalidRequest,
       });
@@ -301,7 +305,7 @@ describe('POST /payments/:id/gasless', () => {
 
       await app.inject({
         method: 'POST',
-        url: `${API_V1_BASE_PATH}/payments/payment-606/gasless`,
+        url: `${API_V1_BASE_PATH}/payment/payment-606/relay`,
         headers: { 'x-public-key': TEST_PUBLIC_KEY, origin: TEST_ORIGIN },
         payload: validRequest,
       });

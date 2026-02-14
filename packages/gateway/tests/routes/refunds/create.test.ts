@@ -72,7 +72,7 @@ const mockRefund = {
   updated_at: new Date(),
 };
 
-describe('POST /refunds', () => {
+describe('POST /refund', () => {
   let app: FastifyInstance;
   let merchantService: Partial<MerchantService>;
   let paymentService: Partial<PaymentService>;
@@ -142,7 +142,7 @@ describe('POST /refunds', () => {
     it('유효한 환불 요청을 받으면 201 상태 코드와 함께 환불 정보를 반환해야 함', async () => {
       const response = await app.inject({
         method: 'POST',
-        url: `${API_V1_BASE_PATH}/refunds`,
+        url: `${API_V1_BASE_PATH}/refund`,
         headers: { 'x-api-key': TEST_API_KEY },
         payload: {
           paymentId: mockPayment.payment_hash,
@@ -161,7 +161,7 @@ describe('POST /refunds', () => {
     it('reason 없이 환불 요청을 해도 성공해야 함', async () => {
       const response = await app.inject({
         method: 'POST',
-        url: `${API_V1_BASE_PATH}/refunds`,
+        url: `${API_V1_BASE_PATH}/refund`,
         headers: { 'x-api-key': TEST_API_KEY },
         payload: {
           paymentId: mockPayment.payment_hash,
@@ -176,7 +176,7 @@ describe('POST /refunds', () => {
     it('환불 응답에 기본 필드가 포함되어야 함', async () => {
       const response = await app.inject({
         method: 'POST',
-        url: `${API_V1_BASE_PATH}/refunds`,
+        url: `${API_V1_BASE_PATH}/refund`,
         headers: { 'x-api-key': TEST_API_KEY },
         payload: {
           paymentId: mockPayment.payment_hash,
@@ -202,7 +202,7 @@ describe('POST /refunds', () => {
     it('API 키가 없으면 401 상태 코드를 반환해야 함', async () => {
       const response = await app.inject({
         method: 'POST',
-        url: `${API_V1_BASE_PATH}/refunds`,
+        url: `${API_V1_BASE_PATH}/refund`,
         payload: {
           paymentId: mockPayment.payment_hash,
         },
@@ -218,7 +218,7 @@ describe('POST /refunds', () => {
 
       const response = await app.inject({
         method: 'POST',
-        url: `${API_V1_BASE_PATH}/refunds`,
+        url: `${API_V1_BASE_PATH}/refund`,
         headers: { 'x-api-key': 'invalid-api-key' },
         payload: {
           paymentId: mockPayment.payment_hash,
@@ -235,7 +235,7 @@ describe('POST /refunds', () => {
 
       const response = await app.inject({
         method: 'POST',
-        url: `${API_V1_BASE_PATH}/refunds`,
+        url: `${API_V1_BASE_PATH}/refund`,
         headers: { 'x-api-key': TEST_API_KEY },
         payload: {
           paymentId: '0x' + 'f'.repeat(64),
@@ -255,7 +255,7 @@ describe('POST /refunds', () => {
 
       const response = await app.inject({
         method: 'POST',
-        url: `${API_V1_BASE_PATH}/refunds`,
+        url: `${API_V1_BASE_PATH}/refund`,
         headers: { 'x-api-key': TEST_API_KEY },
         payload: {
           paymentId: mockPayment.payment_hash,
@@ -278,7 +278,7 @@ describe('POST /refunds', () => {
 
         const response = await app.inject({
           method: 'POST',
-          url: `${API_V1_BASE_PATH}/refunds`,
+          url: `${API_V1_BASE_PATH}/refund`,
           headers: { 'x-api-key': TEST_API_KEY },
           payload: {
             paymentId: mockPayment.payment_hash,
@@ -299,7 +299,7 @@ describe('POST /refunds', () => {
 
       const response = await app.inject({
         method: 'POST',
-        url: `${API_V1_BASE_PATH}/refunds`,
+        url: `${API_V1_BASE_PATH}/refund`,
         headers: { 'x-api-key': TEST_API_KEY },
         payload: {
           paymentId: mockPayment.payment_hash,
@@ -318,7 +318,7 @@ describe('POST /refunds', () => {
 
       const response = await app.inject({
         method: 'POST',
-        url: `${API_V1_BASE_PATH}/refunds`,
+        url: `${API_V1_BASE_PATH}/refund`,
         headers: { 'x-api-key': TEST_API_KEY },
         payload: {
           paymentId: mockPayment.payment_hash,
@@ -335,7 +335,7 @@ describe('POST /refunds', () => {
 
       const response = await app.inject({
         method: 'POST',
-        url: `${API_V1_BASE_PATH}/refunds`,
+        url: `${API_V1_BASE_PATH}/refund`,
         headers: { 'x-api-key': TEST_API_KEY },
         payload: {
           paymentId: mockPayment.payment_hash,
@@ -354,7 +354,7 @@ describe('POST /refunds', () => {
 
       const response = await app.inject({
         method: 'POST',
-        url: `${API_V1_BASE_PATH}/refunds`,
+        url: `${API_V1_BASE_PATH}/refund`,
         headers: { 'x-api-key': TEST_API_KEY },
         payload: {
           paymentId: mockPayment.payment_hash,
@@ -371,7 +371,7 @@ describe('POST /refunds', () => {
 
       const response = await app.inject({
         method: 'POST',
-        url: `${API_V1_BASE_PATH}/refunds`,
+        url: `${API_V1_BASE_PATH}/refund`,
         headers: { 'x-api-key': TEST_API_KEY },
         payload: {
           paymentId: mockPayment.payment_hash,
@@ -388,7 +388,7 @@ describe('POST /refunds', () => {
 
       const response = await app.inject({
         method: 'POST',
-        url: `${API_V1_BASE_PATH}/refunds`,
+        url: `${API_V1_BASE_PATH}/refund`,
         headers: { 'x-api-key': TEST_API_KEY },
         payload: {
           paymentId: mockPayment.payment_hash,
@@ -405,7 +405,7 @@ describe('POST /refunds', () => {
     it('paymentId가 누락되면 400 상태 코드를 반환해야 함', async () => {
       const response = await app.inject({
         method: 'POST',
-        url: `${API_V1_BASE_PATH}/refunds`,
+        url: `${API_V1_BASE_PATH}/refund`,
         headers: { 'x-api-key': TEST_API_KEY },
         payload: {
           reason: '테스트',
@@ -418,7 +418,7 @@ describe('POST /refunds', () => {
     it('빈 body로 요청하면 400 상태 코드를 반환해야 함', async () => {
       const response = await app.inject({
         method: 'POST',
-        url: `${API_V1_BASE_PATH}/refunds`,
+        url: `${API_V1_BASE_PATH}/refund`,
         headers: { 'x-api-key': TEST_API_KEY },
         payload: {},
       });
@@ -433,7 +433,7 @@ describe('POST /refunds', () => {
 
       const response = await app.inject({
         method: 'POST',
-        url: `${API_V1_BASE_PATH}/refunds`,
+        url: `${API_V1_BASE_PATH}/refund`,
         headers: { 'x-api-key': TEST_API_KEY },
         payload: {
           paymentId: mockPayment.payment_hash,
@@ -453,7 +453,7 @@ describe('POST /refunds', () => {
 
       const response = await app.inject({
         method: 'POST',
-        url: `${API_V1_BASE_PATH}/refunds`,
+        url: `${API_V1_BASE_PATH}/refund`,
         headers: { 'x-api-key': TEST_API_KEY },
         payload: {
           paymentId: mockPayment.payment_hash,
@@ -470,7 +470,7 @@ describe('POST /refunds', () => {
 
       await app.inject({
         method: 'POST',
-        url: `${API_V1_BASE_PATH}/refunds`,
+        url: `${API_V1_BASE_PATH}/refund`,
         headers: { 'x-api-key': TEST_API_KEY },
         payload: {
           paymentId: mockPayment.payment_hash,
