@@ -2,11 +2,7 @@ import { useCallback, useState } from 'react';
 import { useReadContract, useWalletClient } from 'wagmi';
 import { encodeFunctionData } from 'viem';
 import { PAYMENT_GATEWAY_ABI, FORWARDER_ABI } from '../lib/contracts';
-import {
-  submitGaslessPayment,
-  waitForRelayTransaction,
-  type ForwardRequest,
-} from '../lib/api';
+import { submitGaslessPayment, waitForRelayTransaction, type ForwardRequest } from '../lib/api';
 import type { PaymentDetails } from '../types';
 import { usePermit, ZERO_PERMIT } from './usePermit';
 
@@ -74,10 +70,7 @@ export function useGaslessPayment({
   const isGaslessSupported = !!forwarderAddress;
 
   // EIP-2612 Permit support
-  const {
-    isPermitSupported,
-    signPermit,
-  } = usePermit({
+  const { isPermitSupported, signPermit } = usePermit({
     tokenAddress,
     spenderAddress: gatewayAddress,
     amount,
@@ -129,6 +122,10 @@ export function useGaslessPayment({
         try {
           permitData = await signPermit();
         } catch (err) {
+          const error = err as { name?: string; code?: number };
+          if (error.name === 'UserRejectedRequestError' || error.code === 4001) {
+            throw err;
+          }
           console.warn('Permit signing failed, falling back to approve flow:', err);
           // Continue with zero permit (requires prior approval)
         }
@@ -208,13 +205,9 @@ export function useGaslessPayment({
       setIsRelayConfirming(true);
 
       const origin = typeof window !== 'undefined' ? window.location.origin : undefined;
-      await submitGaslessPayment(
-        paymentId,
-        forwarderAddress,
-        forwardRequest,
-        publicKey ?? '',
-        { origin }
-      );
+      await submitGaslessPayment(paymentId, forwarderAddress, forwardRequest, publicKey ?? '', {
+        origin,
+      });
 
       // 7. Poll relay status until CONFIRMED/FAILED
       const relayOrigin = typeof window !== 'undefined' ? window.location.origin : undefined;
