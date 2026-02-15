@@ -22,3 +22,11 @@ export {
   type UseGaslessPaymentParams,
   type UseGaslessPaymentReturn,
 } from './useGaslessPayment';
+
+export {
+  usePermit,
+  ZERO_PERMIT,
+  type PermitSignature,
+  type UsePermitParams,
+  type UsePermitReturn,
+} from './usePermit';

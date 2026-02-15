@@ -7,11 +7,14 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "lint": "eslint",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test:e2e": "playwright test -c e2e/playwright.config.ts",
+    "test:e2e:headed": "playwright test -c e2e/playwright.config.ts --headed"
   },
   "devDependencies": {
-    "@solo-pay/gateway-sdk": "workspace:*",
+    "@playwright/test": "^1.58.2",
     "@solo-pay/contracts": "workspace:*",
+    "@solo-pay/gateway-sdk": "workspace:*",
     "@types/node": "^20.0.0",
     "dotenv": "^16.4.0",
     "ethers": "^6.13.0",

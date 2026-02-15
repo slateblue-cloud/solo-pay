@@ -203,3 +203,6 @@ env/
 !.moai/specs/
 !.moai/memory/
 .moai/memory/
+
+# Analysis file
+ANALYSIS.md

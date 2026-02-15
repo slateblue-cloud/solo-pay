@@ -134,6 +134,7 @@ export default function PaymentStep({ urlParams }: PaymentStepProps) {
     relayTxHash,
     error: gaslessError,
     isGaslessSupported,
+    isPermitSupported,
   } = useGaslessPayment({ paymentDetails, publicKey: urlParams?.pk });
 
   // Prevent double API call in React Strict Mode
@@ -166,12 +167,18 @@ export default function PaymentStep({ urlParams }: PaymentStepProps) {
   const goToPaymentProcessing = () => setCurrentStep('payment-processing');
   const goToPaymentComplete = () => setCurrentStep('payment-complete');
 
-  // Auto-advance to token-approval when wallet connects
+  // Auto-advance when wallet connects
+  // If token supports EIP-2612 permit, skip approval step entirely
+  // (permit will be signed inline during gasless payment)
   useEffect(() => {
     if (isConnected && address && paymentDetails) {
-      setCurrentStep('token-approval');
+      if (isPermitSupported) {
+        setCurrentStep('payment-confirm');
+      } else {
+        setCurrentStep('token-approval');
+      }
     }
-  }, [isConnected, address, paymentDetails]);
+  }, [isConnected, address, paymentDetails, isPermitSupported]);
 
   // Auto-advance after approval confirmation
   useEffect(() => {

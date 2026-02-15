@@ -120,8 +120,7 @@ Returns the latest relay transaction status for a payment.
           },
         });
       } catch (error) {
-        const message =
-          error instanceof Error ? error.message : 'Failed to get relay status';
+        const message = error instanceof Error ? error.message : 'Failed to get relay status';
         return reply.code(500).send({
           code: 'INTERNAL_ERROR',
           message,

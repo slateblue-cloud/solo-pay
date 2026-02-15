@@ -1,15 +1,8 @@
 import { useCallback, useEffect } from 'react';
 import { useReadContract, useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
 import { ERC20_ABI } from '../lib/contracts';
-import { formatUnits, parseGwei } from 'viem';
-
-// Polygon networks require higher gas fees (min 25 gwei priority fee)
-const POLYGON_CHAIN_IDS = [137, 80002]; // Polygon Mainnet, Polygon Amoy
-const POLYGON_GAS_CONFIG = {
-  maxPriorityFeePerGas: parseGwei('30'), // 30 gwei (above 25 gwei minimum)
-  maxFeePerGas: parseGwei('100'), // 100 gwei max
-  gas: BigInt(100000), // Explicit gas limit for approve (typically ~50k)
-};
+import { formatUnits } from 'viem';
+import { POLYGON_CHAIN_IDS, POLYGON_APPROVE_GAS_CONFIG } from '../lib/constants';
 
 // ============================================================================
 // Types
@@ -148,7 +141,8 @@ export function useToken({
       if (!tokenAddress || !spenderAddress) return;
 
       // Polygon networks require higher gas fees
-      const gasConfig = chainId && POLYGON_CHAIN_IDS.includes(chainId) ? POLYGON_GAS_CONFIG : {};
+      const gasConfig =
+        chainId && POLYGON_CHAIN_IDS.includes(chainId) ? POLYGON_APPROVE_GAS_CONFIG : {};
 
       writeContract({
         address: tokenAddress,
