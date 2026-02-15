@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react';
-import { usePublicClient, useReadContract, useWalletClient } from 'wagmi';
+import { useReadContract, useWalletClient } from 'wagmi';
 import { encodeFunctionData } from 'viem';
 import { PAYMENT_GATEWAY_ABI, FORWARDER_ABI } from '../lib/contracts';
 import { submitGaslessPayment, waitForRelayTransaction, type ForwardRequest } from '../lib/api';
@@ -55,7 +55,6 @@ export function useGaslessPayment({
   const [error, setError] = useState<Error | null>(null);
 
   const { data: walletClient } = useWalletClient();
-  const publicClient = usePublicClient();
 
   const forwarderAddress = paymentDetails?.forwarderAddress as `0x${string}` | undefined;
   const gatewayAddress = paymentDetails?.gatewayAddress as `0x${string}` | undefined;
@@ -127,31 +126,20 @@ export function useGaslessPayment({
           if (error.name === 'UserRejectedRequestError' || error.code === 4001) {
             throw err;
           }
-          // Permit signing failed (network error, unsupported, etc.)
-          // Fall back to standard ERC-20 approve → then continue with zero permit
-          console.warn('Permit signing failed, requesting standard approval:', err);
-          if (walletClient && tokenAddress && gatewayAddress && publicClient) {
-            const { request } = await publicClient.simulateContract({
-              address: tokenAddress,
-              abi: [
-                {
-                  name: 'approve',
-                  type: 'function',
-                  stateMutability: 'nonpayable',
-                  inputs: [
-                    { name: 'spender', type: 'address' },
-                    { name: 'amount', type: 'uint256' },
-                  ],
-                  outputs: [{ type: 'bool' }],
-                },
-              ],
-              functionName: 'approve',
-              args: [gatewayAddress, amount],
-              account: walletClient.account,
-            });
-            await walletClient.writeContract(request);
+          // Permit signing failed (network error, etc.) — retry permit up to 2 more times
+          console.warn('Permit signing failed, retrying:', err);
+          for (let retry = 0; retry < 2; retry++) {
+            try {
+              permitData = await signPermit();
+              break; // success
+            } catch (retryErr) {
+              const retryError = retryErr as { name?: string; code?: number };
+              if (retryError.name === 'UserRejectedRequestError' || retryError.code === 4001) {
+                throw retryErr;
+              }
+              console.warn(`Permit retry ${retry + 1} failed:`, retryErr);
+            }
           }
-          // Continue with zero permit (approval already granted)
         }
       }
 
