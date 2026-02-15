@@ -108,8 +108,7 @@ export async function merchantPaymentRoute(
         operationId: 'getMerchantPaymentByOrderId',
         tags: ['Merchant'],
         summary: 'Get payment by order ID',
-        description:
-          'Retrieves payment by merchant order ID. API Key required.',
+        description: 'Retrieves payment by merchant order ID. API Key required.',
         security: [{ ApiKeyAuth: [] }],
         querystring: {
           type: 'object',

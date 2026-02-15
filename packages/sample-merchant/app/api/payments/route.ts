@@ -29,9 +29,7 @@ async function getFirstPaymentMethod(): Promise<{
   if (!response.ok) return null;
 
   const data = await response.json();
-  const enabled = data.payment_methods?.find(
-    (pm: { is_enabled: boolean }) => pm.is_enabled
-  );
+  const enabled = data.payment_methods?.find((pm: { is_enabled: boolean }) => pm.is_enabled);
   if (!enabled?.token) return null;
 
   return {
@@ -48,18 +46,12 @@ export async function POST(request: NextRequest) {
     const { productId, price } = body;
 
     if (!productId || !price) {
-      return NextResponse.json(
-        { error: 'productId and price are required' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'productId and price are required' }, { status: 400 });
     }
 
     const token = await getFirstPaymentMethod();
     if (!token) {
-      return NextResponse.json(
-        { error: 'No enabled payment method found' },
-        { status: 502 }
-      );
+      return NextResponse.json({ error: 'No enabled payment method found' }, { status: 502 });
     }
 
     const amountWei = toWei(Number(price), token.decimals);

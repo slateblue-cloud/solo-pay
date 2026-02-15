@@ -23,7 +23,6 @@ const mockMerchant = {
   deleted_at: null,
 };
 
-
 // Create mock services
 const createMockMerchantService = () =>
   ({
@@ -159,5 +158,4 @@ describe('Auth Middleware', () => {
       });
     });
   });
-
 });

@@ -301,8 +301,8 @@ describe('PaymentGatewayV1', function () {
           merchantId,
           feeBps,
           signature,
-            ZERO_PERMIT
-          );
+          ZERO_PERMIT
+        );
 
       // Second payment with same ID should fail
       await expect(
@@ -822,8 +822,8 @@ describe('PaymentGatewayV1', function () {
           merchantId,
           feeBps,
           signature,
-            ZERO_PERMIT
-          );
+          ZERO_PERMIT
+        );
 
       expect(await gateway.isPaymentProcessed(paymentId)).to.equal(true);
     });
@@ -918,8 +918,8 @@ describe('PaymentGatewayV1', function () {
           merchantId,
           feeBps,
           signature,
-            ZERO_PERMIT
-          );
+          ZERO_PERMIT
+        );
 
       return { ...fixture, paymentId, amount };
     }
@@ -1038,7 +1038,7 @@ describe('PaymentGatewayV1', function () {
           payer.address,
           merchantId,
           refundSignature,
-            ZERO_PERMIT
+          ZERO_PERMIT
         );
 
       // Second refund should fail
@@ -1135,7 +1135,15 @@ describe('PaymentGatewayV1', function () {
       await expect(
         gateway
           .connect(merchantRecipient)
-          .refund(paymentId, ethers.ZeroAddress, amount, payer.address, merchantId, refundSignature, ZERO_PERMIT)
+          .refund(
+            paymentId,
+            ethers.ZeroAddress,
+            amount,
+            payer.address,
+            merchantId,
+            refundSignature,
+            ZERO_PERMIT
+          )
       ).to.be.revertedWith('PG: invalid token');
     });
 

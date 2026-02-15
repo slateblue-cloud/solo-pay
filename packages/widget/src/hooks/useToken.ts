@@ -141,7 +141,8 @@ export function useToken({
       if (!tokenAddress || !spenderAddress) return;
 
       // Polygon networks require higher gas fees
-      const gasConfig = chainId && POLYGON_CHAIN_IDS.includes(chainId) ? POLYGON_APPROVE_GAS_CONFIG : {};
+      const gasConfig =
+        chainId && POLYGON_CHAIN_IDS.includes(chainId) ? POLYGON_APPROVE_GAS_CONFIG : {};
 
       writeContract({
         address: tokenAddress,

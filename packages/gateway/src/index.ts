@@ -162,12 +162,7 @@ const registerRoutes = async () => {
         paymentService,
         merchantService
       );
-      await getPaymentRelayStatusRoute(
-        scope,
-        relayService,
-        paymentService,
-        merchantService
-      );
+      await getPaymentRelayStatusRoute(scope, relayService, paymentService, merchantService);
 
       // Private (x-api-key)
       await getMerchantRoute(

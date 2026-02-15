@@ -5,11 +5,21 @@ export class Decimal {
   constructor(value: string | number | Decimal) {
     this.value = String(value);
   }
-  toString() { return this.value; }
-  toFixed(dp?: number) { return Number(this.value).toFixed(dp); }
-  valueOf() { return Number(this.value); }
-  equals(other: Decimal) { return this.value === String(other); }
-  static isDecimal(obj: unknown): obj is Decimal { return obj instanceof Decimal; }
+  toString() {
+    return this.value;
+  }
+  toFixed(dp?: number) {
+    return Number(this.value).toFixed(dp);
+  }
+  valueOf() {
+    return Number(this.value);
+  }
+  equals(other: Decimal) {
+    return this.value === String(other);
+  }
+  static isDecimal(obj: unknown): obj is Decimal {
+    return obj instanceof Decimal;
+  }
 }
 
 // Prisma enums
@@ -56,7 +66,10 @@ export const Prisma = {
   PrismaClientKnownRequestError: class PrismaClientKnownRequestError extends Error {
     code: string;
     meta?: Record<string, unknown>;
-    constructor(message: string, { code, meta }: { code: string; meta?: Record<string, unknown>; clientVersion?: string }) {
+    constructor(
+      message: string,
+      { code, meta }: { code: string; meta?: Record<string, unknown>; clientVersion?: string }
+    ) {
       super(message);
       this.code = code;
       this.meta = meta;
@@ -73,5 +86,7 @@ export type Relay = Record<string, unknown>;
 export type Chain = Record<string, unknown>;
 export type Token = Record<string, unknown>;
 
-export const getPrismaClient = () => { throw new Error('Not available in test'); };
+export const getPrismaClient = () => {
+  throw new Error('Not available in test');
+};
 export const disconnectPrisma = async () => {};

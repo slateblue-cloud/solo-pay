@@ -66,12 +66,7 @@ export class SoloPayClient {
 
   /** GET /payment/:id — Get payment status */
   async getPaymentStatus(paymentId: string): Promise<PaymentStatusResponse> {
-    return this.request<PaymentStatusResponse>(
-      'GET',
-      `/payment/${paymentId}`,
-      undefined,
-      'public'
-    );
+    return this.request<PaymentStatusResponse>('GET', `/payment/${paymentId}`, undefined, 'public');
   }
 
   /** POST /payment/:id/relay — Submit gasless relay request */
@@ -109,13 +104,26 @@ export class SoloPayClient {
   }
 
   /** POST /merchant/payment-method — Create payment method */
-  async createPaymentMethod(params: CreatePaymentMethodParams): Promise<CreatePaymentMethodResponse> {
-    return this.request<CreatePaymentMethodResponse>('POST', '/merchant/payment-method', params as unknown as Record<string, unknown>);
+  async createPaymentMethod(
+    params: CreatePaymentMethodParams
+  ): Promise<CreatePaymentMethodResponse> {
+    return this.request<CreatePaymentMethodResponse>(
+      'POST',
+      '/merchant/payment-method',
+      params as unknown as Record<string, unknown>
+    );
   }
 
   /** PATCH /merchant/payment-method/:id — Update payment method */
-  async updatePaymentMethod(id: number, params: UpdatePaymentMethodParams): Promise<UpdatePaymentMethodResponse> {
-    return this.request<UpdatePaymentMethodResponse>('PATCH', `/merchant/payment-method/${id}`, params as unknown as Record<string, unknown>);
+  async updatePaymentMethod(
+    id: number,
+    params: UpdatePaymentMethodParams
+  ): Promise<UpdatePaymentMethodResponse> {
+    return this.request<UpdatePaymentMethodResponse>(
+      'PATCH',
+      `/merchant/payment-method/${id}`,
+      params as unknown as Record<string, unknown>
+    );
   }
 
   /** DELETE /merchant/payment-method/:id — Delete payment method */
@@ -142,7 +150,11 @@ export class SoloPayClient {
 
   /** POST /refund — Create a refund */
   async createRefund(params: CreateRefundParams): Promise<CreateRefundResponse> {
-    return this.request<CreateRefundResponse>('POST', '/refund', params as unknown as Record<string, unknown>);
+    return this.request<CreateRefundResponse>(
+      'POST',
+      '/refund',
+      params as unknown as Record<string, unknown>
+    );
   }
 
   /** GET /refund/:refundId — Get refund status */

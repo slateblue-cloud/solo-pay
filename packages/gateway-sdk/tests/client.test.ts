@@ -1,9 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { SoloPayClient, SoloPayError } from '../src/index';
-import type {
-  CreatePaymentParams,
-  GaslessParams,
-} from '../src/index';
+import type { CreatePaymentParams, GaslessParams } from '../src/index';
 
 // Mock fetch globally
 const mockFetch = vi.fn();
