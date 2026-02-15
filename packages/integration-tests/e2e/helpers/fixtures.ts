@@ -5,7 +5,7 @@
 import { test as base, type Page } from '@playwright/test';
 import { getMockProviderScript } from './mock-ethereum-provider';
 import { HARDHAT_ACCOUNTS, TEST_CHAIN_ID, RPC_URL } from './constants';
-import { ensurePayerHasTokens, approveGateway } from './blockchain';
+import { ensurePayerHasTokens } from './blockchain';
 
 /**
  * Extended test fixtures that inject the mock ethereum provider.

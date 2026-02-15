@@ -17,15 +17,9 @@ import {
   HARDHAT_ACCOUNTS,
   CONTRACT_ADDRESSES,
   TEST_CHAIN_ID,
-  RPC_URL,
   GATEWAY_URL,
 } from '../helpers/constants';
-import {
-  ensurePayerHasTokens,
-  getProvider,
-  getWallet,
-  isPaymentProcessed,
-} from '../helpers/blockchain';
+import { ensurePayerHasTokens, getProvider, getWallet } from '../helpers/blockchain';
 
 // Full ABIs needed for permit + pay
 const MOCK_ERC20_ABI = [

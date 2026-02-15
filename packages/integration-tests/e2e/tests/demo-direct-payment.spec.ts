@@ -15,7 +15,7 @@
 
 import { test, expect } from '../helpers/fixtures';
 import { HARDHAT_ACCOUNTS, DEMO_URL } from '../helpers/constants';
-import { ensurePayerHasTokens, approveGateway } from '../helpers/blockchain';
+import { ensurePayerHasTokens } from '../helpers/blockchain';
 
 test.describe('Direct Payment (Demo)', () => {
   test.beforeAll(async () => {

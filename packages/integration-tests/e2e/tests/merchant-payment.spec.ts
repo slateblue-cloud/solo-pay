@@ -11,7 +11,7 @@
  */
 
 import { test, expect } from '../helpers/fixtures';
-import { HARDHAT_ACCOUNTS, MERCHANT_URL } from '../helpers/constants';
+import { MERCHANT_URL } from '../helpers/constants';
 import { ensurePayerHasTokens } from '../helpers/blockchain';
 
 test.describe('Sample Merchant Payment', () => {
