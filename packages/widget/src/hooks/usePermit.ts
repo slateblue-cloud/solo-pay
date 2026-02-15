@@ -105,10 +105,7 @@ export function usePermit({
   });
 
   // Probe for DOMAIN_SEPARATOR
-  const {
-    isLoading: isDomainLoading,
-    isError: isDomainError,
-  } = useReadContract({
+  const { isLoading: isDomainLoading, isError: isDomainError } = useReadContract({
     address: tokenAddress,
     abi: ERC20_ABI,
     functionName: 'DOMAIN_SEPARATOR',
@@ -194,7 +191,12 @@ export function usePermit({
       // Signature is 65 bytes: r (32) + s (32) + v (1)
       const r = `0x${signature.slice(2, 66)}` as `0x${string}`;
       const s = `0x${signature.slice(66, 130)}` as `0x${string}`;
-      const v = parseInt(signature.slice(130, 132), 16);
+      let v = parseInt(signature.slice(130, 132), 16);
+      // Normalize v to 27/28 for ecrecover compatibility
+      // Some wallets return v as 0/1 instead of 27/28
+      if (v < 27) {
+        v += 27;
+      }
 
       return { deadline, v, r, s };
     } catch (err) {
