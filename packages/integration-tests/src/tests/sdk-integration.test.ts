@@ -273,7 +273,7 @@ describe('SDK Integration', () => {
       });
 
       expect(gaslessResponse.success).toBe(true);
-      expect(gaslessResponse.relayRequestId).toBeDefined();
+      expect(gaslessResponse.status).toBeDefined();
     });
 
     it('should track relay status', async () => {

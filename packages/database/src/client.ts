@@ -1,8 +1,8 @@
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from './generated/prisma/client';
+import { PrismaMariaDb } from '@prisma/adapter-mariadb';
 
-let prismaInstance: PrismaClient;
+let prismaInstance: PrismaClient | undefined;
 
-// DATABASE_URL 조합: 개별 환경변수로부터 생성
 function getDatabaseUrl(): string {
   if (process.env.DATABASE_URL) {
     return process.env.DATABASE_URL;
@@ -19,11 +19,8 @@ function getDatabaseUrl(): string {
 
 export function getPrismaClient(): PrismaClient {
   if (!prismaInstance) {
-    // Prisma가 DATABASE_URL 환경변수를 요구하므로 설정
-    if (!process.env.DATABASE_URL) {
-      process.env.DATABASE_URL = getDatabaseUrl();
-    }
-    prismaInstance = new PrismaClient();
+    const adapter = new PrismaMariaDb(getDatabaseUrl());
+    prismaInstance = new PrismaClient({ adapter });
   }
   return prismaInstance;
 }
@@ -31,5 +28,6 @@ export function getPrismaClient(): PrismaClient {
 export async function disconnectPrisma(): Promise<void> {
   if (prismaInstance) {
     await prismaInstance.$disconnect();
+    prismaInstance = undefined;
   }
 }

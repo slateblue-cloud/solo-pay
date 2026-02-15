@@ -1,5 +1,19 @@
-import { Prisma, PrismaClient, Merchant } from '@solo-pay/database';
+import { PrismaClient, Merchant } from '@solo-pay/database';
 import crypto from 'crypto';
+
+interface PrismaUniqueConstraintError {
+  code: string;
+  meta?: Record<string, unknown>;
+}
+
+function isPrismaUniqueConstraintError(err: unknown): err is PrismaUniqueConstraintError {
+  return (
+    typeof err === 'object' &&
+    err !== null &&
+    'code' in err &&
+    (err as PrismaUniqueConstraintError).code === 'P2002'
+  );
+}
 
 /** Message thrown when merchant_key already exists (for 409 handling in routes). */
 export const MERCHANT_KEY_EXISTS_MESSAGE = 'Merchant key already exists';
@@ -61,13 +75,9 @@ export class MerchantService {
           is_deleted: false,
         },
       });
-    } catch (err) {
-      if (
-        err instanceof Prisma.PrismaClientKnownRequestError &&
-        err.code === 'P2002' &&
-        Array.isArray(err.meta?.target)
-      ) {
-        const target = err.meta.target as string[];
+    } catch (err: unknown) {
+      if (isPrismaUniqueConstraintError(err)) {
+        const target = (err.meta?.target ?? []) as string[];
         if (target.includes('merchant_key')) throw new Error(MERCHANT_KEY_EXISTS_MESSAGE);
         if (target.includes('api_key_hash')) throw new Error(API_KEY_IN_USE_MESSAGE);
       }

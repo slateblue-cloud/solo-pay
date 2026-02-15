@@ -11,7 +11,10 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@prisma/client": "^7.2.0"
+    "@prisma/adapter-mariadb": "^7.4.0",
+    "@prisma/client": "^7.2.0",
+    "@prisma/client-runtime-utils": "^7.4.0",
+    "mariadb": "^3.4.5"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",

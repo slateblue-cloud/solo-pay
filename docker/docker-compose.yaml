@@ -236,6 +236,22 @@ services:
       - solo-pay-network
 
   # Sample Merchant App (Next.js + Prisma)
+  sample-merchant-init:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.packages
+      target: sample-merchant-init
+    image: 347765734000.dkr.ecr.ap-northeast-2.amazonaws.com/solo-pay/sample-merchant-init:nightly
+    container_name: solo-pay-sample-merchant-init
+    restart: 'no'
+    environment:
+      DATABASE_URL: mysql://solopay:pass@mysql:3306/solopay_sample_merchant
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - solo-pay-network
+
   sample-merchant:
     build:
       context: ..
@@ -258,6 +274,8 @@ services:
     depends_on:
       mysql:
         condition: service_healthy
+      sample-merchant-init:
+        condition: service_completed_successfully
       gateway:
         condition: service_healthy
     networks:

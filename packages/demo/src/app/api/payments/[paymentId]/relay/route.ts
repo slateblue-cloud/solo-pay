@@ -10,10 +10,10 @@ export async function POST(
     const { paymentId } = await params;
     const body = await request.json();
 
-    const result = await client.executeRelay({
+    const result = await client.submitGasless({
       paymentId,
-      transactionData: body.transactionData,
-      gasEstimate: body.gasEstimate,
+      forwarderAddress: body.forwarderAddress,
+      forwardRequest: body.forwardRequest,
     });
 
     return NextResponse.json(result);

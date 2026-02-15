@@ -217,7 +217,15 @@ describe('Refund Flow Integration', () => {
       const gateway = getContract(gatewayAddress, PaymentGatewayABI, recipientWallet);
 
       await expect(
-        gateway.refund(paymentId, token.address, amount, payerAddress, merchantId, refundSignature, ZERO_PERMIT)
+        gateway.refund(
+          paymentId,
+          token.address,
+          amount,
+          payerAddress,
+          merchantId,
+          refundSignature,
+          ZERO_PERMIT
+        )
       ).rejects.toThrow();
     });
   });
@@ -249,7 +257,15 @@ describe('Refund Flow Integration', () => {
       const gateway = getContract(gatewayAddress, PaymentGatewayABI, recipientWallet);
 
       await expect(
-        gateway.refund(paymentId, token.address, amount, payerAddress, merchantId, wrongSignature, ZERO_PERMIT)
+        gateway.refund(
+          paymentId,
+          token.address,
+          amount,
+          payerAddress,
+          merchantId,
+          wrongSignature,
+          ZERO_PERMIT
+        )
       ).rejects.toThrow();
     });
   });
@@ -305,7 +321,15 @@ describe('Refund Flow Integration', () => {
       const gateway = getContract(gatewayAddress, PaymentGatewayABI, recipientWallet);
 
       await expect(
-        gateway.refund(paymentId, token.address, 0n, payerAddress, merchantId, refundSignature, ZERO_PERMIT)
+        gateway.refund(
+          paymentId,
+          token.address,
+          0n,
+          payerAddress,
+          merchantId,
+          refundSignature,
+          ZERO_PERMIT
+        )
       ).rejects.toThrow();
     });
 
@@ -329,7 +353,15 @@ describe('Refund Flow Integration', () => {
       const gateway = getContract(gatewayAddress, PaymentGatewayABI, recipientWallet);
 
       await expect(
-        gateway.refund(paymentId, zeroAddress, amount, payerAddress, merchantId, refundSignature, ZERO_PERMIT)
+        gateway.refund(
+          paymentId,
+          zeroAddress,
+          amount,
+          payerAddress,
+          merchantId,
+          refundSignature,
+          ZERO_PERMIT
+        )
       ).rejects.toThrow();
     });
 
@@ -353,7 +385,15 @@ describe('Refund Flow Integration', () => {
       const gateway = getContract(gatewayAddress, PaymentGatewayABI, recipientWallet);
 
       await expect(
-        gateway.refund(paymentId, token.address, amount, zeroAddress, merchantId, refundSignature, ZERO_PERMIT)
+        gateway.refund(
+          paymentId,
+          token.address,
+          amount,
+          zeroAddress,
+          merchantId,
+          refundSignature,
+          ZERO_PERMIT
+        )
       ).rejects.toThrow();
     });
   });
