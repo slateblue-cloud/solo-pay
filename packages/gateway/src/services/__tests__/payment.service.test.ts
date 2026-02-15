@@ -58,6 +58,9 @@ describe('PaymentService', () => {
       created_at: new Date(),
       updated_at: new Date(),
       confirmed_at: null,
+      currency_code: null,
+      fiat_amount: null,
+      token_price: null,
     };
 
     mockPrisma.payment.create.mockResolvedValue(mockResult);
@@ -103,6 +106,9 @@ describe('PaymentService', () => {
       created_at: new Date(),
       updated_at: new Date(),
       confirmed_at: null,
+      currency_code: null,
+      fiat_amount: null,
+      token_price: null,
     };
 
     mockPrisma.payment.findUnique.mockResolvedValue(mockPayment);
@@ -137,6 +143,9 @@ describe('PaymentService', () => {
       created_at: new Date(),
       updated_at: new Date(),
       confirmed_at: null,
+      currency_code: null,
+      fiat_amount: null,
+      token_price: null,
     };
 
     mockPrisma.payment.findUnique.mockResolvedValue(mockPayment);
@@ -174,6 +183,9 @@ describe('PaymentService', () => {
       created_at: new Date(),
       updated_at: new Date(),
       confirmed_at: null,
+      currency_code: null,
+      fiat_amount: null,
+      token_price: null,
     };
 
     const mockUpdated = {
@@ -224,6 +236,9 @@ describe('PaymentService', () => {
         created_at: new Date(),
         updated_at: new Date(),
         confirmed_at: new Date(),
+        currency_code: null,
+        fiat_amount: null,
+        token_price: null,
       },
     ];
 
@@ -263,6 +278,9 @@ describe('PaymentService', () => {
       created_at: new Date(),
       updated_at: new Date(),
       confirmed_at: null,
+      currency_code: null,
+      fiat_amount: null,
+      token_price: null,
     };
 
     mockPrisma.payment.create.mockResolvedValue(mockResult);
@@ -305,6 +323,9 @@ describe('PaymentService', () => {
       created_at: new Date(),
       updated_at: new Date(),
       confirmed_at: null,
+      currency_code: null,
+      fiat_amount: null,
+      token_price: null,
     };
 
     mockPrisma.payment.findUnique.mockResolvedValue(mockPayment);
@@ -358,6 +379,9 @@ describe('PaymentService', () => {
         created_at: new Date(),
         updated_at: new Date(),
         confirmed_at: null,
+        currency_code: null,
+        fiat_amount: null,
+        token_price: null,
       };
 
       const mockUpdated = {
@@ -421,6 +445,9 @@ describe('PaymentService', () => {
         created_at: new Date(),
         updated_at: new Date(),
         confirmed_at: null,
+        currency_code: null,
+        fiat_amount: null,
+        token_price: null,
       };
 
       const mockUpdated = {
@@ -472,6 +499,9 @@ describe('PaymentService', () => {
         created_at: new Date(),
         updated_at: new Date(),
         confirmed_at: null,
+        currency_code: null,
+        fiat_amount: null,
+        token_price: null,
       };
 
       const mockUpdated = {
@@ -524,6 +554,9 @@ describe('PaymentService', () => {
         created_at: new Date(),
         updated_at: new Date(),
         confirmed_at: null,
+        currency_code: null,
+        fiat_amount: null,
+        token_price: null,
       };
 
       mockPrisma.payment.findUnique.mockResolvedValue(mockPayment);
@@ -570,6 +603,9 @@ describe('PaymentService', () => {
         created_at: new Date(),
         updated_at: new Date(),
         confirmed_at: null,
+        currency_code: null,
+        fiat_amount: null,
+        token_price: null,
       };
 
       mockPrisma.payment.findFirst.mockResolvedValue(mockPayment);
@@ -623,6 +659,9 @@ describe('PaymentService', () => {
         created_at: new Date(),
         updated_at: new Date(),
         confirmed_at: null,
+        currency_code: null,
+        fiat_amount: null,
+        token_price: null,
       };
 
       const mockUpdated = {

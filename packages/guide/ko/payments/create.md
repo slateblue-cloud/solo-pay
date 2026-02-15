@@ -13,7 +13,7 @@
 │  가맹점 서버 │         │  SoloPay API │         │   블록체인   │
 └──────┬──────┘         └──────┬──────┘         └──────┬──────┘
        │                       │                       │
-       │  POST /payments/create│                       │
+       │  POST /payments       │                       │
        │──────────────────────▶│                       │
        │                       │                       │
        │  { paymentId }        │                       │
@@ -48,7 +48,7 @@ const payment = await client.createPayment({
 인증: `x-public-key` 헤더 (pk_live_xxx 또는 pk_test_xxx), `Origin` 헤더 (가맹점 `allowed_domains` 중 하나와 일치).
 
 ```bash
-curl -X POST http://localhost:3001/payments/create \
+curl -X POST http://localhost:3001/api/v1/payments \
   -H "x-public-key: pk_test_demo" \
   -H "Origin: http://localhost:3000" \
   -H "Content-Type: application/json" \
@@ -70,7 +70,6 @@ curl -X POST http://localhost:3001/payments/create \
 | `tokenAddress` | `address` | ✓    | ERC-20 토큰 컨트랙트 주소 (whitelist 등록 및 가맹점 활성화 필수) |
 | `successUrl`   | `string`  | ✓    | 성공 시 리다이렉트 URL                                           |
 | `failUrl`      | `string`  | ✓    | 실패 시 리다이렉트 URL                                           |
-| `webhookUrl`   | `string`  |      | 결제별 웹훅 URL (선택)                                           |
 
 ::: tip 금액 입력
 금액은 토큰 단위로 입력합니다. 서버에서 자동으로 wei 단위로 변환합니다.
@@ -147,4 +146,4 @@ await writeContract({
 ## 다음 단계
 
 - [결제 상태 조회](/ko/payments/status) - 결제 진행 상황 확인
-- [Webhook 설정](/ko/webhook/) - 결제 완료 알림 받기
+- [Webhook 설정](/ko/webhooks/) - 결제 완료 알림 받기

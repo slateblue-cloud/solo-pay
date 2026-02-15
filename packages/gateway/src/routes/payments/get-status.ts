@@ -2,10 +2,6 @@ import { FastifyInstance } from 'fastify';
 import { BlockchainService } from '../../services/blockchain.service';
 import { PaymentService } from '../../services/payment.service';
 import { MerchantService } from '../../services/merchant.service';
-import {
-  enqueuePaymentConfirmedWebhook,
-  type WebhookQueueAdapter,
-} from '../../services/webhook-queue.service';
 import { createPublicAuthMiddleware } from '../../middleware/public-auth.middleware';
 import { PaymentStatusResponseSchema, ErrorResponseSchema } from '../../docs/schemas';
 
@@ -13,15 +9,14 @@ export async function getPaymentStatusRoute(
   app: FastifyInstance,
   blockchainService: BlockchainService,
   paymentService: PaymentService,
-  merchantService: MerchantService,
-  webhookQueue: WebhookQueueAdapter
+  merchantService: MerchantService
 ) {
   const authMiddleware = createPublicAuthMiddleware(merchantService);
 
   app.get<{
     Params: { id: string };
   }>(
-    '/payment/:id',
+    '/payments/:id',
     {
       schema: {
         operationId: 'getPaymentStatus',
@@ -93,6 +88,15 @@ Retrieves the current status of a payment by its payment hash. Requires x-public
           });
         }
 
+        // Validate payment belongs to the authenticated merchant
+        const merchant = request.merchant;
+        if (merchant && paymentData.merchant_id !== merchant.id) {
+          return reply.code(403).send({
+            code: 'FORBIDDEN',
+            message: 'Payment does not belong to this merchant',
+          });
+        }
+
         const chainIdNum = paymentData.network_id;
 
         if (!blockchainService.isChainSupported(chainIdNum)) {
@@ -134,7 +138,7 @@ Retrieves the current status of a payment by its payment hash. Requires x-public
           paymentStatus.status === 'completed' &&
           ['CREATED', 'PENDING'].includes(paymentData.status)
         ) {
-          const updatedPayment = await paymentService.updateStatusByHash(
+          await paymentService.updateStatusByHash(
             paymentData.payment_hash,
             'CONFIRMED',
             paymentStatus.transactionHash
@@ -143,11 +147,6 @@ Retrieves the current status of a payment by its payment hash. Requires x-public
             await paymentService.updatePayerAddress(id, paymentStatus.payerAddress);
           }
           finalStatus = 'CONFIRMED';
-
-          const merchant = await merchantService.findById(updatedPayment.merchant_id);
-          enqueuePaymentConfirmedWebhook(webhookQueue, updatedPayment, merchant, (err, paymentId) =>
-            app.log.warn({ err, paymentId }, 'Webhook enqueue failed')
-          );
         }
 
         return reply.code(200).send({

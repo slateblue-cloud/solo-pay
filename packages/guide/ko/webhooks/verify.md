@@ -221,5 +221,5 @@ function handleEvent(event: WebhookEvent) {
 
 ## 다음 단계
 
-- [이벤트 상세](/ko/webhook/events) - 이벤트별 처리 방법
+- [이벤트 상세](/ko/webhooks/events) - 이벤트별 처리 방법
 - [API Reference](/ko/api/) - 전체 API 명세

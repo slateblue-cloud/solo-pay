@@ -122,7 +122,7 @@ describe('SoloPayClient', () => {
       expect(result.orderId).toBe('order-001');
       expect(result.serverSignature).toBeDefined();
       expect(mockFetch).toHaveBeenCalledWith(
-        'http://localhost:3001/api/v1/payment',
+        'http://localhost:3001/api/v1/payments',
         expect.objectContaining({
           method: 'POST',
           headers: expect.objectContaining({
@@ -222,7 +222,7 @@ describe('SoloPayClient', () => {
       expect(result.data.paymentId).toBe('pay-123');
       expect(result.data.status).toBe('completed');
       expect(mockFetch).toHaveBeenCalledWith(
-        'http://localhost:3001/api/v1/payment/pay-123',
+        'http://localhost:3001/api/v1/payments/pay-123',
         expect.objectContaining({
           method: 'GET',
         })
@@ -310,7 +310,7 @@ describe('SoloPayClient', () => {
       expect(result.success).toBe(true);
       expect(result.status).toBe('submitted');
       expect(mockFetch).toHaveBeenCalledWith(
-        'http://localhost:3001/api/v1/payment/pay-123/relay',
+        'http://localhost:3001/api/v1/payments/pay-123/relay',
         expect.objectContaining({
           method: 'POST',
         })
@@ -435,7 +435,7 @@ describe('SoloPayClient', () => {
       expect(result.success).toBe(true);
       expect(result.data.status).toBe('CONFIRMED');
       expect(mockFetch).toHaveBeenCalledWith(
-        'http://localhost:3001/api/v1/payment/pay-123/relay',
+        'http://localhost:3001/api/v1/payments/pay-123/relay',
         expect.objectContaining({ method: 'GET' })
       );
     });
@@ -482,7 +482,7 @@ describe('SoloPayClient', () => {
       const result = await client.getMerchantPaymentByOrderId('order-1');
       expect(result.status).toBe('CONFIRMED');
       expect(mockFetch).toHaveBeenCalledWith(
-        'http://localhost:3001/api/v1/merchant/payment?orderId=order-1',
+        'http://localhost:3001/api/v1/merchant/payments?orderId=order-1',
         expect.objectContaining({ method: 'GET' })
       );
     });
@@ -512,7 +512,7 @@ describe('SoloPayClient', () => {
       const result = await client.createRefund({ paymentId: '0xpayment' });
       expect(result.success).toBe(true);
       expect(mockFetch).toHaveBeenCalledWith(
-        'http://localhost:3001/api/v1/refund',
+        'http://localhost:3001/api/v1/refunds',
         expect.objectContaining({ method: 'POST' })
       );
     });
@@ -530,7 +530,7 @@ describe('SoloPayClient', () => {
       const result = await client.getRefundList({ page: 1, limit: 10 });
       expect(result.success).toBe(true);
       expect(mockFetch).toHaveBeenCalledWith(
-        'http://localhost:3001/api/v1/refund?page=1&limit=10',
+        'http://localhost:3001/api/v1/refunds?page=1&limit=10',
         expect.objectContaining({ method: 'GET' })
       );
     });
@@ -727,7 +727,7 @@ describe('SoloPayClient', () => {
       await client.getPaymentStatus('pay-456');
 
       const callUrl = mockFetch.mock.calls[0][0];
-      expect(callUrl).toContain('/payment/pay-456');
+      expect(callUrl).toContain('/payments/pay-456');
     });
   });
 });

@@ -4,7 +4,6 @@ import type { WidgetUrlParams, UrlParamsValidationResult } from '../types';
  * Validate URL parameters for widget initialization
  *
  * Required params: pk, orderId, amount, tokenAddress, successUrl, failUrl
- * Optional params: webhookUrl
  *
  * @example
  * ```tsx
@@ -16,7 +15,7 @@ import type { WidgetUrlParams, UrlParamsValidationResult } from '../types';
  *   return <ErrorPage errors={result.errors} />;
  * }
  *
- * const { pk, orderId, amount, successUrl, failUrl, webhookUrl } = result.params;
+ * const { pk, orderId, amount, successUrl, failUrl } = result.params;
  * ```
  */
 export function validateWidgetUrlParams(
@@ -31,7 +30,7 @@ export function validateWidgetUrlParams(
   const tokenAddress = searchParams.get('tokenAddress');
   const successUrl = searchParams.get('successUrl');
   const failUrl = searchParams.get('failUrl');
-  const webhookUrl = searchParams.get('webhookUrl');
+  const currency = searchParams.get('currency');
 
   // Validate required fields
   if (!pk || pk.trim() === '') {
@@ -71,11 +70,6 @@ export function validateWidgetUrlParams(
     errors.push('failUrl must be a valid URL');
   }
 
-  // Validate optional fields
-  if (webhookUrl && webhookUrl.trim() !== '' && !isValidUrl(webhookUrl)) {
-    errors.push('webhookUrl must be a valid URL');
-  }
-
   // Return result
   if (errors.length > 0) {
     return { isValid: false, errors };
@@ -90,7 +84,7 @@ export function validateWidgetUrlParams(
       tokenAddress: tokenAddress!,
       successUrl: successUrl!,
       failUrl: failUrl!,
-      webhookUrl: webhookUrl && webhookUrl.trim() !== '' ? webhookUrl : undefined,
+      ...(currency ? { currency } : {}),
     },
   };
 }

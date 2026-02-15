@@ -14,7 +14,7 @@ Payment creation is the first step in SoloPay integration. Created payments **au
 │  Server     │         │             │         │             │
 └──────┬──────┘         └──────┬──────┘         └──────┬──────┘
        │                       │                       │
-       │  POST /payments/create│                       │
+       │  POST /payments       │                       │
        │──────────────────────▶│                       │
        │                       │                       │
        │  { paymentId }        │                       │
@@ -49,7 +49,7 @@ const payment = await client.createPayment({
 Auth: `x-public-key` header (pk_live_xxx or pk_test_xxx) and `Origin` header (must match one of merchant `allowed_domains`).
 
 ```bash
-curl -X POST http://localhost:3001/payments/create \
+curl -X POST http://localhost:3001/api/v1/payments \
   -H "x-public-key: pk_test_demo" \
   -H "Origin: http://localhost:3000" \
   -H "Content-Type: application/json" \
@@ -71,7 +71,6 @@ curl -X POST http://localhost:3001/payments/create \
 | `tokenAddress` | `address` | ✓        | ERC-20 token contract address (must be whitelisted and enabled for merchant) |
 | `successUrl`   | `string`  | ✓        | Redirect URL on success                                                      |
 | `failUrl`      | `string`  | ✓        | Redirect URL on failure                                                      |
-| `webhookUrl`   | `string`  |          | Optional per-payment webhook URL                                             |
 
 ::: tip Amount Input
 Enter amounts in token units. The server automatically converts to wei.
@@ -148,4 +147,4 @@ See the [Gasless Payment Guide](/en/gasless/)
 ## Next Steps
 
 - [Payment Status](/en/payments/status) - Check payment progress
-- [Webhook Setup](/en/webhook/) - Receive payment completion notifications
+- [Webhook Setup](/en/webhooks/) - Receive payment completion notifications

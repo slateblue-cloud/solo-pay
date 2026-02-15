@@ -14,7 +14,7 @@ export async function getRelayStatusRoute(
   const authMiddleware = createPublicAuthMiddleware(merchantService);
 
   app.get<{ Params: { id: string } }>(
-    '/payment/:id/relay',
+    '/payments/:id/relay',
     {
       schema: {
         operationId: 'getRelayStatus',
@@ -95,6 +95,15 @@ Returns the latest relay transaction status for a payment.
           return reply.code(404).send({
             code: 'PAYMENT_NOT_FOUND',
             message: 'Payment not found',
+          });
+        }
+
+        // Validate payment belongs to the authenticated merchant
+        const merchant = request.merchant;
+        if (merchant && payment.merchant_id !== merchant.id) {
+          return reply.code(403).send({
+            code: 'FORBIDDEN',
+            message: 'Payment does not belong to this merchant',
           });
         }
 

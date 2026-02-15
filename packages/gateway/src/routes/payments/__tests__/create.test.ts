@@ -31,6 +31,7 @@ const mockChainTokens: ChainWithTokens[] = [
         symbol: 'SUT',
         decimals: 18,
         cmc_id: null,
+        permit_enabled: false,
         is_enabled: true,
         is_deleted: false,
         deleted_at: null,
@@ -60,6 +61,7 @@ const mockChainTokens: ChainWithTokens[] = [
         symbol: 'TEST',
         decimals: 18,
         cmc_id: null,
+        permit_enabled: false,
         is_enabled: true,
         is_deleted: false,
         deleted_at: null,
@@ -102,7 +104,7 @@ const mockPaymentService = {
   }),
 } as Partial<PaymentService> as PaymentService;
 
-describe('POST /payment', () => {
+describe('POST /payments', () => {
   let blockchainService: BlockchainService;
 
   beforeEach(() => {
@@ -130,7 +132,7 @@ describe('POST /payment', () => {
       // Verify route was registered
       expect(mockApp.post).toHaveBeenCalled();
       const callArgs = (mockApp.post as ReturnType<typeof vi.fn>).mock.calls[0];
-      expect(callArgs[0]).toBe('/payment');
+      expect(callArgs[0]).toBe('/payments');
     });
   });
 

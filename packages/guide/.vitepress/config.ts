@@ -15,7 +15,7 @@ export default defineConfig({
           { text: 'SDK', link: '/ko/sdk/' },
           { text: '결제', link: '/ko/payments/create' },
           { text: 'Gasless', link: '/ko/gasless/' },
-          { text: 'Webhook', link: '/ko/webhook/' },
+          { text: 'Webhooks', link: '/ko/webhooks/' },
           { text: 'API Reference', link: '/ko/api/' },
         ],
         sidebar: {
@@ -57,13 +57,13 @@ export default defineConfig({
               ],
             },
           ],
-          '/ko/webhook/': [
+          '/ko/webhooks/': [
             {
               text: 'Webhook',
               items: [
-                { text: '설정', link: '/ko/webhook/' },
-                { text: '서명 검증', link: '/ko/webhook/verify' },
-                { text: '이벤트 상세', link: '/ko/webhook/events' },
+                { text: '설정', link: '/ko/webhooks/' },
+                { text: '서명 검증', link: '/ko/webhooks/verify' },
+                { text: '이벤트 상세', link: '/ko/webhooks/events' },
               ],
             },
           ],
@@ -93,7 +93,7 @@ export default defineConfig({
           { text: 'SDK', link: '/en/sdk/' },
           { text: 'Payments', link: '/en/payments/create' },
           { text: 'Gasless', link: '/en/gasless/' },
-          { text: 'Webhook', link: '/en/webhook/' },
+          { text: 'Webhooks', link: '/en/webhooks/' },
           { text: 'API Reference', link: '/en/api/' },
         ],
         sidebar: {
@@ -135,13 +135,13 @@ export default defineConfig({
               ],
             },
           ],
-          '/en/webhook/': [
+          '/en/webhooks/': [
             {
               text: 'Webhook',
               items: [
-                { text: 'Setup', link: '/en/webhook/' },
-                { text: 'Signature Verification', link: '/en/webhook/verify' },
-                { text: 'Event Details', link: '/en/webhook/events' },
+                { text: 'Setup', link: '/en/webhooks/' },
+                { text: 'Signature Verification', link: '/en/webhooks/verify' },
+                { text: 'Event Details', link: '/en/webhooks/events' },
               ],
             },
           ],

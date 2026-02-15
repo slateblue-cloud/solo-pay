@@ -79,6 +79,7 @@ RUN pnpm build
 WORKDIR /app
 RUN pnpm --filter @solo-pay/webhook-manager --prod deploy --legacy /deploy/webhook-manager
 RUN cp -r /app/packages/webhook-manager/dist /deploy/webhook-manager/dist
+RUN cp -r /app/packages/database/dist /deploy/webhook-manager/node_modules/@solo-pay/database/dist
 
 # === Webhook Manager Runtime ===
 FROM node:20-alpine AS webhook-manager

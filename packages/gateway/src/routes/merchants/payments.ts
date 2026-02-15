@@ -4,10 +4,6 @@ import { BlockchainService } from '../../services/blockchain.service';
 import { PaymentService } from '../../services/payment.service';
 import { createAuthMiddleware } from '../../middleware/auth.middleware';
 import { MerchantService } from '../../services/merchant.service';
-import {
-  enqueuePaymentConfirmedWebhook,
-  type WebhookQueueAdapter,
-} from '../../services/webhook-queue.service';
 import { ErrorResponseSchema } from '../../docs/schemas';
 
 /**
@@ -78,8 +74,7 @@ export async function merchantPaymentRoute(
   app: FastifyInstance,
   blockchainService: BlockchainService,
   merchantService: MerchantService,
-  paymentService: PaymentService,
-  webhookQueue: WebhookQueueAdapter
+  paymentService: PaymentService
 ) {
   const authMiddleware = createAuthMiddleware(merchantService);
 
@@ -100,9 +95,9 @@ export async function merchantPaymentRoute(
     },
   };
 
-  // GET /merchant/payment?orderId=xxx – API Key, findByOrderId
+  // GET /merchant/payments?orderId=xxx – API Key, findByOrderId
   app.get<{ Querystring: { orderId?: string } }>(
-    '/merchant/payment',
+    '/merchant/payments',
     {
       schema: {
         operationId: 'getMerchantPaymentByOrderId',
@@ -148,20 +143,7 @@ export async function merchantPaymentRoute(
           });
         }
 
-        const statusJustConfirmed = await syncPaymentStatusFromChain(
-          blockchainService,
-          paymentService,
-          payment
-        );
-        if (statusJustConfirmed && payment.status === 'CONFIRMED') {
-          const merchantForWebhook = await merchantService.findById(payment.merchant_id);
-          enqueuePaymentConfirmedWebhook(
-            webhookQueue,
-            payment,
-            merchantForWebhook,
-            (err, paymentId) => app.log.warn({ err, paymentId }, 'Webhook enqueue failed')
-          );
-        }
+        await syncPaymentStatusFromChain(blockchainService, paymentService, payment);
 
         return reply.code(200).send(buildPaymentDetailResponse(payment));
       } catch (error) {
@@ -171,9 +153,9 @@ export async function merchantPaymentRoute(
     }
   );
 
-  // GET /merchant/payment/:id – API Key, merchant ownership, sync status
+  // GET /merchant/payments/:id – API Key, merchant ownership, sync status
   app.get<{ Params: { id: string } }>(
-    '/merchant/payment/:id',
+    '/merchant/payments/:id',
     {
       schema: {
         operationId: 'getMerchantPaymentById',
@@ -221,20 +203,7 @@ export async function merchantPaymentRoute(
           });
         }
 
-        const statusJustConfirmed = await syncPaymentStatusFromChain(
-          blockchainService,
-          paymentService,
-          payment
-        );
-        if (statusJustConfirmed && payment.status === 'CONFIRMED') {
-          const merchantForWebhook = await merchantService.findById(payment.merchant_id);
-          enqueuePaymentConfirmedWebhook(
-            webhookQueue,
-            payment,
-            merchantForWebhook,
-            (err, paymentId) => app.log.warn({ err, paymentId }, 'Webhook enqueue failed')
-          );
-        }
+        await syncPaymentStatusFromChain(blockchainService, paymentService, payment);
 
         return reply.code(200).send(buildPaymentDetailResponse(payment));
       } catch (error) {

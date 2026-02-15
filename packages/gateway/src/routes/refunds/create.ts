@@ -25,7 +25,7 @@ export async function createRefundRoute(
   const authMiddleware = createAuthMiddleware(merchantService);
 
   app.post<{ Body: CreateRefundBody }>(
-    '/refund',
+    '/refunds',
     {
       schema: {
         operationId: 'createRefund',

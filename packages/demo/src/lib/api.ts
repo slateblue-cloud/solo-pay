@@ -69,7 +69,7 @@ export interface PaymentHistoryItem {
  * chainId는 서버에서 paymentId 기반으로 조회
  */
 export async function getPaymentStatus(paymentId: string): Promise<ApiResponse<PaymentStatus>> {
-  const response = await fetch(`${API_URL}/payments/${paymentId}/status`);
+  const response = await fetch(`${API_URL}/payments/${paymentId}`);
 
   if (!response.ok) {
     const error = await response
@@ -313,7 +313,7 @@ export async function submitGaslessPayment(
   }
 
   try {
-    const response = await fetch(`${API_URL}/payments/${paymentId}/gasless`, {
+    const response = await fetch(`${API_URL}/payments/${paymentId}/relay`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -359,7 +359,7 @@ export enum ApiErrorCode {
   UNKNOWN_ERROR = 'UNKNOWN_ERROR',
 }
 
-// Payment API Schemas (matches gateway POST /payments/create - public key + Origin)
+// Payment API Schemas (matches gateway POST /payments - public key + Origin)
 export const CreatePaymentRequestSchema = z.object({
   orderId: z.string().min(1, 'orderId is required'),
   amount: z.number().positive('amount must be positive'),
@@ -368,7 +368,6 @@ export const CreatePaymentRequestSchema = z.object({
     .regex(/^0x[a-fA-F0-9]{40}$/, 'tokenAddress must be a valid Ethereum address (0x + 40 hex)'),
   successUrl: z.string().url('successUrl must be a valid URL'),
   failUrl: z.string().url('failUrl must be a valid URL'),
-  webhookUrl: z.string().url().optional(),
 });
 
 export type CreatePaymentRequest = z.infer<typeof CreatePaymentRequestSchema>;
@@ -430,7 +429,7 @@ async function retryWithDelay(
 
 /**
  * Create a payment via demo API (proxies to gateway with public key + Origin).
- * @param request orderId, amount, successUrl, failUrl, optional webhookUrl
+ * @param request orderId, amount, successUrl, failUrl
  * @returns Promise with payment response or error
  */
 export async function createPayment(
@@ -450,7 +449,7 @@ export async function createPayment(
   try {
     const response = await retryWithDelay(
       async () => {
-        return fetch(`${API_URL}/payments/create`, {
+        return fetch(`${API_URL}/payments`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -459,7 +458,6 @@ export async function createPayment(
             tokenAddress: validatedRequest.tokenAddress,
             successUrl: validatedRequest.successUrl,
             failUrl: validatedRequest.failUrl,
-            webhookUrl: validatedRequest.webhookUrl,
           }),
         });
       },

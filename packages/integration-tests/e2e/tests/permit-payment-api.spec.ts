@@ -46,7 +46,7 @@ test.describe('Permit Payment (API + Chain)', () => {
 
     // 1. Create payment via gateway checkout API (simulating what demo does)
     // First, call the demo's checkout endpoint to get payment details
-    const checkoutRes = await request.post(`${GATEWAY_URL}/api/v1/payment`, {
+    const checkoutRes = await request.post(`${GATEWAY_URL}/api/v1/payments`, {
       headers: {
         'Content-Type': 'application/json',
         'x-public-key': 'pk_test_demo',

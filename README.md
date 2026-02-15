@@ -202,12 +202,11 @@ const relayResult = await client.executeRelay({
 
 | Endpoint                   | Method | Purpose                                        |
 | -------------------------- | ------ | ---------------------------------------------- |
-| `/payments/create`         | POST   | Create payment, issue paymentId                |
+| `/payments`                | POST   | Create payment, issue paymentId                |
 | `/api/checkout`            | POST   | Product-based payment (Demo App API Route)     |
-| `/payments/:id/status`     | GET    | Check payment status (chainId auto-determined) |
-| `/payments/:id/gasless`    | POST   | Submit gasless transaction                     |
-| `/payments/:id/relay`      | POST   | Execute relay transaction                      |
-| `/payments/history`        | GET    | Query payment history (payer-based)            |
+| `/payments/:id`            | GET    | Check payment status (chainId auto-determined) |
+| `/payments/:id/relay`      | POST   | Submit gasless relay transaction               |
+| `/payments/:id/relay`      | GET    | Check relay transaction status                 |
 | `/tokens/balance`          | GET    | Query token balance                            |
 | `/tokens/allowance`        | GET    | Query token approval amount                    |
 | `/transactions/:id/status` | GET    | Query transaction status                       |

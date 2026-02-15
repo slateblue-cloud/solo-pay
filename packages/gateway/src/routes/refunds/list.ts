@@ -21,7 +21,7 @@ export async function getRefundListRoute(
   const authMiddleware = createAuthMiddleware(merchantService);
 
   app.get<{ Querystring: RefundListQuery }>(
-    '/refund',
+    '/refunds',
     {
       schema: {
         operationId: 'getRefundList',

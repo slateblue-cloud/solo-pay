@@ -106,7 +106,6 @@ Opens the payment widget.
 | `tokenAddress` | `string`           | Yes      | Token contract address                |
 | `successUrl`   | `string`           | Yes      | Redirect URL on success               |
 | `failUrl`      | `string`           | Yes      | Redirect URL on failure               |
-| `webhookUrl`   | `string`           | No       | Webhook URL for payment notifications |
 
 **Options:**
 

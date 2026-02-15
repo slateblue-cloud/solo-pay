@@ -315,4 +315,4 @@ try {
 ## 다음 단계
 
 - [SDK 사용법](/ko/sdk/) - 에러 처리 포함
-- [Webhook 설정](/ko/webhook/) - 이벤트 기반 처리
+- [Webhook 설정](/ko/webhooks/) - 이벤트 기반 처리

@@ -299,5 +299,5 @@ app.post('/api/gasless', async (req, res) => {
 
 ## 다음 단계
 
-- [Webhook 설정](/ko/webhook/) - 결제 완료 알림 받기
+- [Webhook 설정](/ko/webhooks/) - 결제 완료 알림 받기
 - [에러 코드](/ko/api/errors) - 전체 에러 목록

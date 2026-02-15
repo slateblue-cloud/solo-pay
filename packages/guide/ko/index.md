@@ -25,7 +25,7 @@ features:
   - icon: 🔔
     title: Webhook
     details: 결제 상태 변경 시 실시간으로 알림을 받을 수 있습니다.
-    link: /ko/webhook/
+    link: /ko/webhooks/
   - icon: 🔗
     title: 멀티체인 지원
     details: Polygon, Ethereum, BNB Chain 등 다양한 체인을 지원합니다.

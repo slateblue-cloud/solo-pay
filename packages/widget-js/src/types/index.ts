@@ -29,8 +29,8 @@ export interface PaymentRequest {
   successUrl: string;
   /** Redirect URL on failure (required) */
   failUrl: string;
-  /** Server notification URL (optional) */
-  webhookUrl?: string;
+  /** Fiat currency code (e.g., USD, KRW). When provided, amount is treated as fiat amount. */
+  currency?: string;
 }
 
 /** Payment result from callback */

@@ -11,6 +11,8 @@ import { TokenService } from '../../services/token.service';
 import { PaymentMethodService } from '../../services/payment-method.service';
 import { PaymentService } from '../../services/payment.service';
 import { ServerSigningService } from '../../services/signature-server.service';
+import { CurrencyService } from '../../services/currency.service';
+import { PriceClient } from '../../services/price-client.service';
 import { createPublicAuthMiddleware } from '../../middleware/public-auth.middleware';
 import { ErrorResponseSchema } from '../../docs/schemas';
 
@@ -20,7 +22,7 @@ export interface CreatePaymentBody {
   tokenAddress: string;
   successUrl: string;
   failUrl: string;
-  webhookUrl?: string;
+  currency?: string;
 }
 
 export async function createPaymentRoute(
@@ -31,12 +33,14 @@ export async function createPaymentRoute(
   tokenService: TokenService,
   paymentMethodService: PaymentMethodService,
   paymentService: PaymentService,
-  signingServices?: Map<number, ServerSigningService>
+  signingServices?: Map<number, ServerSigningService>,
+  currencyService?: CurrencyService,
+  priceClient?: PriceClient
 ) {
   const publicAuth = createPublicAuthMiddleware(merchantService);
 
   app.post<{ Body: CreatePaymentBody }>(
-    '/payment',
+    '/payments',
     {
       schema: {
         operationId: 'createPayment',
@@ -49,7 +53,9 @@ Creates a payment. Single endpoint for both widget and backend. Uses Public Key 
 
 **Flow:** Public Key + Origin -> merchant -> token from request body (must be whitelisted and enabled for merchant) -> amount to wei -> payment_hash -> Payment record -> server signature.
 
-**Response:** paymentId, serverSignature, chainId, tokenAddress, gatewayAddress, amount (wei), tokenDecimals, tokenSymbol, successUrl, failUrl, expiresAt, recipientAddress, merchantId, feeBps, forwarderAddress.
+**Currency conversion:** When \`currency\` is provided (e.g., USD, KRW), \`amount\` is treated as fiat amount and converted to token amount using price-service. Without \`currency\`, \`amount\` is the token amount (existing behavior).
+
+**Response:** paymentId, serverSignature, chainId, tokenAddress, gatewayAddress, amount (wei), tokenDecimals, tokenSymbol, successUrl, failUrl, expiresAt, recipientAddress, merchantId, feeBps, forwarderAddress, currency, fiatAmount, tokenPrice.
         `,
         headers: {
           type: 'object',
@@ -70,7 +76,11 @@ Creates a payment. Single endpoint for both widget and backend. Uses Public Key 
           required: ['orderId', 'amount', 'tokenAddress', 'successUrl', 'failUrl'],
           properties: {
             orderId: { type: 'string', description: 'Merchant order ID' },
-            amount: { type: 'number', description: 'Payment amount' },
+            amount: {
+              type: 'number',
+              description:
+                'Payment amount. Token amount when currency is omitted; fiat amount when currency is provided.',
+            },
             tokenAddress: {
               type: 'string',
               pattern: '^0x[a-fA-F0-9]{40}$',
@@ -81,10 +91,10 @@ Creates a payment. Single endpoint for both widget and backend. Uses Public Key 
             },
             successUrl: { type: 'string', format: 'uri', description: 'Redirect URL on success' },
             failUrl: { type: 'string', format: 'uri', description: 'Redirect URL on failure' },
-            webhookUrl: {
+            currency: {
               type: 'string',
-              format: 'uri',
-              description: 'Optional per-payment webhook',
+              description:
+                'Fiat currency code (e.g., USD, KRW). When provided, amount is treated as fiat amount.',
             },
           },
         },
@@ -121,6 +131,18 @@ Creates a payment. Single endpoint for both widget and backend. Uses Public Key 
               forwarderAddress: {
                 type: 'string',
                 description: 'ERC2771Forwarder address for gasless payments',
+              },
+              currency: {
+                type: 'string',
+                description: 'Fiat currency code used for conversion (only when currency was provided)',
+              },
+              fiatAmount: {
+                type: 'number',
+                description: 'Original fiat amount before conversion (only when currency was provided)',
+              },
+              tokenPrice: {
+                type: 'number',
+                description: 'Token price at creation time (only when currency was provided)',
               },
             },
           },
@@ -234,7 +256,41 @@ Creates a payment. Single endpoint for both widget and backend. Uses Public Key 
           );
         }
 
-        const amountInWei = parseUnits(validated.amount.toString(), tokenDecimals);
+        // Currency conversion: when currency is provided, convert fiat amount to token amount
+        let tokenAmount = validated.amount;
+        let currencyCode: string | undefined;
+        let fiatAmount: number | undefined;
+        let tokenPrice: number | undefined;
+
+        if (validated.currency) {
+          if (!currencyService || !priceClient) {
+            return reply.code(500).send({
+              code: 'PRICE_SERVICE_NOT_CONFIGURED',
+              message: 'Price service is not configured',
+            });
+          }
+
+          const currency = await currencyService.findByCode(validated.currency);
+          if (!currency) {
+            return reply.code(400).send({
+              code: 'INVALID_CURRENCY',
+              message: `Unsupported currency: ${validated.currency}`,
+            });
+          }
+
+          const priceData = await priceClient.getTokenPrice(
+            chainId,
+            tokenAddress,
+            currency.code
+          );
+
+          currencyCode = currency.code;
+          fiatAmount = validated.amount;
+          tokenPrice = priceData.price;
+          tokenAmount = fiatAmount / tokenPrice;
+        }
+
+        const amountInWei = parseUnits(tokenAmount.toString(), tokenDecimals);
         const contracts = blockchainService.getChainContracts(chainId);
         const random = randomBytes(32);
         const paymentHash = keccak256(
@@ -293,8 +349,10 @@ Creates a payment. Single endpoint for both widget and backend. Uses Public Key 
           order_id: validated.orderId,
           success_url: validated.successUrl,
           fail_url: validated.failUrl,
-          webhook_url: validated.webhookUrl,
           origin,
+          currency_code: currencyCode,
+          fiat_amount: fiatAmount !== undefined ? new Decimal(fiatAmount.toString()) : undefined,
+          token_price: tokenPrice !== undefined ? new Decimal(tokenPrice.toString()) : undefined,
         });
 
         return reply.code(201).send({
@@ -315,6 +373,9 @@ Creates a payment. Single endpoint for both widget and backend. Uses Public Key 
           merchantId,
           feeBps: merchant.fee_bps,
           forwarderAddress: chain.forwarder_address ?? undefined,
+          currency: currencyCode,
+          fiatAmount,
+          tokenPrice,
         });
       } catch (err) {
         if (err instanceof ZodError) {

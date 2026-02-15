@@ -124,11 +124,10 @@ curl http://localhost:3001/health
 
 ### 결제 API
 
-- `POST /payments/create` - 결제 생성
-- `GET /payments/:paymentId/status` - 결제 상태 조회
-- `POST /payments/:paymentId/gasless` - Gasless 결제 제출
-- `POST /payments/:paymentId/relay` - Relay 트랜잭션 실행
-- `GET /payments/history` - 결제 내역 조회
+- `POST /payments` - 결제 생성
+- `GET /payments/:id` - 결제 상태 조회
+- `POST /payments/:id/relay` - Gasless 결제 제출
+- `GET /payments/:id/relay` - Relay 상태 조회
 
 ### 체인 설정 API
 
@@ -252,7 +251,7 @@ pnpm typecheck
 
 ```bash
 curl -H "x-api-key: sk_test_..." \
-  http://localhost:3001/payments/create
+  http://localhost:3001/api/v1/payments
 ```
 
 ### Relayer 보안

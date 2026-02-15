@@ -58,7 +58,7 @@ interface ErrorResponse {
 // ============================================================================
 
 /**
- * Request body for POST /payments/create
+ * Request body for POST /payments
  */
 export interface CreatePaymentRequest {
   orderId: string;
@@ -66,11 +66,11 @@ export interface CreatePaymentRequest {
   tokenAddress: string;
   successUrl: string;
   failUrl: string;
-  webhookUrl?: string;
+  currency?: string;
 }
 
 /**
- * Response from POST /payments/create
+ * Response from POST /payments
  * This matches PaymentDetails type
  */
 export interface CreatePaymentResponse extends PaymentDetails {}
@@ -80,7 +80,7 @@ export interface CreatePaymentResponse extends PaymentDetails {}
 // ============================================================================
 
 /**
- * Create a payment (POST /payments/create).
+ * Create a payment (POST /payments).
  *
  * This is the main API call for the widget. It creates a payment record
  * on the server and returns all the information needed to execute the
@@ -118,7 +118,7 @@ export async function createPayment(
   };
   if (options?.origin) headers['origin'] = options.origin;
 
-  const response = await fetch(`${apiBase}/payment`, {
+  const response = await fetch(`${apiBase}/payments`, {
     method: 'POST',
     headers,
     body: JSON.stringify(params),
@@ -175,7 +175,7 @@ export async function createPaymentFromUrlParams(
       tokenAddress: urlParams.tokenAddress,
       successUrl: urlParams.successUrl,
       failUrl: urlParams.failUrl,
-      webhookUrl: urlParams.webhookUrl,
+      ...(urlParams.currency ? { currency: urlParams.currency } : {}),
     },
     { origin }
   );
@@ -229,7 +229,7 @@ export async function getPaymentStatus(
   if (options?.publicKey) headers['x-public-key'] = options.publicKey;
   if (options?.origin) headers['x-origin'] = options.origin;
 
-  const response = await fetch(`${apiBase}/payment/${paymentId}`, {
+  const response = await fetch(`${apiBase}/payments/${paymentId}`, {
     method: 'GET',
     headers,
     cache: 'no-store',
@@ -394,7 +394,7 @@ export interface ForwardRequest {
 }
 
 /**
- * Gasless payment submission response (POST /payment/:id/relay)
+ * Gasless payment submission response (POST /payments/:id/relay)
  */
 export interface GaslessPaymentResponse {
   status: string;
@@ -402,7 +402,7 @@ export interface GaslessPaymentResponse {
 }
 
 /**
- * Relay transaction status response (GET /payment/:id/relay)
+ * Relay transaction status response (GET /payments/:id/relay)
  */
 export interface RelayStatusResponse {
   status: 'QUEUED' | 'SUBMITTED' | 'CONFIRMED' | 'FAILED';
@@ -434,7 +434,7 @@ export async function submitGaslessPayment(
   };
   if (options?.origin) headers['origin'] = options.origin;
 
-  const response = await fetch(`${apiBase}/payment/${paymentId}/relay`, {
+  const response = await fetch(`${apiBase}/payments/${paymentId}/relay`, {
     method: 'POST',
     headers,
     body: JSON.stringify({
@@ -467,7 +467,7 @@ export async function submitGaslessPayment(
 }
 
 /**
- * Get relay transaction status (GET /payment/:id/relay)
+ * Get relay transaction status (GET /payments/:id/relay)
  *
  * @param paymentId - Payment ID (hash)
  * @param options - Public auth options
@@ -482,7 +482,7 @@ export async function getRelayStatus(
   if (options?.publicKey) headers['x-public-key'] = options.publicKey;
   if (options?.origin) headers['x-origin'] = options.origin;
 
-  const response = await fetch(`${apiBase}/payment/${paymentId}/relay`, {
+  const response = await fetch(`${apiBase}/payments/${paymentId}/relay`, {
     method: 'GET',
     headers,
     cache: 'no-store',

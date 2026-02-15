@@ -45,7 +45,7 @@ const customClient = new SoloPayClient({
 
 ```bash
 # Create payment example
-curl -X POST http://localhost:3001/payments/create \
+curl -X POST http://localhost:3001/api/v1/payments \
   -H "x-api-key: sk_test_xxxxx" \
   -H "Content-Type: application/json" \
   -d '{

@@ -93,7 +93,7 @@ const mockPaymentData = {
   recipient_address: '0x70997970C51812dc3A010C7d01b50e0d17dc79C8',
 };
 
-describe('POST /payment/:id/relay', () => {
+describe('POST /payments/:id/relay', () => {
   let app: FastifyInstance;
   let relayerService: Partial<RelayerService>;
   let relayService: Partial<RelayService>;
@@ -156,7 +156,7 @@ describe('POST /payment/:id/relay', () => {
 
       const response = await app.inject({
         method: 'POST',
-        url: `${API_V1_BASE_PATH}/payment/payment-123/relay`,
+        url: `${API_V1_BASE_PATH}/payments/payment-123/relay`,
         headers: { 'x-public-key': TEST_PUBLIC_KEY, origin: TEST_ORIGIN },
         payload: validRequest,
       });
@@ -172,7 +172,7 @@ describe('POST /payment/:id/relay', () => {
 
       const response = await app.inject({
         method: 'POST',
-        url: `${API_V1_BASE_PATH}/payment/payment-456/relay`,
+        url: `${API_V1_BASE_PATH}/payments/payment-456/relay`,
         headers: { 'x-public-key': TEST_PUBLIC_KEY, origin: TEST_ORIGIN },
         payload: validRequest,
       });
@@ -193,7 +193,7 @@ describe('POST /payment/:id/relay', () => {
 
       const response = await app.inject({
         method: 'POST',
-        url: `${API_V1_BASE_PATH}/payment/payment-789/relay`,
+        url: `${API_V1_BASE_PATH}/payments/payment-789/relay`,
         headers: { 'x-public-key': TEST_PUBLIC_KEY, origin: TEST_ORIGIN },
         payload: invalidRequest,
       });
@@ -212,7 +212,7 @@ describe('POST /payment/:id/relay', () => {
 
       const response = await app.inject({
         method: 'POST',
-        url: `${API_V1_BASE_PATH}/payment/payment-101/relay`,
+        url: `${API_V1_BASE_PATH}/payments/payment-101/relay`,
         headers: { 'x-public-key': TEST_PUBLIC_KEY, origin: TEST_ORIGIN },
         payload: invalidRequest,
       });
@@ -231,7 +231,7 @@ describe('POST /payment/:id/relay', () => {
 
       const response = await app.inject({
         method: 'POST',
-        url: `${API_V1_BASE_PATH}/payment/payment-202/relay`,
+        url: `${API_V1_BASE_PATH}/payments/payment-202/relay`,
         headers: { 'x-public-key': TEST_PUBLIC_KEY, origin: TEST_ORIGIN },
         payload: incompleteRequest,
       });
@@ -246,7 +246,7 @@ describe('POST /payment/:id/relay', () => {
 
       const response = await app.inject({
         method: 'POST',
-        url: `${API_V1_BASE_PATH}/payment//relay`,
+        url: `${API_V1_BASE_PATH}/payments//relay`,
         headers: { 'x-public-key': TEST_PUBLIC_KEY, origin: TEST_ORIGIN },
         payload: validRequest,
       });
@@ -265,7 +265,7 @@ describe('POST /payment/:id/relay', () => {
 
       const response = await app.inject({
         method: 'POST',
-        url: `${API_V1_BASE_PATH}/payment/payment-404/relay`,
+        url: `${API_V1_BASE_PATH}/payments/payment-404/relay`,
         headers: { 'x-public-key': TEST_PUBLIC_KEY, origin: TEST_ORIGIN },
         payload: validRequest,
       });
@@ -286,7 +286,7 @@ describe('POST /payment/:id/relay', () => {
 
       const response = await app.inject({
         method: 'POST',
-        url: `${API_V1_BASE_PATH}/payment/payment-505/relay`,
+        url: `${API_V1_BASE_PATH}/payments/payment-505/relay`,
         headers: { 'x-public-key': TEST_PUBLIC_KEY, origin: TEST_ORIGIN },
         payload: invalidRequest,
       });
@@ -305,7 +305,7 @@ describe('POST /payment/:id/relay', () => {
 
       await app.inject({
         method: 'POST',
-        url: `${API_V1_BASE_PATH}/payment/payment-606/relay`,
+        url: `${API_V1_BASE_PATH}/payments/payment-606/relay`,
         headers: { 'x-public-key': TEST_PUBLIC_KEY, origin: TEST_ORIGIN },
         payload: validRequest,
       });

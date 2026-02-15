@@ -69,6 +69,7 @@ model Token {
   symbol          String   @db.VarChar(20)
   decimals        Int
   cmc_id          Int?     // CoinMarketCap cryptocurrency ID for price lookup
+  permit_enabled  Boolean  @default(false) // EIP-2612 permit support
   is_enabled      Boolean  @default(true)
   is_deleted      Boolean  @default(false)
   deleted_at      DateTime?
@@ -134,6 +135,9 @@ model Payment {
   webhook_url           String?       @db.VarChar(500) // per-payment webhook (fallback: merchant.webhook_url)
   origin                String?       @db.VarChar(500) // request origin for domain verification audit
   payer_address         String?       @db.VarChar(42)  // payer wallet address
+  currency_code         String?       @db.VarChar(10)  // fiat currency code (e.g., USD, KRW); null = direct token amount
+  fiat_amount           Decimal?      @db.Decimal(20, 8) // original fiat amount before conversion
+  token_price           Decimal?      @db.Decimal(20, 8) // token price at creation time
   created_at            DateTime      @default(now())
   updated_at            DateTime      @default(now()) @updatedAt
 
@@ -209,4 +213,15 @@ model WalletGasGrant {
 
   @@unique([wallet_address, chain_id])
   @@map("wallet_gas_grants")
+}
+
+model Currency {
+  id         Int      @id @default(autoincrement())
+  code       String   @unique @db.VarChar(10) // ISO 4217 currency code (e.g., USD, KRW)
+  name       String   @db.VarChar(100)
+  symbol     String   @db.VarChar(10)
+  created_at DateTime @default(now())
+  updated_at DateTime @default(now()) @updatedAt
+
+  @@map("currencies")
 }

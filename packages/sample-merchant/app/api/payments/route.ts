@@ -18,7 +18,7 @@ async function getFirstPaymentMethod(): Promise<{
   symbol: string;
   decimals: number;
 } | null> {
-  const response = await fetch(`${GATEWAY_API_URL}/merchant/payment-method`, {
+  const response = await fetch(`${GATEWAY_API_URL}/merchant/payment-methods`, {
     method: 'GET',
     headers: {
       'x-api-key': API_KEY,

@@ -131,4 +131,4 @@ async function createPayment() {
 - [Authentication](/en/getting-started/authentication) - Detailed API Key usage
 - [Create Payment](/en/payments/create) - Payment API detailed guide
 - [Gasless Payments](/en/gasless/) - Pay without gas fees
-- [Webhook Setup](/en/webhook/) - Receive payment completion notifications
+- [Webhook Setup](/en/webhooks/) - Receive payment completion notifications

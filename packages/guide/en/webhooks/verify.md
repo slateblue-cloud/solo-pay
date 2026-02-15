@@ -221,5 +221,5 @@ function handleEvent(event: WebhookEvent) {
 
 ## Next Steps
 
-- [Event Details](/en/webhook/events) - Event handling methods
+- [Event Details](/en/webhooks/events) - Event handling methods
 - [API Reference](/en/api/) - Complete API specification

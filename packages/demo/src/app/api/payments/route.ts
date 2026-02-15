@@ -1,6 +1,6 @@
 /**
- * Proxies POST /payments/create to gateway with public key + Origin from merchant config.
- * Body: orderId, amount, tokenAddress, successUrl, failUrl, webhookUrl?
+ * Proxies to gateway POST /payments with public key + Origin from merchant config.
+ * Body: orderId, amount, tokenAddress, successUrl, failUrl
  */
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -9,7 +9,7 @@ import { getSoloPayClient } from '@/lib/solo-pay-client';
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { orderId, amount, tokenAddress, successUrl, failUrl, webhookUrl } = body;
+    const { orderId, amount, tokenAddress, successUrl, failUrl } = body;
 
     if (!orderId || amount == null || !tokenAddress || !successUrl || !failUrl) {
       return NextResponse.json(
@@ -28,7 +28,6 @@ export async function POST(request: NextRequest) {
       tokenAddress: String(tokenAddress),
       successUrl: String(successUrl),
       failUrl: String(failUrl),
-      ...(webhookUrl != null && { webhookUrl: String(webhookUrl) }),
     });
 
     return NextResponse.json(payment, { status: 201 });

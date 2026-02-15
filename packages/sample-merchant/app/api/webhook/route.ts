@@ -29,7 +29,7 @@ interface GatewayPaymentResponse {
 async function verifyPaymentWithGateway(orderId: string): Promise<GatewayPaymentResponse | null> {
   try {
     const response = await fetch(
-      `${GATEWAY_API_URL}/merchant/payment?orderId=${encodeURIComponent(orderId)}`,
+      `${GATEWAY_API_URL}/merchant/payments?orderId=${encodeURIComponent(orderId)}`,
       {
         method: 'GET',
         headers: {

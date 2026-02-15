@@ -59,31 +59,31 @@ export class SoloPayClient {
   // Payment endpoints (public-key + Origin auth)
   // ==========================================================================
 
-  /** POST /payment — Create a payment */
+  /** POST /payments — Create a payment */
   async createPayment(params: CreatePaymentParams): Promise<CreatePaymentResponse> {
-    return this.requestWithPublicKey<CreatePaymentResponse>('POST', '/payment', params);
+    return this.requestWithPublicKey<CreatePaymentResponse>('POST', '/payments', params);
   }
 
-  /** GET /payment/:id — Get payment status */
+  /** GET /payments/:id — Get payment status */
   async getPaymentStatus(paymentId: string): Promise<PaymentStatusResponse> {
-    return this.request<PaymentStatusResponse>('GET', `/payment/${paymentId}`, undefined, 'public');
+    return this.request<PaymentStatusResponse>('GET', `/payments/${paymentId}`, undefined, 'public');
   }
 
-  /** POST /payment/:id/relay — Submit gasless relay request */
+  /** POST /payments/:id/relay — Submit gasless relay request */
   async submitGasless(params: GaslessParams): Promise<GaslessResponse> {
     return this.request<GaslessResponse>(
       'POST',
-      `/payment/${params.paymentId}/relay`,
+      `/payments/${params.paymentId}/relay`,
       params,
       'public'
     );
   }
 
-  /** GET /payment/:id/relay — Get relay transaction status */
+  /** GET /payments/:id/relay — Get relay transaction status */
   async getRelayStatus(paymentId: string): Promise<RelayStatusResponse> {
     return this.request<RelayStatusResponse>(
       'GET',
-      `/payment/${paymentId}/relay`,
+      `/payments/${paymentId}/relay`,
       undefined,
       'public'
     );
@@ -98,71 +98,71 @@ export class SoloPayClient {
     return this.request<MerchantInfoResponse>('GET', '/merchant');
   }
 
-  /** GET /merchant/payment-method — List payment methods */
+  /** GET /merchant/payment-methods — List payment methods */
   async getPaymentMethods(): Promise<PaymentMethodListResponse> {
-    return this.request<PaymentMethodListResponse>('GET', '/merchant/payment-method');
+    return this.request<PaymentMethodListResponse>('GET', '/merchant/payment-methods');
   }
 
-  /** POST /merchant/payment-method — Create payment method */
+  /** POST /merchant/payment-methods — Create payment method */
   async createPaymentMethod(
     params: CreatePaymentMethodParams
   ): Promise<CreatePaymentMethodResponse> {
     return this.request<CreatePaymentMethodResponse>(
       'POST',
-      '/merchant/payment-method',
+      '/merchant/payment-methods',
       params as unknown as Record<string, unknown>
     );
   }
 
-  /** PATCH /merchant/payment-method/:id — Update payment method */
+  /** PATCH /merchant/payment-methods/:id — Update payment method */
   async updatePaymentMethod(
     id: number,
     params: UpdatePaymentMethodParams
   ): Promise<UpdatePaymentMethodResponse> {
     return this.request<UpdatePaymentMethodResponse>(
       'PATCH',
-      `/merchant/payment-method/${id}`,
+      `/merchant/payment-methods/${id}`,
       params as unknown as Record<string, unknown>
     );
   }
 
-  /** DELETE /merchant/payment-method/:id — Delete payment method */
+  /** DELETE /merchant/payment-methods/:id — Delete payment method */
   async deletePaymentMethod(id: number): Promise<DeletePaymentMethodResponse> {
-    return this.request<DeletePaymentMethodResponse>('DELETE', `/merchant/payment-method/${id}`);
+    return this.request<DeletePaymentMethodResponse>('DELETE', `/merchant/payment-methods/${id}`);
   }
 
-  /** GET /merchant/payment?orderId=xxx — Get merchant payment by order ID */
+  /** GET /merchant/payments?orderId=xxx — Get merchant payment by order ID */
   async getMerchantPaymentByOrderId(orderId: string): Promise<MerchantPaymentDetailResponse> {
     return this.request<MerchantPaymentDetailResponse>(
       'GET',
-      `/merchant/payment?orderId=${encodeURIComponent(orderId)}`
+      `/merchant/payments?orderId=${encodeURIComponent(orderId)}`
     );
   }
 
-  /** GET /merchant/payment/:id — Get merchant payment by payment hash */
+  /** GET /merchant/payments/:id — Get merchant payment by payment hash */
   async getMerchantPaymentById(paymentId: string): Promise<MerchantPaymentDetailResponse> {
-    return this.request<MerchantPaymentDetailResponse>('GET', `/merchant/payment/${paymentId}`);
+    return this.request<MerchantPaymentDetailResponse>('GET', `/merchant/payments/${paymentId}`);
   }
 
   // ==========================================================================
   // Refund endpoints (x-api-key auth)
   // ==========================================================================
 
-  /** POST /refund — Create a refund */
+  /** POST /refunds — Create a refund */
   async createRefund(params: CreateRefundParams): Promise<CreateRefundResponse> {
     return this.request<CreateRefundResponse>(
       'POST',
-      '/refund',
+      '/refunds',
       params as unknown as Record<string, unknown>
     );
   }
 
-  /** GET /refund/:refundId — Get refund status */
+  /** GET /refunds/:refundId — Get refund status */
   async getRefundStatus(refundId: string): Promise<RefundStatusResponse> {
-    return this.request<RefundStatusResponse>('GET', `/refund/${refundId}`);
+    return this.request<RefundStatusResponse>('GET', `/refunds/${refundId}`);
   }
 
-  /** GET /refund — List refunds */
+  /** GET /refunds — List refunds */
   async getRefundList(params?: GetRefundListParams): Promise<RefundListResponse> {
     const queryParams = new URLSearchParams();
     if (params?.page !== undefined) queryParams.set('page', params.page.toString());
@@ -170,7 +170,7 @@ export class SoloPayClient {
     if (params?.status) queryParams.set('status', params.status);
     if (params?.paymentId) queryParams.set('paymentId', params.paymentId);
     const qs = queryParams.toString();
-    return this.request<RefundListResponse>('GET', `/refund${qs ? `?${qs}` : ''}`);
+    return this.request<RefundListResponse>('GET', `/refunds${qs ? `?${qs}` : ''}`);
   }
 
   // ==========================================================================
@@ -233,7 +233,7 @@ export class SoloPayClient {
   ): Promise<T> {
     if (!this.publicKey || !this.origin) {
       throw new Error(
-        'requestWithPublicKey requires publicKey and origin in SoloPayConfig (for POST /payment auth)'
+        'requestWithPublicKey requires publicKey and origin in SoloPayConfig (for POST /payments auth)'
       );
     }
     const headers = {
