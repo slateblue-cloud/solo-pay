@@ -54,7 +54,7 @@ async function main(): Promise<void> {
     .map((c) => ({
       networkId: c.network_id,
       rpcUrl: c.rpc_url,
-      gatewayAddress: c.gateway_address!,
+      gatewayAddress: c.gateway_address as string,
     }));
 
   const chainClients = createBlockchainClients(chainConfigs);
