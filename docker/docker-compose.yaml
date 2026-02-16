@@ -18,11 +18,13 @@ services:
     networks:
       - solo-pay-network
     healthcheck:
-      test: ['CMD', 'mysqladmin', 'ping', '-h', 'localhost', '-u', 'root', '-ppass']
+      # Ensure MySQL accepts connections and solopay database/user are ready (not just ping)
+      test:
+        ['CMD', 'mysql', '-h', 'localhost', '-u', 'solopay', '-ppass', 'solopay', '-e', 'SELECT 1']
       interval: 5s
       timeout: 5s
-      retries: 20
-      start_period: 30s
+      retries: 30
+      start_period: 45s
 
   # Database Init (creates extra databases and grants, runs once as root)
   db-init:
@@ -96,7 +98,8 @@ services:
       # ERC2771Forwarder address (first contract deployed at nonce 0)
       FORWARDER_ADDRESS: '0x5FbDB2315678afecb367f032d93F642f64180aa3'
     depends_on:
-      - hardhat-node
+      hardhat-node:
+        condition: service_healthy
     networks:
       - solo-pay-network
     healthcheck:
@@ -119,9 +122,12 @@ services:
       NODE_ENV: production
       REDIS_HOST: redis
       REDIS_PORT: 6379
+      DATABASE_URL: mysql://solopay:pass@mysql:3306/solopay
     depends_on:
       redis:
         condition: service_started
+      db-migrate:
+        condition: service_completed_successfully
     networks:
       - solo-pay-network
 
@@ -212,8 +218,10 @@ services:
       redis:
         condition: service_started
       hardhat-node:
-        condition: service_started
+        condition: service_healthy
       simple-relayer:
+        condition: service_healthy
+      price-service:
         condition: service_healthy
     networks:
       - solo-pay-network
@@ -246,7 +254,8 @@ services:
       SOLO_PAY_PUBLIC_KEY: 'pk_test_demo'
       # SOLO_PAY_ORIGIN optional; default http://localhost:3000 matches init.sql allowed_domains
     depends_on:
-      - gateway
+      gateway:
+        condition: service_healthy
     networks:
       - solo-pay-network
 

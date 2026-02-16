@@ -275,12 +275,12 @@ export const GaslessPaymentRequestSchema = z.object({
 export type GaslessPaymentRequest = z.infer<typeof GaslessPaymentRequestSchema>;
 
 /**
- * Gasless Payment Response Schema
+ * Gasless Payment Response Schema (matches gateway POST /payments/:id/relay)
+ * Gateway returns { success, status, message }
  */
 export const GaslessPaymentResponseSchema = z.object({
   success: z.boolean(),
-  relayRequestId: z.string(),
-  status: z.enum(['submitted', 'pending', 'mined', 'confirmed', 'failed']),
+  status: z.string(),
   message: z.string().optional(),
 });
 
@@ -337,9 +337,17 @@ export async function submitGaslessPayment(
     }
 
     const data = await response.json();
+    const parsed = GaslessPaymentResponseSchema.safeParse(data);
+    const payload: GaslessPaymentResponse = parsed.success
+      ? parsed.data
+      : {
+          success: true,
+          status: (data as { status?: string }).status ?? 'submitted',
+          message: (data as { message?: string }).message,
+        };
     return {
       success: true,
-      data: data as GaslessPaymentResponse,
+      data: payload,
     };
   } catch (err) {
     return {

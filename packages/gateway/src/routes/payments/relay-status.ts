@@ -1,13 +1,33 @@
 import { FastifyInstance } from 'fastify';
 import { RelayService } from '../../services/relay.service';
+import { RelayerService } from '../../services/relayer.service';
 import { PaymentService } from '../../services/payment.service';
 import { MerchantService } from '../../services/merchant.service';
 import { createPublicAuthMiddleware } from '../../middleware/public-auth.middleware';
 import { ErrorResponseSchema } from '../../docs/schemas';
 
+type RelayStatusDb = 'QUEUED' | 'SUBMITTED' | 'CONFIRMED' | 'FAILED';
+
+function mapRelayerStatusToDb(
+  relayerStatus: 'submitted' | 'pending' | 'mined' | 'confirmed' | 'failed'
+): RelayStatusDb {
+  switch (relayerStatus) {
+    case 'confirmed':
+    case 'mined':
+      return 'CONFIRMED';
+    case 'failed':
+      return 'FAILED';
+    case 'submitted':
+    case 'pending':
+    default:
+      return 'SUBMITTED';
+  }
+}
+
 export async function getRelayStatusRoute(
   app: FastifyInstance,
   relayService: RelayService,
+  relayerService: RelayerService,
   paymentService: PaymentService,
   merchantService: MerchantService
 ) {
@@ -108,7 +128,7 @@ Returns the latest relay transaction status for a payment.
         }
 
         // Find the latest relay request for this payment
-        const relayRequests = await relayService.findByPaymentId(payment.id);
+        let relayRequests = await relayService.findByPaymentId(payment.id);
         if (relayRequests.length === 0) {
           return reply.code(404).send({
             code: 'RELAY_NOT_FOUND',
@@ -116,7 +136,30 @@ Returns the latest relay transaction status for a payment.
           });
         }
 
-        const latest = relayRequests[0];
+        let latest = relayRequests[0];
+
+        // Sync status from relayer when still in progress (sync-on-read).
+        // relay = our DB record; relayer = external service. latest.relay_ref = relayer's transactionId.
+        if (latest.status === 'QUEUED' || latest.status === 'SUBMITTED') {
+          try {
+            const relayerStatus = await relayerService.getRelayStatus(latest.relay_ref);
+            const newStatus = mapRelayerStatusToDb(relayerStatus.status);
+            await relayService.updateStatus(latest.id, newStatus);
+            if (relayerStatus.transactionHash) {
+              await relayService.setTxHash(latest.id, relayerStatus.transactionHash);
+            }
+            if (newStatus === 'FAILED') {
+              await relayService.setErrorMessage(
+                latest.id,
+                'Relay transaction failed (from relayer)'
+              );
+            }
+            relayRequests = await relayService.findByPaymentId(payment.id);
+            latest = relayRequests[0];
+          } catch {
+            // Relayer unreachable or 404: keep DB state and return as-is
+          }
+        }
 
         return reply.code(200).send({
           success: true,

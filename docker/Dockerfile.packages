@@ -51,7 +51,7 @@ FROM deps AS hardhat
 
 WORKDIR /app/packages/contracts
 EXPOSE 8545
-HEALTHCHECK --interval=30s --timeout=3s --start-period=15s --retries=3 \
+HEALTHCHECK --interval=10s --timeout=5s --start-period=30s --retries=15 \
   CMD curl -sf -X POST -H 'Content-Type:application/json' -d '{"jsonrpc":"2.0","method":"eth_blockNumber","params":[],"id":1}' http://localhost:8545 || exit 1
 CMD ["npx", "hardhat", "node", "--hostname", "0.0.0.0"]
 
@@ -69,7 +69,7 @@ RUN apk add --no-cache curl
 WORKDIR /app/packages/database
 ENV NODE_ENV=production
 
-CMD ["sh", "-c", "npx prisma db push --accept-data-loss"]
+CMD ["sh", "-c", "npx prisma db push --accept-data-loss && pnpm exec tsx prisma/seed.ts"]
 
 # === Webhook Manager Builder + Deploy ===
 FROM deps AS webhook-manager-builder
