@@ -11,8 +11,7 @@ declare global {
 }
 
 /** E2E test mode — uses injected connector (mock window.ethereum) for auto-connect */
-const isE2ETest =
-  typeof window !== 'undefined' && !!window.__E2E_TEST__;
+const isE2ETest = typeof window !== 'undefined' && !!window.__E2E_TEST__;
 
 // WalletConnect Project ID - Get one at https://cloud.walletconnect.com/
 const projectId = process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID || 'YOUR_PROJECT_ID';
