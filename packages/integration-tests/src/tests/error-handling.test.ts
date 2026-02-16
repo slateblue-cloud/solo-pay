@@ -13,6 +13,7 @@ import {
   generatePaymentId,
   signPaymentRequest,
   merchantKeyToId,
+  ZERO_PERMIT,
   type PaymentParams,
 } from '../helpers/signature';
 import { HARDHAT_ACCOUNTS, CONTRACT_ADDRESSES } from '../setup/wallets';
@@ -64,7 +65,8 @@ describe('Error Handling Integration', () => {
           recipientAddress,
           merchantId,
           feeBps,
-          serverSignature
+          serverSignature,
+          ZERO_PERMIT
         )
       ).rejects.toThrow();
     });
@@ -95,7 +97,8 @@ describe('Error Handling Integration', () => {
           recipientAddress,
           merchantId,
           feeBps,
-          serverSignature
+          serverSignature,
+          ZERO_PERMIT
         )
       ).rejects.toThrow();
     });
@@ -128,7 +131,8 @@ describe('Error Handling Integration', () => {
           recipientAddress,
           merchantId,
           feeBps,
-          serverSignature
+          serverSignature,
+          ZERO_PERMIT
         )
       ).rejects.toThrow();
     });
@@ -162,7 +166,8 @@ describe('Error Handling Integration', () => {
           recipientAddress,
           merchantId,
           feeBps,
-          serverSignature
+          serverSignature,
+          ZERO_PERMIT
         )
       ).rejects.toThrow();
     });
@@ -198,7 +203,8 @@ describe('Error Handling Integration', () => {
           recipientAddress,
           merchantId,
           feeBps,
-          serverSignature
+          serverSignature,
+          ZERO_PERMIT
         )
       ).rejects.toThrow();
     });
@@ -232,7 +238,8 @@ describe('Error Handling Integration', () => {
         recipientAddress,
         merchantId,
         feeBps,
-        serverSignature
+        serverSignature,
+        ZERO_PERMIT
       );
       await tx.wait();
 
@@ -244,7 +251,8 @@ describe('Error Handling Integration', () => {
           recipientAddress,
           merchantId,
           feeBps,
-          serverSignature
+          serverSignature,
+          ZERO_PERMIT
         )
       ).rejects.toThrow();
     });
@@ -283,7 +291,8 @@ describe('Error Handling Integration', () => {
           recipientAddress,
           merchantId,
           feeBps,
-          wrongSignature
+          wrongSignature,
+          ZERO_PERMIT
         )
       ).rejects.toThrow();
     });
@@ -319,7 +328,8 @@ describe('Error Handling Integration', () => {
           recipientAddress,
           merchantId,
           feeBps,
-          serverSignature
+          serverSignature,
+          ZERO_PERMIT
         )
       ).rejects.toThrow();
     });

@@ -2,7 +2,7 @@ import { z } from 'zod';
 import { decodeFunctionData } from 'viem';
 import PaymentGatewayV1Artifact from '@solo-pay/contracts/artifacts/src/PaymentGatewayV1.sol/PaymentGatewayV1.json';
 
-// Create payment request (POST /payments/create): orderId, amount, tokenAddress, successUrl, failUrl, webhookUrl optional
+// Create payment request (POST /payments): orderId, amount, tokenAddress, successUrl, failUrl, currency?
 export const CreatePaymentSchema = z
   .object({
     orderId: z.string().min(1, 'orderId is required'),
@@ -12,7 +12,7 @@ export const CreatePaymentSchema = z
       .regex(/^0x[a-fA-F0-9]{40}$/, 'tokenAddress must be a valid Ethereum address (0x + 40 hex)'),
     successUrl: z.string().url('successUrl must be a valid URL'),
     failUrl: z.string().url('failUrl must be a valid URL'),
-    webhookUrl: z.string().url().optional(),
+    currency: z.string().min(1).max(10).optional(), // fiat currency code (e.g., USD, KRW); when set, amount is fiat
   })
   .strict(); // Reject unknown keys so only allowed params are accepted
 

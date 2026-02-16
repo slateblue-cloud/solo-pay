@@ -128,7 +128,7 @@ const mockPayment = {
   expires_at: new Date(Date.now() + 30 * 60 * 1000),
 };
 
-describe('POST /payments/create', () => {
+describe('POST /payments', () => {
   let app: FastifyInstance;
   let blockchainService: BlockchainService;
   let merchantService: Partial<MerchantService>;
@@ -245,7 +245,7 @@ describe('POST /payments/create', () => {
 
       const response = await app.inject({
         method: 'POST',
-        url: `${API_V1_BASE_PATH}/payments/create`,
+        url: `${API_V1_BASE_PATH}/payments`,
         headers: { 'x-public-key': TEST_PUBLIC_KEY, origin: TEST_ORIGIN },
         payload: validPayment,
       });
@@ -282,7 +282,7 @@ describe('POST /payments/create', () => {
 
       const response = await app.inject({
         method: 'POST',
-        url: `${API_V1_BASE_PATH}/payments/create`,
+        url: `${API_V1_BASE_PATH}/payments`,
         headers: { 'x-public-key': TEST_PUBLIC_KEY, origin: TEST_ORIGIN },
         payload: minimalPayment,
       });
@@ -305,7 +305,7 @@ describe('POST /payments/create', () => {
 
       const response = await app.inject({
         method: 'POST',
-        url: `${API_V1_BASE_PATH}/payments/create`,
+        url: `${API_V1_BASE_PATH}/payments`,
         headers: { 'x-public-key': TEST_PUBLIC_KEY, origin: TEST_ORIGIN },
         payload: invalidPayment,
       });
@@ -326,7 +326,7 @@ describe('POST /payments/create', () => {
 
       const response = await app.inject({
         method: 'POST',
-        url: `${API_V1_BASE_PATH}/payments/create`,
+        url: `${API_V1_BASE_PATH}/payments`,
         headers: { 'x-public-key': TEST_PUBLIC_KEY, origin: TEST_ORIGIN },
         payload: invalidPayment,
       });
@@ -348,7 +348,7 @@ describe('POST /payments/create', () => {
 
       const response = await app.inject({
         method: 'POST',
-        url: `${API_V1_BASE_PATH}/payments/create`,
+        url: `${API_V1_BASE_PATH}/payments`,
         headers: { 'x-public-key': TEST_PUBLIC_KEY, origin: TEST_ORIGIN },
         payload: incompletePayment,
       });
@@ -361,7 +361,7 @@ describe('POST /payments/create', () => {
     it('Origin이 allowed_domains에 없으면 403을 반환해야 함', async () => {
       const response = await app.inject({
         method: 'POST',
-        url: `${API_V1_BASE_PATH}/payments/create`,
+        url: `${API_V1_BASE_PATH}/payments`,
         headers: { 'x-public-key': TEST_PUBLIC_KEY, origin: 'https://not-allowed.example.com' },
         payload: {
           orderId: 'order-001',
@@ -382,7 +382,7 @@ describe('POST /payments/create', () => {
 
       const response = await app.inject({
         method: 'POST',
-        url: `${API_V1_BASE_PATH}/payments/create`,
+        url: `${API_V1_BASE_PATH}/payments`,
         headers: { 'x-public-key': TEST_PUBLIC_KEY, origin: TEST_ORIGIN },
         payload: {
           orderId: 'order-001',
@@ -405,7 +405,7 @@ describe('POST /payments/create', () => {
 
       const response = await app.inject({
         method: 'POST',
-        url: `${API_V1_BASE_PATH}/payments/create`,
+        url: `${API_V1_BASE_PATH}/payments`,
         headers: { 'x-public-key': TEST_PUBLIC_KEY, origin: TEST_ORIGIN },
         payload: {
           orderId: 'order-001',
@@ -426,7 +426,7 @@ describe('POST /payments/create', () => {
 
       const response = await app.inject({
         method: 'POST',
-        url: `${API_V1_BASE_PATH}/payments/create`,
+        url: `${API_V1_BASE_PATH}/payments`,
         headers: { 'x-public-key': TEST_PUBLIC_KEY, origin: TEST_ORIGIN },
         payload: {
           orderId: 'order-001',
@@ -460,7 +460,7 @@ describe('POST /payments/create', () => {
 
       const first = await app.inject({
         method: 'POST',
-        url: `${API_V1_BASE_PATH}/payments/create`,
+        url: `${API_V1_BASE_PATH}/payments`,
         headers,
         payload,
       });
@@ -470,7 +470,7 @@ describe('POST /payments/create', () => {
 
       const second = await app.inject({
         method: 'POST',
-        url: `${API_V1_BASE_PATH}/payments/create`,
+        url: `${API_V1_BASE_PATH}/payments`,
         headers,
         payload,
       });

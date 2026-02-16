@@ -48,7 +48,7 @@ export default function WebhookLogPage() {
       ) : log.length === 0 ? (
         <div className="rounded-lg border border-gray-200 dark:border-gray-700 p-6 bg-gray-50 dark:bg-gray-800/50">
           <p className="text-gray-600 dark:text-gray-400">
-            No webhooks received yet. Complete a payment and call GET /payments/:id/status (or GET
+            No webhooks received yet. Complete a payment and call GET /payments/:id (or GET
             /payments?orderId=...) so the gateway syncs status and sends a webhook here.
           </p>
           <p className="text-sm text-gray-500 mt-2">

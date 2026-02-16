@@ -1,4 +1,4 @@
-# SoloPay Monorepo - Multi-stage Dockerfile
+# SoloPay Monorepo - Multi-stage Dockerfile (pnpm deploy pattern)
 # Targets: hardhat, contracts, gateway, demo, simple-relayer, sample-merchant, guide, price-service
 
 # === Dependencies Stage (tools + deps + contracts) ===
@@ -8,7 +8,7 @@ RUN apk add --no-cache git python3 make g++ curl && \
     corepack enable
 
 WORKDIR /app
-COPY pnpm-workspace.yaml package.json pnpm-lock.yaml ./
+COPY pnpm-workspace.yaml package.json pnpm-lock.yaml .npmrc* ./
 COPY packages/contracts/package.json ./packages/contracts/
 COPY packages/gateway-sdk/package.json ./packages/gateway-sdk/
 COPY packages/gateway/package.json ./packages/gateway/
@@ -19,27 +19,32 @@ COPY packages/guide/package.json ./packages/guide/
 COPY packages/demo/package.json ./packages/demo/
 COPY packages/sample-merchant/package.json ./packages/sample-merchant/
 COPY packages/price-service/package.json ./packages/price-service/
+COPY packages/database/package.json ./packages/database/
 
 RUN pnpm install --frozen-lockfile
 
-COPY packages/webhook-manager ./packages/webhook-manager
-COPY packages/faucet-manager ./packages/faucet-manager
+# Copy and compile contracts (typechain-types + artifacts needed by gateway)
 COPY packages/contracts ./packages/contracts
 WORKDIR /app/packages/contracts
 RUN npx hardhat compile
 WORKDIR /app
 
+# Build database package (Prisma generate + tsc)
+COPY packages/database ./packages/database
+WORKDIR /app/packages/database
+RUN pnpm run build
+WORKDIR /app
+
+# Copy webhook-manager + faucet-manager source (needed for builds)
+COPY packages/webhook-manager ./packages/webhook-manager
+COPY packages/faucet-manager ./packages/faucet-manager
+
+# Sample merchant has its own independent schema (separate database)
 COPY packages/sample-merchant/prisma ./packages/sample-merchant/prisma
 RUN cd /app/packages/sample-merchant && pnpm exec prisma generate
 
-COPY packages/price-service/prisma ./packages/price-service/prisma
-RUN cd /app/packages/price-service && pnpm exec prisma generate
-
-# Gateway prisma generate MUST run last: it writes to the shared @prisma/client
-# in node_modules, so the most complete schema (with Chain, Token, etc.) wins.
-COPY packages/gateway/prisma ./packages/gateway/prisma
-RUN cd /app/packages/gateway && pnpm exec prisma generate
-WORKDIR /app
+# Helper script for copying .prisma/client to deploy targets
+# Prisma 7: generated client is in src/generated/prisma (custom output path)
 
 # === Hardhat Node ===
 FROM deps AS hardhat
@@ -56,50 +61,145 @@ FROM deps AS contracts
 WORKDIR /app/packages/contracts
 CMD ["npx", "hardhat", "run", "scripts/check-and-deploy.ts", "--network", "localhost"]
 
-# === Webhook Manager Builder ===
+# === Database Migration ===
+FROM deps AS db-migrate
+
+RUN apk add --no-cache curl
+
+WORKDIR /app/packages/database
+ENV NODE_ENV=production
+
+CMD ["sh", "-c", "npx prisma db push --accept-data-loss"]
+
+# === Webhook Manager Builder + Deploy ===
 FROM deps AS webhook-manager-builder
 
 WORKDIR /app/packages/webhook-manager
 RUN pnpm build
+WORKDIR /app
+RUN pnpm --filter @solo-pay/webhook-manager --prod deploy --legacy /deploy/webhook-manager
+RUN cp -r /app/packages/webhook-manager/dist /deploy/webhook-manager/dist
+RUN cp -r /app/packages/database/dist /deploy/webhook-manager/node_modules/@solo-pay/database/dist
 
-# === Faucet Manager Builder ===
+# === Webhook Manager Runtime ===
+FROM node:20-alpine AS webhook-manager
+
+RUN apk add --no-cache curl
+WORKDIR /app
+COPY --from=webhook-manager-builder /deploy/webhook-manager .
+
+ENV NODE_ENV=production
+CMD ["node", "dist/worker.js"]
+
+# === Faucet Manager Builder + Deploy ===
 FROM deps AS faucet-manager-builder
 
 WORKDIR /app/packages/faucet-manager
 RUN pnpm build
+WORKDIR /app
+RUN pnpm --filter @solo-pay/faucet-manager --prod deploy --legacy /deploy/faucet-manager
+RUN cp -r /app/packages/faucet-manager/dist /deploy/faucet-manager/dist
+RUN cp -r /app/packages/database/dist /deploy/faucet-manager/node_modules/@solo-pay/database/dist
 
-# === Gateway Builder ===
+# === Faucet Manager Runtime ===
+FROM node:20-alpine AS faucet-manager
+
+RUN apk add --no-cache curl
+WORKDIR /app
+COPY --from=faucet-manager-builder /deploy/faucet-manager .
+
+ENV NODE_ENV=production
+ENV HOST=0.0.0.0
+ENV PORT=3002
+EXPOSE 3002
+HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
+  CMD curl -sf http://127.0.0.1:3002/health || exit 1
+CMD ["node", "dist/server.js"]
+
+# === Gateway Builder + Deploy ===
 FROM deps AS gateway-builder
 
+# webhook-manager must be built before gateway (workspace dep)
+WORKDIR /app/packages/webhook-manager
+RUN pnpm build
+
+WORKDIR /app
 COPY packages/gateway ./packages/gateway
-COPY --from=webhook-manager-builder /app/packages/webhook-manager ./packages/webhook-manager
 WORKDIR /app/packages/gateway
 RUN pnpm build
+
+# Deploy: creates standalone node_modules with all workspace deps resolved
+WORKDIR /app
+RUN pnpm --filter @solo-pay/gateway --prod deploy --legacy /deploy/gateway
+RUN cp -r /app/packages/gateway/dist /deploy/gateway/dist
+RUN cp -r /app/packages/database/dist /deploy/gateway/node_modules/@solo-pay/database/dist
+# Copy prisma-generated client from deps stage into deployed node_modules
 
 # === Gateway Runtime ===
 FROM node:20-alpine AS gateway
 
 RUN apk add --no-cache curl
 WORKDIR /app
-COPY --from=deps /app/node_modules ./node_modules
-COPY --from=deps /app/packages/gateway/node_modules ./packages/gateway/node_modules
-COPY --from=deps /app/packages/contracts/typechain-types ./packages/contracts/typechain-types
-COPY --from=deps /app/packages/contracts/artifacts ./packages/contracts/artifacts
-COPY --from=deps /app/packages/webhook-manager/node_modules ./packages/webhook-manager/node_modules
-COPY --from=webhook-manager-builder /app/packages/webhook-manager/dist ./packages/webhook-manager/dist
-COPY --from=webhook-manager-builder /app/packages/webhook-manager/package.json ./packages/webhook-manager/package.json
-COPY --from=gateway-builder /app/packages/gateway/dist ./packages/gateway/dist
-COPY --from=gateway-builder /app/packages/gateway/package.json ./packages/gateway/
-COPY --from=deps /app/packages/gateway/prisma ./packages/gateway/prisma
+COPY --from=gateway-builder /deploy/gateway .
 
-WORKDIR /app/packages/gateway
 ENV NODE_ENV=production
 EXPOSE 3001
 HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
   CMD curl -sf http://localhost:3001/health || exit 1
-CMD ["sh", "-c", "npx prisma db push --skip-generate --accept-data-loss && node dist/index.js"]
+CMD ["node", "dist/index.js"]
 
-# === Demo Builder ===
+# === Simple Relayer Builder + Deploy ===
+FROM deps AS simple-relayer-builder
+
+COPY packages/simple-relayer ./packages/simple-relayer
+WORKDIR /app/packages/simple-relayer
+RUN pnpm build
+WORKDIR /app
+RUN pnpm --filter @solo-pay/simple-relayer --prod deploy --legacy /deploy/simple-relayer
+RUN cp -r /app/packages/simple-relayer/dist /deploy/simple-relayer/dist
+
+# === Simple Relayer Runtime ===
+FROM node:20-alpine AS simple-relayer
+
+RUN apk add --no-cache curl
+WORKDIR /app
+COPY --from=simple-relayer-builder /deploy/simple-relayer .
+
+ENV NODE_ENV=production
+ENV HOST=0.0.0.0
+ENV PORT=3001
+EXPOSE 3001
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+  CMD curl -sf http://localhost:3001/health || exit 1
+CMD ["node", "dist/server.js"]
+
+# === Price Service Builder + Deploy ===
+FROM deps AS price-service-builder
+
+COPY packages/price-service ./packages/price-service
+WORKDIR /app/packages/price-service
+RUN pnpm build
+WORKDIR /app
+RUN pnpm --filter @solo-pay/price-service --prod deploy --legacy /deploy/price-service
+RUN cp -r /app/packages/price-service/dist /deploy/price-service/dist
+RUN cp -r /app/packages/database/dist /deploy/price-service/node_modules/@solo-pay/database/dist
+
+# === Price Service Runtime ===
+FROM node:20-alpine AS price-service
+
+RUN apk add --no-cache curl
+WORKDIR /app
+COPY --from=price-service-builder /deploy/price-service .
+
+ENV NODE_ENV=production
+ENV HOST=0.0.0.0
+ENV PORT=3003
+EXPOSE 3003
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+  CMD curl -sf http://localhost:3003/health || exit 1
+CMD ["node", "dist/server.js"]
+
+# === Demo Builder + Deploy ===
 FROM deps AS demo-builder
 
 COPY packages/gateway-sdk ./packages/gateway-sdk
@@ -112,28 +212,27 @@ COPY packages/demo ./packages/demo
 WORKDIR /app/packages/demo
 RUN pnpm build
 
+# Deploy: standalone node_modules
+WORKDIR /app
+RUN pnpm --filter @solo-pay/demo --prod deploy --legacy /deploy/demo
+RUN cp -r /app/packages/demo/.next /deploy/demo/.next
+RUN cp -r /app/packages/demo/next.config.ts /deploy/demo/next.config.ts
+RUN cp -r /app/packages/demo/public /deploy/demo/public 2>/dev/null || true
+
 # === Demo Runtime ===
 FROM node:20-alpine AS demo
 
-RUN apk add --no-cache curl && \
-    corepack enable
+RUN apk add --no-cache curl
 WORKDIR /app
-COPY package.json pnpm-workspace.yaml ./
+COPY --from=demo-builder /deploy/demo .
 
-COPY --from=deps /app/node_modules ./node_modules
-COPY --from=deps /app/packages/demo/node_modules ./packages/demo/node_modules
-COPY --from=demo-builder /app/packages/demo/.next ./packages/demo/.next
-COPY --from=demo-builder /app/packages/demo/package.json ./packages/demo/
-COPY --from=demo-builder /app/packages/demo/next.config.ts ./packages/demo/
-
-WORKDIR /app/packages/demo
 ENV NODE_ENV=production
 EXPOSE 3000
 HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
   CMD curl -sf http://localhost:3000 || exit 1
-CMD ["pnpm", "start"]
+CMD ["node_modules/.bin/next", "start"]
 
-# === Sample Merchant Builder ===
+# === Sample Merchant Builder + Deploy ===
 FROM deps AS sample-merchant-builder
 
 WORKDIR /app
@@ -147,116 +246,36 @@ ENV NEXT_PUBLIC_WIDGET_URL=${NEXT_PUBLIC_WIDGET_URL}
 WORKDIR /app/packages/sample-merchant
 RUN pnpm build
 
+# === Sample Merchant DB Init (db push + seed) ===
+# Runs from full build stage (has all deps including prisma + generated client)
+FROM sample-merchant-builder AS sample-merchant-init
+WORKDIR /app/packages/sample-merchant
+CMD ["sh", "-c", "pnpm exec prisma db push --accept-data-loss && pnpm exec tsx prisma/seed.ts"]
+
 # === Sample Merchant Runtime ===
+# Uses Next.js standalone output with outputFileTracingRoot set to monorepo root.
+# This resolves pnpm symlinks so standalone includes all needed deps from root node_modules/.pnpm/.
 FROM node:20-alpine AS sample-merchant
 
-RUN apk add --no-cache curl && \
-    corepack enable
+RUN apk add --no-cache curl
 WORKDIR /app
-COPY package.json pnpm-workspace.yaml ./
 
-COPY --from=deps /app/node_modules ./node_modules
-COPY --from=deps /app/packages/sample-merchant/node_modules ./packages/sample-merchant/node_modules
-COPY --from=sample-merchant-builder /app/packages/sample-merchant/.next ./packages/sample-merchant/.next
-COPY --from=sample-merchant-builder /app/packages/sample-merchant/package.json ./packages/sample-merchant/
-COPY --from=sample-merchant-builder /app/packages/sample-merchant/next.config.ts ./packages/sample-merchant/
-COPY --from=sample-merchant-builder /app/packages/sample-merchant/app/generated ./packages/sample-merchant/app/generated
-COPY --from=sample-merchant-builder /app/packages/sample-merchant/prisma ./packages/sample-merchant/prisma
+# standalone output structure (with outputFileTracingRoot = monorepo root):
+#   .next/standalone/              ← monorepo root (node_modules here)
+#   .next/standalone/packages/sample-merchant/  ← server.js + package node_modules
+COPY --from=sample-merchant-builder /app/packages/sample-merchant/.next/standalone ./
+# Static assets + public (not included in standalone)
+COPY --from=sample-merchant-builder /app/packages/sample-merchant/.next/static ./packages/sample-merchant/.next/static
 COPY --from=sample-merchant-builder /app/packages/sample-merchant/public ./packages/sample-merchant/public
 
-WORKDIR /app/packages/sample-merchant
 ENV NODE_ENV=production
+ENV PORT=3004
+ENV HOSTNAME=0.0.0.0
+WORKDIR /app/packages/sample-merchant
 EXPOSE 3004
 HEALTHCHECK --interval=30s --timeout=3s --start-period=15s --retries=3 \
   CMD curl -sf http://localhost:3004 || exit 1
-CMD ["sh", "-c", "npx prisma db push --skip-generate --accept-data-loss && npx tsx prisma/seed.ts && npx next start -p 3004"]
-
-# === Simple Relayer Builder ===
-FROM deps AS simple-relayer-builder
-
-COPY packages/simple-relayer ./packages/simple-relayer
-WORKDIR /app/packages/simple-relayer
-RUN pnpm build
-
-# === Simple Relayer Runtime ===
-FROM node:20-alpine AS simple-relayer
-
-RUN apk add --no-cache curl
-WORKDIR /app
-COPY --from=deps /app/node_modules ./node_modules
-COPY --from=deps /app/packages/simple-relayer/node_modules ./packages/simple-relayer/node_modules
-COPY --from=simple-relayer-builder /app/packages/simple-relayer/dist ./packages/simple-relayer/dist
-COPY --from=simple-relayer-builder /app/packages/simple-relayer/package.json ./packages/simple-relayer/
-
-WORKDIR /app/packages/simple-relayer
-ENV NODE_ENV=production
-ENV HOST=0.0.0.0
-ENV PORT=3001
-EXPOSE 3001
-HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-  CMD curl -sf http://localhost:3001/health || exit 1
-CMD ["node", "dist/server.js"]
-
-# === Webhook Manager Runtime ===
-FROM node:20-alpine AS webhook-manager
-
-RUN apk add --no-cache curl
-WORKDIR /app
-COPY --from=deps /app/node_modules ./node_modules
-COPY --from=deps /app/packages/webhook-manager/node_modules ./packages/webhook-manager/node_modules
-COPY --from=webhook-manager-builder /app/packages/webhook-manager/dist ./packages/webhook-manager/dist
-COPY --from=webhook-manager-builder /app/packages/webhook-manager/package.json ./packages/webhook-manager/package.json
-
-WORKDIR /app/packages/webhook-manager
-ENV NODE_ENV=production
-# No EXPOSE (worker, no HTTP); optional healthcheck via Redis ping
-CMD ["node", "dist/worker.js"]
-
-# === Faucet Manager Runtime ===
-FROM node:20-alpine AS faucet-manager
-
-RUN apk add --no-cache curl
-WORKDIR /app
-COPY --from=deps /app/node_modules ./node_modules
-COPY --from=deps /app/packages/faucet-manager/node_modules ./packages/faucet-manager/node_modules
-COPY --from=faucet-manager-builder /app/packages/faucet-manager/dist ./packages/faucet-manager/dist
-COPY --from=faucet-manager-builder /app/packages/faucet-manager/package.json ./packages/faucet-manager/package.json
-
-WORKDIR /app/packages/faucet-manager
-ENV NODE_ENV=production
-ENV HOST=0.0.0.0
-ENV PORT=3002
-EXPOSE 3002
-HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
-  CMD curl -sf http://127.0.0.1:3002/health || exit 1
-CMD ["node", "dist/server.js"]
-
-# === Price Service Builder ===
-FROM deps AS price-service-builder
-
-COPY packages/price-service ./packages/price-service
-WORKDIR /app/packages/price-service
-RUN pnpm build
-
-# === Price Service Runtime ===
-FROM node:20-alpine AS price-service
-
-RUN apk add --no-cache curl
-WORKDIR /app
-COPY --from=deps /app/node_modules ./node_modules
-COPY --from=deps /app/packages/price-service/node_modules ./packages/price-service/node_modules
-COPY --from=price-service-builder /app/packages/price-service/dist ./packages/price-service/dist
-COPY --from=price-service-builder /app/packages/price-service/package.json ./packages/price-service/
-COPY --from=deps /app/packages/price-service/prisma ./packages/price-service/prisma
-
-WORKDIR /app/packages/price-service
-ENV NODE_ENV=production
-ENV HOST=0.0.0.0
-ENV PORT=3003
-EXPOSE 3003
-HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-  CMD curl -sf http://localhost:3003/health || exit 1
-CMD ["node", "dist/server.js"]
+CMD ["node", "server.js"]
 
 # === Guide Builder ===
 FROM deps AS guide-builder

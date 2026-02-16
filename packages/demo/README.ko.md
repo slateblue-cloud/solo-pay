@@ -130,7 +130,7 @@ export function getSoloPayClient(): SoloPayClient {
 ### 1. 결제 상태 조회
 
 ```typescript
-// app/api/payments/[paymentId]/status/route.ts
+// app/api/payments/[paymentId]/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { getSoloPayClient } from '@/lib/solopay-server';
 
@@ -184,10 +184,10 @@ export async function GET(request: NextRequest) {
 }
 ```
 
-### 3. Gasless 결제 제출
+### 3. Relay 결제 제출
 
 ```typescript
-// app/api/payments/[paymentId]/gasless/route.ts
+// app/api/payments/[paymentId]/relay/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { getSoloPayClient } from '@/lib/solopay-server';
 
@@ -445,7 +445,7 @@ export async function GET() {
 ```typescript
 // 프론트엔드 코드
 async function checkPaymentStatus(paymentId: string) {
-  const response = await fetch(`/api/payments/${paymentId}/status`);
+  const response = await fetch(`/api/payments/${paymentId}`);
   const result = await response.json();
 
   if (!result.success) {
@@ -476,15 +476,15 @@ async function getPaymentHistory(walletAddress: string) {
 }
 ```
 
-### Gasless 결제 제출
+### Relay 결제 제출
 
 ```typescript
-async function submitGaslessPayment(
+async function submitRelayPayment(
   paymentId: string,
   forwarderAddress: string,
   forwardRequest: any
 ) {
-  const response = await fetch(`/api/payments/${paymentId}/gasless`, {
+  const response = await fetch(`/api/payments/${paymentId}/relay`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({

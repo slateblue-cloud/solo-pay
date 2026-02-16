@@ -17,14 +17,13 @@ SoloPay REST API 전체 엔드포인트 레퍼런스입니다.
 
 ### 결제 API
 
-| 엔드포인트              | 메서드 | 설명                      |
-| ----------------------- | ------ | ------------------------- |
-| `/payments/create`      | POST   | 결제 생성, paymentId 발급 |
-| `/api/checkout`         | POST   | 상품 기반 결제 (Demo App) |
-| `/payments/:id/status`  | GET    | 결제 상태 조회            |
-| `/payments/:id/gasless` | POST   | Gasless 거래 제출         |
-| `/payments/:id/relay`   | POST   | Relay 거래 실행           |
-| `/payments/history`     | GET    | 결제 이력 조회            |
+| 엔드포인트            | 메서드 | 설명                      |
+| --------------------- | ------ | ------------------------- |
+| `/payments`           | POST   | 결제 생성, paymentId 발급 |
+| `/api/checkout`       | POST   | 상품 기반 결제 (Demo App) |
+| `/payments/:id`       | GET    | 결제 상태 조회            |
+| `/payments/:id/relay` | POST   | Gasless 릴레이 거래 제출  |
+| `/payments/:id/relay` | GET    | 릴레이 거래 상태 조회     |
 
 ### 토큰 API
 
@@ -43,7 +42,7 @@ SoloPay REST API 전체 엔드포인트 레퍼런스입니다.
 
 ## 결제 API
 
-### POST /payments/create
+### POST /payments
 
 새로운 결제를 생성합니다.
 
@@ -52,7 +51,7 @@ SoloPay REST API 전체 엔드포인트 레퍼런스입니다.
 #### 요청
 
 ```http
-POST /payments/create
+POST /payments
 Content-Type: application/json
 x-api-key: sk_test_abc123
 ```
@@ -153,7 +152,7 @@ x-api-key: sk_test_abc123
 }
 ```
 
-### GET /payments/:id/status
+### GET /payments/:id
 
 결제 상태를 조회합니다.
 
@@ -185,9 +184,9 @@ x-api-key: sk_test_abc123
 - `completed`: 완료됨
 - `failed`: 실패함
 
-### POST /payments/:id/gasless
+### POST /payments/:id/relay
 
-Gasless 거래를 제출합니다.
+Gasless 릴레이 거래를 제출합니다.
 
 #### 요청
 
@@ -217,13 +216,9 @@ Gasless 거래를 제출합니다.
 }
 ```
 
-### POST /payments/:id/relay
+### GET /payments/:id/relay
 
-Relay 거래를 실행합니다. (Gasless API와 동일한 요청/응답 형식)
-
-### GET /payments/history
-
-사용자의 결제 이력을 조회합니다.
+릴레이 거래 상태를 조회합니다.
 
 #### 쿼리 파라미터
 
@@ -399,7 +394,7 @@ ERC-20 토큰 잔액을 조회합니다.
 
 ```bash
 # 결제 생성
-curl -X POST http://localhost:3001/payments/create \
+curl -X POST http://localhost:3001/api/v1/payments \
   -H "Content-Type: application/json" \
   -H "x-api-key: sk_test_abc123" \
   -d '{
@@ -410,7 +405,7 @@ curl -X POST http://localhost:3001/payments/create \
   }'
 
 # 결제 상태 조회
-curl http://localhost:3001/payments/pay_123/status
+curl http://localhost:3001/api/v1/payments/pay_123
 
 # 토큰 잔액 조회
 curl "http://localhost:3001/tokens/0xE4C687167705Abf55d709395f92e254bdF5825a2/balance?chainId=80002&address=0x..."

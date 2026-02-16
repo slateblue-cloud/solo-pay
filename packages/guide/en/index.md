@@ -25,7 +25,7 @@ features:
   - icon: 🔔
     title: Webhook
     details: Receive real-time notifications when payment status changes.
-    link: /en/webhook/
+    link: /en/webhooks/
   - icon: 🔗
     title: Multi-chain Support
     details: Supports various chains including Polygon, Ethereum, and BNB Chain.

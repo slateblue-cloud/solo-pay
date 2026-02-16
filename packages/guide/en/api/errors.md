@@ -315,4 +315,4 @@ try {
 ## Next Steps
 
 - [SDK Usage](/en/sdk/) - Including error handling
-- [Webhook Setup](/en/webhook/) - Event-based processing
+- [Webhook Setup](/en/webhooks/) - Event-based processing

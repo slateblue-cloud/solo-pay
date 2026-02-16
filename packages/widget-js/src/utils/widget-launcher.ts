@@ -39,9 +39,8 @@ export class WidgetLauncher {
       successUrl: request.successUrl,
       failUrl: request.failUrl,
     });
-
-    if (request.webhookUrl) {
-      params.set('webhookUrl', request.webhookUrl);
+    if (request.currency) {
+      params.set('currency', request.currency);
     }
 
     const url = `${this.widgetUrl}?${params.toString()}`;

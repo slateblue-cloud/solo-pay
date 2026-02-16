@@ -650,7 +650,7 @@ curl https://api.solopay.io/health
 
 ```bash
 # 결제 생성 테스트
-curl -X POST https://api.solopay.io/payments/create \
+curl -X POST https://api.solopay.io/api/v1/payments \
   -H "Content-Type: application/json" \
   -d '{
     "merchantId": "merchant_001",

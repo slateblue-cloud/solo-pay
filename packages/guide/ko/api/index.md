@@ -42,7 +42,7 @@ curl -H "x-api-key: sk_test_xxxxx" https://api.solopay.com/...
 
 ## Payments
 
-### POST /payments/create
+### POST /payments
 
 결제를 생성합니다. 인증: `x-public-key`, `Origin` 헤더.
 
@@ -65,7 +65,6 @@ curl -H "x-api-key: sk_test_xxxxx" https://api.solopay.com/...
 | `tokenAddress` | address | ✓    | ERC-20 토큰 주소 (whitelist 등록 및 가맹점 활성화 필수) |
 | `successUrl`   | string  | ✓    | 성공 시 리다이렉트 URL                                  |
 | `failUrl`      | string  | ✓    | 실패 시 리다이렉트 URL                                  |
-| `webhookUrl`   | string  |      | 결제별 웹훅 URL (선택)                                  |
 
 **Response (201)**
 

@@ -1,6 +1,12 @@
 import { defineConfig } from 'vitest/config';
+import path from 'path';
 
 export default defineConfig({
+  resolve: {
+    alias: {
+      '@solo-pay/database': path.resolve(__dirname, 'tests/__mocks__/solo-pay-database.ts'),
+    },
+  },
   test: {
     environment: 'node',
     testTimeout: 30000,

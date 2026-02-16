@@ -1,6 +1,6 @@
 import { FastifyInstance } from 'fastify';
 import { keccak256, encodePacked, Hex, Address } from 'viem';
-import { Decimal } from '@prisma/client/runtime/library';
+import { Decimal } from '@solo-pay/database';
 import { randomBytes } from 'crypto';
 import { MerchantService } from '../../services/merchant.service';
 import { PaymentService } from '../../services/payment.service';
@@ -29,7 +29,7 @@ export async function createRefundRoute(
     {
       schema: {
         operationId: 'createRefund',
-        tags: ['Refunds'],
+        tags: ['Refund'],
         summary: 'Create a new refund request',
         description: `
 Creates a refund request for a confirmed payment.

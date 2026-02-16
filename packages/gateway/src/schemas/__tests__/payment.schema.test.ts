@@ -22,13 +22,10 @@ describe('payment.schema.ts - CreatePaymentSchema', () => {
       }
     });
 
-    it('should accept valid payment with tokenAddress and optional webhookUrl', () => {
+    it('should reject webhookUrl (no longer accepted)', () => {
       const payload = { ...validPayload, webhookUrl: 'https://example.com/webhook' };
       const result = CreatePaymentSchema.safeParse(payload);
-      expect(result.success).toBe(true);
-      if (result.success) {
-        expect(result.data.webhookUrl).toBe('https://example.com/webhook');
-      }
+      expect(result.success).toBe(false);
     });
 
     it('should accept different amounts', () => {
@@ -133,9 +130,9 @@ describe('payment.schema.ts - CreatePaymentSchema', () => {
       expect(schema).toHaveProperty('failUrl');
     });
 
-    it('should have optional webhookUrl field', () => {
+    it('should NOT have webhookUrl field', () => {
       const schema = CreatePaymentSchema.shape;
-      expect(schema).toHaveProperty('webhookUrl');
+      expect(schema).not.toHaveProperty('webhookUrl');
     });
 
     it('should have tokenAddress and NOT have merchantId, chainId', () => {

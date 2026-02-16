@@ -21,7 +21,7 @@ export async function getRefundStatusRoute(
     {
       schema: {
         operationId: 'getRefundStatus',
-        tags: ['Refunds'],
+        tags: ['Refund'],
         summary: 'Get refund status',
         description: 'Returns the current status of a refund request.',
         security: [{ ApiKeyAuth: [] }],

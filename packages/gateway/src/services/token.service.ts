@@ -1,15 +1,17 @@
-import { PrismaClient, Token } from '@prisma/client';
+import { PrismaClient, Token } from '@solo-pay/database';
 
 export interface CreateTokenInput {
   chain_id: number;
   address: string;
   symbol: string;
   decimals: number;
+  permit_enabled?: boolean;
 }
 
 export interface UpdateTokenInput {
   symbol?: string;
   decimals?: number;
+  permit_enabled?: boolean;
   is_enabled?: boolean;
 }
 
@@ -23,6 +25,7 @@ export class TokenService {
         address: input.address.toLowerCase(),
         symbol: input.symbol,
         decimals: input.decimals,
+        permit_enabled: input.permit_enabled ?? false,
         is_enabled: true,
         is_deleted: false,
       },
@@ -91,6 +94,7 @@ export class TokenService {
       data: {
         ...(input.symbol !== undefined && { symbol: input.symbol }),
         ...(input.decimals !== undefined && { decimals: input.decimals }),
+        ...(input.permit_enabled !== undefined && { permit_enabled: input.permit_enabled }),
         ...(input.is_enabled !== undefined && { is_enabled: input.is_enabled }),
       },
     });

@@ -48,6 +48,27 @@ export const ERC20_ABI = [
     stateMutability: 'view',
     type: 'function',
   },
+  {
+    inputs: [],
+    name: 'name',
+    outputs: [{ name: '', type: 'string' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [{ name: 'owner', type: 'address' }],
+    name: 'nonces',
+    outputs: [{ name: '', type: 'uint256' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [],
+    name: 'DOMAIN_SEPARATOR',
+    outputs: [{ name: '', type: 'bytes32' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
 ] as const;
 
 // ============================================================================
@@ -66,6 +87,16 @@ export const PAYMENT_GATEWAY_ABI = [
       { name: 'merchantId', type: 'bytes32' },
       { name: 'feeBps', type: 'uint16' },
       { name: 'serverSignature', type: 'bytes' },
+      {
+        name: 'permit',
+        type: 'tuple',
+        components: [
+          { name: 'deadline', type: 'uint256' },
+          { name: 'v', type: 'uint8' },
+          { name: 'r', type: 'bytes32' },
+          { name: 's', type: 'bytes32' },
+        ],
+      },
     ],
     outputs: [],
     stateMutability: 'nonpayable',

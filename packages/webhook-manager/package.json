@@ -17,8 +17,10 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@solo-pay/database": "workspace:*",
     "bullmq": "^5.34.0",
-    "ioredis": "^5.4.0"
+    "ioredis": "^5.4.0",
+    "viem": "^2.44.4"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",

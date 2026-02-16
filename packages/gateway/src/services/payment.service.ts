@@ -1,5 +1,5 @@
-import { PrismaClient, Payment, PaymentStatus } from '@prisma/client';
-import { Decimal } from '@prisma/client/runtime/library';
+import { PrismaClient, Payment, PaymentStatus } from '@solo-pay/database';
+import { Decimal } from '@solo-pay/database';
 import { getCache, setCache, deleteCache } from '../db/redis';
 
 export interface CreatePaymentInput {
@@ -16,6 +16,9 @@ export interface CreatePaymentInput {
   fail_url?: string;
   webhook_url?: string;
   origin?: string;
+  currency_code?: string;
+  fiat_amount?: Decimal;
+  token_price?: Decimal;
 }
 
 export class PaymentService {
@@ -42,6 +45,9 @@ export class PaymentService {
         fail_url: input.fail_url,
         webhook_url: input.webhook_url,
         origin: input.origin,
+        currency_code: input.currency_code,
+        fiat_amount: input.fiat_amount,
+        token_price: input.token_price,
       },
     });
 
@@ -196,7 +202,12 @@ export class PaymentService {
     return updated;
   }
 
-  async getPaymentWithChain(paymentHash: string) {
+  async getPaymentWithChain(paymentHash: string): Promise<{
+    payment: Payment;
+    network_id: number;
+    token_symbol: string;
+    token_decimals: number;
+  } | null> {
     const payment = await this.findByHash(paymentHash);
     if (!payment) {
       return null;

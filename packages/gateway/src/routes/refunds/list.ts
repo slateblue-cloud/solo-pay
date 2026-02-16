@@ -1,5 +1,5 @@
 import { FastifyInstance } from 'fastify';
-import { RefundStatus } from '@prisma/client';
+import { RefundStatus } from '@solo-pay/database';
 import { MerchantService } from '../../services/merchant.service';
 import { PaymentService } from '../../services/payment.service';
 import { RefundService } from '../../services/refund.service';
@@ -25,7 +25,7 @@ export async function getRefundListRoute(
     {
       schema: {
         operationId: 'getRefundList',
-        tags: ['Refunds'],
+        tags: ['Refund'],
         summary: 'List refunds',
         description: 'Returns a paginated list of refunds for the authenticated merchant.',
         security: [{ ApiKeyAuth: [] }],

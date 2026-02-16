@@ -15,19 +15,32 @@ services:
       MYSQL_PASSWORD: pass
     volumes:
       - mysql-data:/var/lib/mysql
-      - ./init.sql:/docker-entrypoint-initdb.d/init.sql:ro
     networks:
       - solo-pay-network
     healthcheck:
-      test:
-        [
-          'CMD-SHELL',
-          "mysql -h localhost -u solopay -ppass solopay -e 'SELECT 1 FROM chains LIMIT 1'",
-        ]
+      test: ['CMD', 'mysqladmin', 'ping', '-h', 'localhost', '-u', 'root', '-ppass']
       interval: 5s
       timeout: 5s
       retries: 20
       start_period: 30s
+
+  # Database Init (creates extra databases and grants, runs once as root)
+  db-init:
+    image: mysql:8.0
+    container_name: solo-pay-db-init
+    restart: 'no'
+    entrypoint: ['mysql', '-h', 'mysql', '-u', 'root', '-ppass', '-e']
+    command:
+      - >
+        CREATE DATABASE IF NOT EXISTS solopay_sample_merchant CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+        GRANT ALL PRIVILEGES ON solopay_sample_merchant.* TO 'solopay'@'%';
+        GRANT CREATE, DROP ON *.* TO 'solopay'@'%';
+        FLUSH PRIVILEGES;
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - solo-pay-network
 
   # Redis 7 Alpine - Caching
   redis:
@@ -112,6 +125,23 @@ services:
     networks:
       - solo-pay-network
 
+  # Database Migration (runs once and exits)
+  db-migrate:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.packages
+      target: db-migrate
+    image: 347765734000.dkr.ecr.ap-northeast-2.amazonaws.com/solo-pay/db-migrate:nightly
+    container_name: solo-pay-db-migrate
+    restart: 'no'
+    environment:
+      DATABASE_URL: mysql://solopay:pass@mysql:3306/solopay
+    depends_on:
+      db-init:
+        condition: service_completed_successfully
+    networks:
+      - solo-pay-network
+
   # Faucet Manager (one-time gas grant per wallet per chain)
   faucet-manager:
     build:
@@ -133,6 +163,8 @@ services:
     depends_on:
       mysql:
         condition: service_healthy
+      db-migrate:
+        condition: service_completed_successfully
     networks:
       - solo-pay-network
     healthcheck:
@@ -170,9 +202,13 @@ services:
       # Hardhat well-known dev account #4 (deterministic, safe to commit)
       # Address: 0x15d34AAf54267DB7D7c367839AAf71A00a2C6A65
       SIGNER_PRIVATE_KEY: '0x47e179ec197488593b187f80a00eb0da91f1b9d0b13f8733639f19c30a34926a'
+      # Price Service URL for currency conversion
+      PRICE_SERVICE_URL: http://price-service:3003
     depends_on:
       mysql:
         condition: service_healthy
+      db-migrate:
+        condition: service_completed_successfully
       redis:
         condition: service_started
       hardhat-node:
@@ -215,6 +251,22 @@ services:
       - solo-pay-network
 
   # Sample Merchant App (Next.js + Prisma)
+  sample-merchant-init:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.packages
+      target: sample-merchant-init
+    image: 347765734000.dkr.ecr.ap-northeast-2.amazonaws.com/solo-pay/sample-merchant-init:nightly
+    container_name: solo-pay-sample-merchant-init
+    restart: 'no'
+    environment:
+      DATABASE_URL: mysql://solopay:pass@mysql:3306/solopay_sample_merchant
+    depends_on:
+      db-init:
+        condition: service_completed_successfully
+    networks:
+      - solo-pay-network
+
   sample-merchant:
     build:
       context: ..
@@ -237,6 +289,8 @@ services:
     depends_on:
       mysql:
         condition: service_healthy
+      sample-merchant-init:
+        condition: service_completed_successfully
       gateway:
         condition: service_healthy
     networks:
@@ -265,6 +319,8 @@ services:
     depends_on:
       mysql:
         condition: service_healthy
+      db-migrate:
+        condition: service_completed_successfully
       redis:
         condition: service_started
     networks:

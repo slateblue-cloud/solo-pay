@@ -1,0 +1,34 @@
+{
+  "name": "@solo-pay/database",
+  "version": "0.1.0",
+  "description": "Shared Prisma database client for SoloPay monorepo",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "prisma:generate": "prisma generate",
+    "build": "prisma generate && tsc -p tsconfig.build.json",
+    "clean": "rm -rf dist",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@prisma/adapter-mariadb": "^7.4.0",
+    "@prisma/client": "^7.2.0",
+    "@prisma/client-runtime-utils": "^7.4.0",
+    "mariadb": "^3.4.5"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "dotenv": "^16.4.5",
+    "prisma": "^7.2.0",
+    "tsx": "^4",
+    "typescript": "^5.4.0"
+  },
+  "keywords": [
+    "prisma",
+    "database",
+    "mysql",
+    "shared"
+  ],
+  "author": "MSQ Team",
+  "license": "MIT"
+}

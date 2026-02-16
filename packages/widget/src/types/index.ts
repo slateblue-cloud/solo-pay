@@ -7,7 +7,7 @@ export type PaymentStepType =
 
 /**
  * URL parameters for widget initialization
- * Matches: /?pk=xxx&orderId=xxx&amount=xxx&tokenAddress=xxx&successUrl=xxx&failUrl=xxx&webhookUrl=xxx
+ * Matches: /?pk=xxx&orderId=xxx&amount=xxx&tokenAddress=xxx&successUrl=xxx&failUrl=xxx
  */
 export interface WidgetUrlParams {
   /** Public key for merchant authentication (required) */
@@ -22,8 +22,8 @@ export interface WidgetUrlParams {
   successUrl: string;
   /** Redirect URL on failure (required) */
   failUrl: string;
-  /** Server notification URL (optional) */
-  webhookUrl?: string;
+  /** Fiat currency code (optional, e.g., USD, KRW) */
+  currency?: string;
 }
 
 /**
@@ -39,7 +39,7 @@ export interface UrlParamsValidationResult {
 }
 
 /**
- * API response from POST /payments/create
+ * API response from POST /payments
  */
 export interface PaymentDetails {
   /** Payment hash for smart contract */
@@ -74,6 +74,12 @@ export interface PaymentDetails {
   feeBps: number;
   /** ERC2771Forwarder contract address (for gasless payments) */
   forwarderAddress?: string;
+  /** Fiat currency code used for conversion */
+  currency?: string;
+  /** Original fiat amount before conversion */
+  fiatAmount?: number;
+  /** Token price at creation time */
+  tokenPrice?: number;
 }
 
 /** Gas payment mode */

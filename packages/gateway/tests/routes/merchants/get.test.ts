@@ -85,7 +85,7 @@ const mockToken2 = {
   deleted_at: null,
 };
 
-describe('GET /merchants/me', () => {
+describe('GET /merchant', () => {
   let app: FastifyInstance;
   let merchantService: Partial<MerchantService>;
   let paymentMethodService: Partial<PaymentMethodService>;
@@ -150,7 +150,7 @@ describe('GET /merchants/me', () => {
   it('returns 200 with merchant and chainTokens', async () => {
     const response = await app.inject({
       method: 'GET',
-      url: `${API_V1_BASE_PATH}/merchants/me`,
+      url: `${API_V1_BASE_PATH}/merchant`,
       headers: { 'x-api-key': TEST_API_KEY },
     });
 
@@ -167,7 +167,7 @@ describe('GET /merchants/me', () => {
   it('returns chainTokens with correct format (id, network_id, name, is_testnet, tokens)', async () => {
     const response = await app.inject({
       method: 'GET',
-      url: `${API_V1_BASE_PATH}/merchants/me`,
+      url: `${API_V1_BASE_PATH}/merchant`,
       headers: { 'x-api-key': TEST_API_KEY },
     });
 
@@ -193,7 +193,7 @@ describe('GET /merchants/me', () => {
   it('returns 401 when x-api-key is missing', async () => {
     const response = await app.inject({
       method: 'GET',
-      url: `${API_V1_BASE_PATH}/merchants/me`,
+      url: `${API_V1_BASE_PATH}/merchant`,
     });
     expect(response.statusCode).toBe(401);
   });

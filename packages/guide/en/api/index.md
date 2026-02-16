@@ -42,7 +42,7 @@ curl -H "x-api-key: sk_test_xxxxx" https://api.solopay.com/...
 
 ## Payments
 
-### POST /payments/create
+### POST /payments
 
 Creates a payment. Auth: `x-public-key` + `Origin` headers.
 
@@ -65,7 +65,6 @@ Creates a payment. Auth: `x-public-key` + `Origin` headers.
 | `tokenAddress` | address | ✓        | ERC-20 token address (must be whitelisted and enabled for merchant) |
 | `successUrl`   | string  | ✓        | Redirect URL on success                                             |
 | `failUrl`      | string  | ✓        | Redirect URL on failure                                             |
-| `webhookUrl`   | string  |          | Optional per-payment webhook URL                                    |
 
 **Response (201)**
 

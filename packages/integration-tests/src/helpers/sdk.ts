@@ -57,7 +57,7 @@ export function createTestClientFromFixture(merchantName: string = 'default'): S
  */
 const DEFAULT_TOKEN_ADDRESS = '0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512';
 
-/** Build params for createPayment (POST /payments/create uses orderId, amount, tokenAddress, successUrl, failUrl). */
+/** Build params for createPayment (POST /payments uses orderId, amount, tokenAddress, successUrl, failUrl). */
 export function makeCreatePaymentParams(
   amount: number,
   orderId?: string,

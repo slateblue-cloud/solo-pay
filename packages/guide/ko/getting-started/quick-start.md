@@ -131,4 +131,4 @@ async function createPayment() {
 - [인증](/ko/getting-started/authentication) - API Key 상세 사용법
 - [결제 생성](/ko/payments/create) - 결제 API 상세 가이드
 - [Gasless 결제](/ko/gasless/) - 가스비 없이 결제하기
-- [Webhook 설정](/ko/webhook/) - 결제 완료 알림 받기
+- [Webhook 설정](/ko/webhooks/) - 결제 완료 알림 받기

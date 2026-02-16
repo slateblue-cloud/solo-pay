@@ -17,11 +17,11 @@ export async function getMerchantRoute(
   const authMiddleware = createAuthMiddleware(merchantService);
 
   app.get(
-    '/merchants/me',
+    '/merchant',
     {
       schema: {
         operationId: 'getCurrentMerchant',
-        tags: ['Merchants'],
+        tags: ['Merchant'],
         summary: 'Get current merchant info',
         description:
           'Returns information about the authenticated merchant including payment methods',
@@ -53,7 +53,7 @@ export async function getMerchantRoute(
                     type: 'string',
                     nullable: true,
                     description:
-                      'Public key for client-side integration (pk_live_xxx). Set via POST /merchants/me/public-key',
+                      'Public key for client-side integration (pk_live_xxx or pk_test_xxx)',
                   },
                   allowed_domains: {
                     type: 'array',

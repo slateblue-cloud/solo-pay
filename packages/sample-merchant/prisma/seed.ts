@@ -1,6 +1,10 @@
 import { PrismaClient } from '../app/generated/prisma/client';
+import { PrismaMariaDb } from '@prisma/adapter-mariadb';
 
-const prisma = new PrismaClient();
+const databaseUrl =
+  process.env.DATABASE_URL ?? 'mysql://solopay:solopay@localhost:3306/sample_merchant';
+const adapter = new PrismaMariaDb(databaseUrl);
+const prisma = new PrismaClient({ adapter });
 
 const products = [
   {

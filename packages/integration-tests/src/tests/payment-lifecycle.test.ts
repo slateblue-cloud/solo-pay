@@ -16,6 +16,7 @@ import {
   generatePaymentId,
   merchantKeyToId,
   getDeadline,
+  ZERO_PERMIT,
   type ForwardRequest,
   type PaymentParams,
 } from '../helpers/signature';
@@ -75,6 +76,12 @@ describe('Payment Lifecycle Integration', () => {
 
       const wallet = getWallet(payerPrivateKey);
       const gatewayWithSigner = getContract(gatewayAddress, PaymentGatewayABI, wallet);
+      const emptyPermit = {
+        deadline: 0,
+        v: 0,
+        r: '0x' + '0'.repeat(64),
+        s: '0x' + '0'.repeat(64),
+      };
       const tx = await gatewayWithSigner.pay(
         paymentId,
         token.address,
@@ -82,7 +89,8 @@ describe('Payment Lifecycle Integration', () => {
         recipientAddress,
         merchantId,
         feeBps,
-        serverSignature
+        serverSignature,
+        emptyPermit
       );
       await tx.wait();
 
@@ -189,7 +197,8 @@ describe('Payment Lifecycle Integration', () => {
         recipientAddress,
         merchantId,
         feeBps,
-        serverSignature
+        serverSignature,
+        ZERO_PERMIT
       );
       await tx.wait();
 
@@ -201,7 +210,8 @@ describe('Payment Lifecycle Integration', () => {
           recipientAddress,
           merchantId,
           feeBps,
-          serverSignature
+          serverSignature,
+          ZERO_PERMIT
         )
       ).rejects.toThrow();
     });
@@ -240,7 +250,8 @@ describe('Payment Lifecycle Integration', () => {
           recipientAddress,
           merchantId,
           feeBps,
-          serverSignature
+          serverSignature,
+          ZERO_PERMIT
         );
         await tx.wait();
       }

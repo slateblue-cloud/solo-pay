@@ -33,12 +33,12 @@ export async function submitGaslessRoute(
   const authMiddleware = createPublicAuthMiddleware(merchantService);
 
   app.post<{ Params: { id: string }; Body: SubmitGaslessRequest }>(
-    '/payments/:id/gasless',
+    '/payments/:id/relay',
     {
       schema: {
-        operationId: 'submitGaslessPayment',
-        tags: ['Payments'],
-        summary: 'Submit gasless payment',
+        operationId: 'submitPaymentRelay',
+        tags: ['Payment'],
+        summary: 'Submit gasless relay request',
         description: `
 Submits a gasless (meta-transaction) payment using ERC-2771 forwarder.
 
@@ -49,11 +49,12 @@ Submits a gasless (meta-transaction) payment using ERC-2771 forwarder.
 4. User pays with tokens, not ETH gas
 
 **Requirements:**
-- Valid payment ID from /payments/create
+- Valid payment ID from POST /payments
 - EIP-712 signature from the payer
 - Token approval for PaymentGateway contract
 
-**Security (no auth required):**
+**Security:**
+- Public key + Origin authentication required
 - Payment ID is validated (payment must exist; amount and status checked)
 - Amount in forwardRequest.data is validated against DB amount
 - Signature format is validated before relay submission
@@ -145,6 +146,15 @@ Submits a gasless (meta-transaction) payment using ERC-2771 forwarder.
           });
         }
 
+        // 결제 만료 확인
+        if (payment.expires_at && new Date() > new Date(payment.expires_at)) {
+          await paymentService.updateStatus(payment.id, 'EXPIRED');
+          return reply.code(400).send({
+            code: 'PAYMENT_EXPIRED',
+            message: '결제가 만료되었습니다',
+          });
+        }
+
         // ForwardRequest 서명 검증
         if (!relayerService.validateTransactionData(validatedData.forwardRequest.signature)) {
           return reply.code(400).send({
@@ -173,7 +183,6 @@ Submits a gasless (meta-transaction) payment using ERC-2771 forwarder.
 
         return reply.code(202).send({
           success: true,
-          relayRequestId: result.relayRequestId,
           status: result.status,
           message: 'Gasless 거래가 제출되었습니다',
         });

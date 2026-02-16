@@ -130,7 +130,7 @@ API endpoints to implement on merchant server.
 ### 1. Check Payment Status
 
 ```typescript
-// app/api/payments/[paymentId]/status/route.ts
+// app/api/payments/[paymentId]/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { getSoloPayClient } from '@/lib/solopay-server';
 
@@ -184,10 +184,10 @@ export async function GET(request: NextRequest) {
 }
 ```
 
-### 3. Submit Gasless Payment
+### 3. Submit Relay Payment
 
 ```typescript
-// app/api/payments/[paymentId]/gasless/route.ts
+// app/api/payments/[paymentId]/relay/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { getSoloPayClient } from '@/lib/solopay-server';
 
@@ -443,7 +443,7 @@ How to call merchant server API from frontend.
 ```typescript
 // Frontend code
 async function checkPaymentStatus(paymentId: string) {
-  const response = await fetch(`/api/payments/${paymentId}/status`);
+  const response = await fetch(`/api/payments/${paymentId}`);
   const result = await response.json();
 
   if (!result.success) {
@@ -474,15 +474,15 @@ async function getPaymentHistory(walletAddress: string) {
 }
 ```
 
-### Submit Gasless Payment
+### Submit Relay Payment
 
 ```typescript
-async function submitGaslessPayment(
+async function submitRelayPayment(
   paymentId: string,
   forwarderAddress: string,
   forwardRequest: any
 ) {
-  const response = await fetch(`/api/payments/${paymentId}/gasless`, {
+  const response = await fetch(`/api/payments/${paymentId}/relay`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({

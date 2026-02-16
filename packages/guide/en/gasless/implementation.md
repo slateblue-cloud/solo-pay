@@ -299,5 +299,5 @@ app.post('/api/gasless', async (req, res) => {
 
 ## Next Steps
 
-- [Webhook Setup](/en/webhook/) - Receive payment completion notifications
+- [Webhook Setup](/en/webhooks/) - Receive payment completion notifications
 - [Error Codes](/en/api/errors) - Complete error list
