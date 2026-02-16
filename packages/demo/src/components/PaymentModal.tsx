@@ -65,11 +65,29 @@ const PAYMENT_GATEWAY_ABI = [
       { name: 'merchantId', type: 'bytes32' },
       { name: 'feeBps', type: 'uint16' },
       { name: 'serverSignature', type: 'bytes' },
+      {
+        name: 'permit',
+        type: 'tuple',
+        components: [
+          { name: 'deadline', type: 'uint256' },
+          { name: 'v', type: 'uint8' },
+          { name: 'r', type: 'bytes32' },
+          { name: 's', type: 'bytes32' },
+        ],
+      },
     ],
     outputs: [],
     stateMutability: 'nonpayable',
   },
 ] as const;
+
+// Empty permit for non-permit (approve-based) payments
+const EMPTY_PERMIT = {
+  deadline: BigInt(0),
+  v: 0,
+  r: '0x0000000000000000000000000000000000000000000000000000000000000000' as `0x${string}`,
+  s: '0x0000000000000000000000000000000000000000000000000000000000000000' as `0x${string}`,
+} as const;
 
 // ERC2771Forwarder ABI - only nonces function needed for gasless payments
 const FORWARDER_ABI = [
@@ -368,6 +386,7 @@ export function PaymentModal({ product, onClose, onSuccess }: PaymentModalProps)
           serverConfig.merchantId as `0x${string}`,
           serverConfig.feeBps ?? 0,
           serverConfig.serverSignature as `0x${string}`,
+          EMPTY_PERMIT,
         ],
         ...gasConfig,
       });
@@ -433,6 +452,7 @@ export function PaymentModal({ product, onClose, onSuccess }: PaymentModalProps)
           serverConfig.merchantId as `0x${string}`,
           serverConfig.feeBps ?? 0,
           serverConfig.serverSignature as `0x${string}`,
+          EMPTY_PERMIT,
         ],
       });
 

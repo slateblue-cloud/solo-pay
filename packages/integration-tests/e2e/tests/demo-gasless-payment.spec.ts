@@ -15,8 +15,9 @@
  */
 
 import { test, expect } from '../helpers/fixtures';
-import { HARDHAT_ACCOUNTS, DEMO_URL } from '../helpers/constants';
+import { DEMO_URL } from '../helpers/constants';
 import { ensurePayerHasTokens } from '../helpers/blockchain';
+import { connectWallet } from '../helpers/wallet-connect';
 
 test.describe('Gasless Payment (Demo)', () => {
   test.beforeAll(async () => {
@@ -28,20 +29,8 @@ test.describe('Gasless Payment (Demo)', () => {
     await walletPage.goto(DEMO_URL);
     await walletPage.waitForSelector('text=Solo Pay Demo', { timeout: 15_000 });
 
-    // 2. Connect wallet
-    const connectBtn = walletPage.getByTestId('rk-connect-button').first();
-    await expect(connectBtn).toBeVisible({ timeout: 15_000 });
-    await connectBtn.click();
-
-    const walletOption = walletPage.getByText(/metamask/i).first();
-    if (await walletOption.isVisible({ timeout: 5_000 }).catch(() => false)) {
-      await walletOption.click();
-    }
-
-    const shortenedAddress = HARDHAT_ACCOUNTS.payer.address.slice(0, 6);
-    await expect(walletPage.getByText(new RegExp(shortenedAddress, 'i'))).toBeVisible({
-      timeout: 15_000,
-    });
+    // 2. Connect wallet (handles auto-connection from mock provider)
+    await connectWallet(walletPage);
 
     // 3. Click "Buy Now" on third product (Game Credits - 25 TOKEN)
     const buyButtons = walletPage.getByRole('button', { name: /buy now/i });
@@ -50,22 +39,28 @@ test.describe('Gasless Payment (Demo)', () => {
 
     // 4. PaymentModal opens
     await expect(walletPage.getByText('Checkout')).toBeVisible({ timeout: 10_000 });
-    await expect(walletPage.getByText('Game Credits')).toBeVisible();
+    await expect(walletPage.getByText('Game Credits').first()).toBeVisible();
 
-    // 5. Switch to Gasless mode
-    const gaslessBtn = walletPage.getByText('Gasless').first();
+    // 5. Switch to Gasless mode (target the button, not background "Gasless Payment:" text)
+    const gaslessBtn = walletPage.getByRole('button', { name: /gasless/i });
     await expect(gaslessBtn).toBeVisible({ timeout: 10_000 });
     await gaslessBtn.click();
 
     // 6. Wait for buttons
-    const approveBtn = walletPage.getByRole('button', { name: /approve/i });
-    const payBtn = walletPage.getByRole('button', { name: /pay/i });
-    await expect(approveBtn.or(payBtn)).toBeVisible({ timeout: 30_000 });
+    const approveBtn = walletPage.getByRole('button', { name: /^approve\b/i });
+    const payBtn = walletPage.getByRole('button', { name: /^pay\s+\d+/i });
+    await approveBtn.or(payBtn).first().waitFor({ timeout: 30_000 });
 
-    // 7. Approve if needed
+    // 7. Approve if needed (button may appear disabled while loading, then disappear
+    //    if allowance is already sufficient from a previous test run)
     if (await approveBtn.isVisible().catch(() => false)) {
-      await approveBtn.click();
-      await expect(approveBtn).not.toBeVisible({ timeout: 30_000 });
+      try {
+        await expect(approveBtn).toBeEnabled({ timeout: 15_000 });
+        await approveBtn.click();
+        await expect(approveBtn).not.toBeVisible({ timeout: 30_000 });
+      } catch {
+        // Approve button disappeared or never became enabled — allowance already sufficient
+      }
     }
 
     // 8. Pay (gasless — signs ForwardRequest, sends to relayer)
@@ -74,7 +69,8 @@ test.describe('Gasless Payment (Demo)', () => {
 
     // 9. Wait for gasless payment to complete
     // Gasless payments take longer due to relay submission + on-chain confirmation
-    await expect(walletPage.getByText('Payment Successful!')).toBeVisible({
+    // Use exact match to avoid strict mode violation with toast ("Payment successful!" lowercase)
+    await expect(walletPage.getByText('Payment Successful!', { exact: true })).toBeVisible({
       timeout: 90_000,
     });
 
