@@ -17,13 +17,13 @@ Complete reference for all SoloPay REST API endpoints.
 
 ### Payment API
 
-| Endpoint                | Method | Description                      |
-| ----------------------- | ------ | -------------------------------- |
-| `/payments`             | POST   | Create payment, issue paymentId  |
-| `/api/checkout`         | POST   | Product-based payment (Demo App) |
-| `/payments/:id`         | GET    | Query payment status             |
-| `/payments/:id/relay`   | POST   | Submit gasless relay transaction |
-| `/payments/:id/relay`   | GET    | Check relay transaction status   |
+| Endpoint              | Method | Description                      |
+| --------------------- | ------ | -------------------------------- |
+| `/payments`           | POST   | Create payment, issue paymentId  |
+| `/api/checkout`       | POST   | Product-based payment (Demo App) |
+| `/payments/:id`       | GET    | Query payment status             |
+| `/payments/:id/relay` | POST   | Submit gasless relay transaction |
+| `/payments/:id/relay` | GET    | Check relay transaction status   |
 
 ### Token API
 

@@ -35,9 +35,7 @@ const PAYMENT_COMPLETED_EVENT = parseAbiItem(
 /**
  * Create viem PublicClient for each chain loaded from DB.
  */
-export function createBlockchainClients(
-  chains: ChainConfig[]
-): Map<number, ChainClient> {
+export function createBlockchainClients(chains: ChainConfig[]): Map<number, ChainClient> {
   const clients = new Map<number, ChainClient>();
 
   for (const chain of chains) {

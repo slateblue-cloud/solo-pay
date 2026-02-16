@@ -25,13 +25,69 @@ const prisma = new PrismaClient({ adapter });
 // id=6: Ethereum (Mainnet) - no contracts yet
 // id=7: BNB Chain (Mainnet) - no contracts yet
 const chains = [
-  { id: 1, network_id: 31337, name: 'Localhost', rpc_url: 'http://hardhat-node:8545', gateway_address: '0xCf7Ed3AccA5a467e9e704C703E8D87F634fB0Fc9', forwarder_address: '0x5FbDB2315678afecb367f032d93F642f64180aa3', is_testnet: true },
-  { id: 2, network_id: 11155111, name: 'Sepolia', rpc_url: 'https://ethereum-sepolia-rpc.publicnode.com', gateway_address: null, forwarder_address: null, is_testnet: true },
-  { id: 3, network_id: 80002, name: 'Amoy', rpc_url: 'https://rpc-amoy.polygon.technology', gateway_address: '0x2024b6669A2BE5fF9624792cB1BB657d20C4b24B', forwarder_address: '0xE8a3C8e530dddd14e02DA1C81Df6a15f41ad78DE', is_testnet: true },
-  { id: 4, network_id: 97, name: 'BNB Chain Testnet', rpc_url: 'https://data-seed-prebsc-1-s1.binance.org:8545', gateway_address: null, forwarder_address: null, is_testnet: true },
-  { id: 5, network_id: 137, name: 'Polygon', rpc_url: 'https://polygon-rpc.com', gateway_address: '0x4F81a1481fc3d6479E2e6d56052fC60539F707ec', forwarder_address: '0xec63c3E7BD0c51AA6DC08f587A2B147a671cf888', is_testnet: false },
-  { id: 6, network_id: 1, name: 'Ethereum', rpc_url: 'https://eth.llamarpc.com', gateway_address: null, forwarder_address: null, is_testnet: false },
-  { id: 7, network_id: 56, name: 'BNB Chain', rpc_url: 'https://bsc-dataseed.binance.org', gateway_address: null, forwarder_address: null, is_testnet: false },
+  {
+    id: 1,
+    network_id: 31337,
+    name: 'Localhost',
+    rpc_url: 'http://hardhat-node:8545',
+    gateway_address: '0xCf7Ed3AccA5a467e9e704C703E8D87F634fB0Fc9',
+    forwarder_address: '0x5FbDB2315678afecb367f032d93F642f64180aa3',
+    is_testnet: true,
+  },
+  {
+    id: 2,
+    network_id: 11155111,
+    name: 'Sepolia',
+    rpc_url: 'https://ethereum-sepolia-rpc.publicnode.com',
+    gateway_address: null,
+    forwarder_address: null,
+    is_testnet: true,
+  },
+  {
+    id: 3,
+    network_id: 80002,
+    name: 'Amoy',
+    rpc_url: 'https://rpc-amoy.polygon.technology',
+    gateway_address: '0x2024b6669A2BE5fF9624792cB1BB657d20C4b24B',
+    forwarder_address: '0xE8a3C8e530dddd14e02DA1C81Df6a15f41ad78DE',
+    is_testnet: true,
+  },
+  {
+    id: 4,
+    network_id: 97,
+    name: 'BNB Chain Testnet',
+    rpc_url: 'https://data-seed-prebsc-1-s1.binance.org:8545',
+    gateway_address: null,
+    forwarder_address: null,
+    is_testnet: true,
+  },
+  {
+    id: 5,
+    network_id: 137,
+    name: 'Polygon',
+    rpc_url: 'https://polygon-rpc.com',
+    gateway_address: '0x4F81a1481fc3d6479E2e6d56052fC60539F707ec',
+    forwarder_address: '0xec63c3E7BD0c51AA6DC08f587A2B147a671cf888',
+    is_testnet: false,
+  },
+  {
+    id: 6,
+    network_id: 1,
+    name: 'Ethereum',
+    rpc_url: 'https://eth.llamarpc.com',
+    gateway_address: null,
+    forwarder_address: null,
+    is_testnet: false,
+  },
+  {
+    id: 7,
+    network_id: 56,
+    name: 'BNB Chain',
+    rpc_url: 'https://bsc-dataseed.binance.org',
+    gateway_address: null,
+    forwarder_address: null,
+    is_testnet: false,
+  },
 ];
 
 // Tokens
@@ -41,11 +97,46 @@ const chains = [
 // id=4: SUT on Amoy (chain_id=3) - permit enabled
 // id=5: MSQ on Amoy (chain_id=3) - permit enabled
 const tokens = [
-  { id: 1, chain_id: 1, address: '0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512', symbol: 'TEST', decimals: 18, permit_enabled: false },
-  { id: 2, chain_id: 5, address: '0x98965474EcBeC2F532F1f780ee37b0b05F77Ca55', symbol: 'SUT', decimals: 18, permit_enabled: true },
-  { id: 3, chain_id: 5, address: '0x6A8Ec2d9BfBDD20A7F5A4E89D640F7E7cebA4499', symbol: 'MSQ', decimals: 18, permit_enabled: true },
-  { id: 4, chain_id: 3, address: '0xE4C687167705Abf55d709395f92e254bdF5825a2', symbol: 'SUT', decimals: 18, permit_enabled: true },
-  { id: 5, chain_id: 3, address: '0x7350C119cb048c2Ea6b2532bcE82c2F7c042ff6b', symbol: 'MSQ', decimals: 18, permit_enabled: true },
+  {
+    id: 1,
+    chain_id: 1,
+    address: '0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512',
+    symbol: 'TEST',
+    decimals: 18,
+    permit_enabled: false,
+  },
+  {
+    id: 2,
+    chain_id: 5,
+    address: '0x98965474EcBeC2F532F1f780ee37b0b05F77Ca55',
+    symbol: 'SUT',
+    decimals: 18,
+    permit_enabled: true,
+  },
+  {
+    id: 3,
+    chain_id: 5,
+    address: '0x6A8Ec2d9BfBDD20A7F5A4E89D640F7E7cebA4499',
+    symbol: 'MSQ',
+    decimals: 18,
+    permit_enabled: true,
+  },
+  {
+    id: 4,
+    chain_id: 3,
+    address: '0xE4C687167705Abf55d709395f92e254bdF5825a2',
+    symbol: 'SUT',
+    decimals: 18,
+    permit_enabled: true,
+  },
+  {
+    id: 5,
+    chain_id: 3,
+    address: '0x7350C119cb048c2Ea6b2532bcE82c2F7c042ff6b',
+    symbol: 'MSQ',
+    decimals: 18,
+    permit_enabled: true,
+  },
 ];
 
 // Merchants

@@ -153,12 +153,7 @@ const registerRoutes = async () => {
         currencyService,
         priceClient
       );
-      await getPaymentStatusRoute(
-        scope,
-        blockchainService,
-        paymentService,
-        merchantService
-      );
+      await getPaymentStatusRoute(scope, blockchainService, paymentService, merchantService);
       await submitGaslessRoute(
         scope,
         relayerService,
@@ -176,12 +171,7 @@ const registerRoutes = async () => {
         tokenService,
         chainService
       );
-      await merchantPaymentRoute(
-        scope,
-        blockchainService,
-        merchantService,
-        paymentService
-      );
+      await merchantPaymentRoute(scope, blockchainService, merchantService, paymentService);
       await paymentMethodsRoute(
         scope,
         merchantService,

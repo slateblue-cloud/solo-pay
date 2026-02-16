@@ -32,7 +32,10 @@ export function isWebhookUrlSafe(url: string): boolean {
 const safeWebhookUrl = z
   .string()
   .url('Webhook URL must be a valid URL')
-  .refine(isWebhookUrlSafe, 'Webhook URL must use HTTPS and must not point to private/internal addresses');
+  .refine(
+    isWebhookUrlSafe,
+    'Webhook URL must use HTTPS and must not point to private/internal addresses'
+  );
 
 // Merchant update request schema. merchant_key is not updatable.
 export const UpdateMerchantSchema = z

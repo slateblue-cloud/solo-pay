@@ -66,7 +66,12 @@ export class SoloPayClient {
 
   /** GET /payments/:id — Get payment status */
   async getPaymentStatus(paymentId: string): Promise<PaymentStatusResponse> {
-    return this.request<PaymentStatusResponse>('GET', `/payments/${paymentId}`, undefined, 'public');
+    return this.request<PaymentStatusResponse>(
+      'GET',
+      `/payments/${paymentId}`,
+      undefined,
+      'public'
+    );
   }
 
   /** POST /payments/:id/relay — Submit gasless relay request */

@@ -17,13 +17,13 @@ SoloPay REST API 전체 엔드포인트 레퍼런스입니다.
 
 ### 결제 API
 
-| 엔드포인트              | 메서드 | 설명                      |
-| ----------------------- | ------ | ------------------------- |
-| `/payments`             | POST   | 결제 생성, paymentId 발급 |
-| `/api/checkout`         | POST   | 상품 기반 결제 (Demo App) |
-| `/payments/:id`         | GET    | 결제 상태 조회            |
-| `/payments/:id/relay`   | POST   | Gasless 릴레이 거래 제출  |
-| `/payments/:id/relay`   | GET    | 릴레이 거래 상태 조회     |
+| 엔드포인트            | 메서드 | 설명                      |
+| --------------------- | ------ | ------------------------- |
+| `/payments`           | POST   | 결제 생성, paymentId 발급 |
+| `/api/checkout`       | POST   | 상품 기반 결제 (Demo App) |
+| `/payments/:id`       | GET    | 결제 상태 조회            |
+| `/payments/:id/relay` | POST   | Gasless 릴레이 거래 제출  |
+| `/payments/:id/relay` | GET    | 릴레이 거래 상태 조회     |
 
 ### 토큰 API
 

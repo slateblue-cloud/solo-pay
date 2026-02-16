@@ -134,11 +134,13 @@ Creates a payment. Single endpoint for both widget and backend. Uses Public Key 
               },
               currency: {
                 type: 'string',
-                description: 'Fiat currency code used for conversion (only when currency was provided)',
+                description:
+                  'Fiat currency code used for conversion (only when currency was provided)',
               },
               fiatAmount: {
                 type: 'number',
-                description: 'Original fiat amount before conversion (only when currency was provided)',
+                description:
+                  'Original fiat amount before conversion (only when currency was provided)',
               },
               tokenPrice: {
                 type: 'number',
@@ -278,11 +280,7 @@ Creates a payment. Single endpoint for both widget and backend. Uses Public Key 
             });
           }
 
-          const priceData = await priceClient.getTokenPrice(
-            chainId,
-            tokenAddress,
-            currency.code
-          );
+          const priceData = await priceClient.getTokenPrice(chainId, tokenAddress, currency.code);
 
           currencyCode = currency.code;
           fiatAmount = validated.amount;

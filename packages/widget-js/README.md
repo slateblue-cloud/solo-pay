@@ -99,13 +99,13 @@ Opens the payment widget.
 
 **Request:**
 
-| Parameter      | Type               | Required | Description                           |
-| -------------- | ------------------ | -------- | ------------------------------------- |
-| `orderId`      | `string`           | Yes      | Unique order identifier               |
-| `amount`       | `string \| number` | Yes      | Payment amount                        |
-| `tokenAddress` | `string`           | Yes      | Token contract address                |
-| `successUrl`   | `string`           | Yes      | Redirect URL on success               |
-| `failUrl`      | `string`           | Yes      | Redirect URL on failure               |
+| Parameter      | Type               | Required | Description             |
+| -------------- | ------------------ | -------- | ----------------------- |
+| `orderId`      | `string`           | Yes      | Unique order identifier |
+| `amount`       | `string \| number` | Yes      | Payment amount          |
+| `tokenAddress` | `string`           | Yes      | Token contract address  |
+| `successUrl`   | `string`           | Yes      | Redirect URL on success |
+| `failUrl`      | `string`           | Yes      | Redirect URL on failure |
 
 **Options:**
 
