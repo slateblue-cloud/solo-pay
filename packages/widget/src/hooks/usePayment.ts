@@ -91,6 +91,7 @@ export function usePayment({ paymentDetails }: UsePaymentParams): UsePaymentRetu
     abi: PAYMENT_GATEWAY_ABI,
     functionName: 'processedPayments',
     args: paymentId ? [paymentId] : undefined,
+    chainId: paymentDetails?.chainId,
     query: {
       enabled: !!gatewayAddress && !!paymentId,
     },

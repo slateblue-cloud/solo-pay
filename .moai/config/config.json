@@ -39,13 +39,7 @@
   "git_strategy": {
     "personal": {
       "auto_checkpoint": "disabled",
-      "checkpoint_events": [
-        "delete",
-        "refactor",
-        "merge",
-        "script",
-        "critical-file"
-      ],
+      "checkpoint_events": ["delete", "refactor", "merge", "script", "critical-file"],
       "checkpoint_type": "local-branch",
       "max_checkpoints": 10,
       "cleanup_days": 7,

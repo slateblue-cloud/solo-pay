@@ -1,10 +1,10 @@
 ---
 id: SPEC-API-001-DEMO
-version: "1.0.0"
-status: "ready"
-created: "2025-12-01"
+version: '1.0.0'
+status: 'ready'
+created: '2025-12-01'
 parent: SPEC-API-001
-priority: "high"
+priority: 'high'
 ---
 
 # SPEC-API-001 Demo App 구현 계획
@@ -12,6 +12,7 @@ priority: "high"
 ## 1. 현황 분석
 
 ### 1.1 완료된 작업 (Server + SDK)
+
 - `packages/pay-server/src/config/chains.ts` - ChainConfig, SUPPORTED_CHAINS 구현
 - `packages/pay-server/src/services/blockchain.service.ts` - getTokenAddress, getChainContracts, getDecimals 메서드
 - `packages/pay-server/src/schemas/payment.schema.ts` - chainId, currency 필드 추가
@@ -21,10 +22,10 @@ priority: "high"
 
 ### 1.2 미완료 작업 (Demo App)
 
-| 파일 | 현재 상태 | 문제점 |
-|------|----------|--------|
+| 파일                        | 현재 상태                                           | 문제점               |
+| --------------------------- | --------------------------------------------------- | -------------------- |
 | `PaymentModal.tsx` L106-107 | `getTokenForChain()`, `getContractsForChain()` 사용 | 레거시 하드코딩 함수 |
-| `wagmi.ts` L58-75 | LEGACY_CONTRACTS 존재, DEPRECATED 주석만 | 실제 삭제 안됨 |
+| `wagmi.ts` L58-75           | LEGACY_CONTRACTS 존재, DEPRECATED 주석만            | 실제 삭제 안됨       |
 
 ### 1.3 핵심 문제 코드
 
@@ -54,8 +55,8 @@ const hash = await walletClient.writeContract({
 
 ### 2.1 SPEC 요구사항 충족
 
-| AC | 요구사항 | 구현 방법 |
-|----|----------|----------|
+| AC   | 요구사항                    | 구현 방법                                     |
+| ---- | --------------------------- | --------------------------------------------- |
 | AC-1 | wagmi.ts 하드코딩 완전 제거 | LEGACY_CONTRACTS, getContractsForChain() 삭제 |
 | AC-8 | 서버 응답으로 트랜잭션 생성 | API 호출 후 tokenAddress, gatewayAddress 사용 |
 
@@ -83,10 +84,12 @@ const hash = await walletClient.writeContract({
 **파일**: `apps/demo/src/lib/api.ts`
 
 **작업**:
+
 1. `createPayment()` 함수 추가
 2. 타입 정의 추가
 
 **추가 코드**:
+
 ```typescript
 export interface CreatePaymentRequest {
   amount: number;
@@ -134,11 +137,11 @@ export async function createPayment(
 
 ```typescript
 // 삭제
-import { getTokenForChain, getContractsForChain } from "@/lib/wagmi";
+import { getTokenForChain, getContractsForChain } from '@/lib/wagmi';
 
 // 추가
-import { getTokenForChain } from "@/lib/wagmi"; // UI 표시용만 유지
-import { createPayment } from "@/lib/api";
+import { getTokenForChain } from '@/lib/wagmi'; // UI 표시용만 유지
+import { createPayment } from '@/lib/api';
 ```
 
 #### 2.2 State 추가 (L103 이후)
@@ -212,30 +215,30 @@ useEffect(() => {
 ```typescript
 const handleApprove = async () => {
   if (!walletClient || !address || !serverConfig) {
-    setError("Blockchain configuration not ready");
+    setError('Blockchain configuration not ready');
     return;
   }
 
   try {
-    setStatus("approving");
+    setStatus('approving');
     setError(null);
 
     const hash = await walletClient.writeContract({
-      address: serverConfig.tokenAddress as Address,  // 서버 주소 사용
+      address: serverConfig.tokenAddress as Address, // 서버 주소 사용
       abi: ERC20_ABI,
-      functionName: "approve",
+      functionName: 'approve',
       args: [
-        serverConfig.gatewayAddress as Address,       // 서버 주소 사용
-        BigInt(serverConfig.amount)                   // 서버 계산 wei 사용
+        serverConfig.gatewayAddress as Address, // 서버 주소 사용
+        BigInt(serverConfig.amount), // 서버 계산 wei 사용
       ],
     });
 
     setApproveTxHash(hash);
   } catch (err: unknown) {
-    console.error("Approval error:", err);
-    const message = err instanceof Error ? err.message : "Approval failed";
+    console.error('Approval error:', err);
+    const message = err instanceof Error ? err.message : 'Approval failed';
     setError(message);
-    setStatus("error");
+    setStatus('error');
   }
 };
 ```
@@ -245,25 +248,25 @@ const handleApprove = async () => {
 ```typescript
 const handleDirectPayment = async () => {
   if (!walletClient || !address || !serverConfig) {
-    setError("Blockchain configuration not ready");
+    setError('Blockchain configuration not ready');
     return;
   }
 
   try {
-    setStatus("paying");
+    setStatus('paying');
     setError(null);
 
     // 서버가 생성한 paymentId 사용 (중복 방지)
     setCurrentPaymentId(serverConfig.paymentId);
 
     const hash = await walletClient.writeContract({
-      address: serverConfig.gatewayAddress as Address,  // 서버 주소 사용
+      address: serverConfig.gatewayAddress as Address, // 서버 주소 사용
       abi: PAYMENT_GATEWAY_ABI,
-      functionName: "pay",
+      functionName: 'pay',
       args: [
-        serverConfig.paymentId as `0x${string}`,        // 서버 생성 ID
-        serverConfig.tokenAddress as Address,           // 서버 주소 사용
-        BigInt(serverConfig.amount),                    // 서버 계산 wei 사용
+        serverConfig.paymentId as `0x${string}`, // 서버 생성 ID
+        serverConfig.tokenAddress as Address, // 서버 주소 사용
+        BigInt(serverConfig.amount), // 서버 계산 wei 사용
         DEMO_MERCHANT_ADDRESS as Address,
       ],
     });
@@ -271,16 +274,18 @@ const handleDirectPayment = async () => {
     setPendingTxHash(hash);
     await pollPaymentStatus(serverConfig.paymentId);
 
-    setStatus("success");
+    setStatus('success');
     if (onSuccess) {
       onSuccess(hash);
     }
-    setTimeout(() => { onClose(); }, 1500);
+    setTimeout(() => {
+      onClose();
+    }, 1500);
   } catch (err: unknown) {
-    console.error("Payment error:", err);
-    const message = err instanceof Error ? err.message : "Payment failed";
+    console.error('Payment error:', err);
+    const message = err instanceof Error ? err.message : 'Payment failed';
     setError(message);
-    setStatus("error");
+    setStatus('error');
   }
 };
 ```
@@ -290,9 +295,9 @@ const handleDirectPayment = async () => {
 ```typescript
 // Read token balance
 const { data: balance, isLoading: balanceLoading } = useReadContract({
-  address: serverConfig?.tokenAddress as Address,  // 서버 주소 사용
+  address: serverConfig?.tokenAddress as Address, // 서버 주소 사용
   abi: ERC20_ABI,
-  functionName: "balanceOf",
+  functionName: 'balanceOf',
   args: address ? [address] : undefined,
   query: {
     enabled: !!address && !!serverConfig,
@@ -301,12 +306,13 @@ const { data: balance, isLoading: balanceLoading } = useReadContract({
 
 // Read token allowance
 const { data: allowance, refetch: refetchAllowance } = useReadContract({
-  address: serverConfig?.tokenAddress as Address,  // 서버 주소 사용
+  address: serverConfig?.tokenAddress as Address, // 서버 주소 사용
   abi: ERC20_ABI,
-  functionName: "allowance",
-  args: address && serverConfig
-    ? [address, serverConfig.gatewayAddress as Address]  // 서버 주소 사용
-    : undefined,
+  functionName: 'allowance',
+  args:
+    address && serverConfig
+      ? [address, serverConfig.gatewayAddress as Address] // 서버 주소 사용
+      : undefined,
   query: {
     enabled: !!address && !!serverConfig,
   },
@@ -343,7 +349,9 @@ const LEGACY_CONTRACTS: Record<number, { gateway: `0x${string}`; forwarder: `0x$
   // ... 전체 삭제
 };
 
-export function getContractsForChain(chainId: number): { gateway: `0x${string}`; forwarder: `0x${string}` } | undefined {
+export function getContractsForChain(
+  chainId: number
+): { gateway: `0x${string}`; forwarder: `0x${string}` } | undefined {
   // ... 전체 삭제
 }
 ```
@@ -363,15 +371,15 @@ export function getTokenForChain(chainId: number) { ... }
 
 ### 4.1 Unit Tests
 
-| 테스트 | 파일 | 설명 |
-|--------|------|------|
-| createPayment API | `api.test.ts` | 서버 호출 및 응답 검증 |
-| PaymentModal | `PaymentModal.test.tsx` | 서버 설정 로드 및 사용 |
+| 테스트            | 파일                    | 설명                   |
+| ----------------- | ----------------------- | ---------------------- |
+| createPayment API | `api.test.ts`           | 서버 호출 및 응답 검증 |
+| PaymentModal      | `PaymentModal.test.tsx` | 서버 설정 로드 및 사용 |
 
 ### 4.2 Integration Tests
 
-| 테스트 | 설명 |
-|--------|------|
+| 테스트        | 설명                         |
+| ------------- | ---------------------------- |
 | chainId=31337 | Hardhat 로컬에서 전체 플로우 |
 | chainId=80002 | Polygon Amoy에서 전체 플로우 |
 
@@ -389,12 +397,12 @@ export function getTokenForChain(chainId: number) { ... }
 
 ## 5. 예상 소요 시간
 
-| Phase | 작업 | 시간 |
-|-------|------|------|
-| Phase 1 | API 클라이언트 함수 추가 | 30분 |
-| Phase 2 | PaymentModal.tsx 수정 | 2시간 |
-| Phase 3 | wagmi.ts 정리 | 30분 |
-| **총계** | | **3시간** |
+| Phase    | 작업                     | 시간      |
+| -------- | ------------------------ | --------- |
+| Phase 1  | API 클라이언트 함수 추가 | 30분      |
+| Phase 2  | PaymentModal.tsx 수정    | 2시간     |
+| Phase 3  | wagmi.ts 정리            | 30분      |
+| **총계** |                          | **3시간** |
 
 ---
 

@@ -43,13 +43,13 @@ services:
       - solo-pay-network
 
   # Database Migration (runs once and exits)
-  db-migrate:
+  database-sync:
     build:
       context: ..
       dockerfile: docker/Dockerfile.packages
-      target: db-migrate
-    image: 347765734000.dkr.ecr.ap-northeast-2.amazonaws.com/solo-pay/db-migrate:nightly
-    container_name: solo-pay-db-migrate
+      target: database-sync
+    image: 347765734000.dkr.ecr.ap-northeast-2.amazonaws.com/solo-pay/database-sync:nightly
+    container_name: solo-pay-database-sync
     restart: 'no'
     environment:
       DATABASE_URL: mysql://solopay:pass@mysql:3306/solopay
@@ -115,7 +115,7 @@ services:
       BLOCKCHAIN_CHECK_INTERVAL_MS: 1000
       PAYMENT_MONITOR_TIMEOUT_MS: 1800000
     depends_on:
-      db-migrate:
+      database-sync:
         condition: service_completed_successfully
       redis:
         condition: service_started
@@ -154,7 +154,7 @@ services:
       # TODO: Set your signer private key (DO NOT COMMIT!)
       SIGNER_PRIVATE_KEY: '${SIGNER_PRIVATE_KEY}'
     depends_on:
-      db-migrate:
+      database-sync:
         condition: service_completed_successfully
       redis:
         condition: service_started

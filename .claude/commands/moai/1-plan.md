@@ -1,12 +1,12 @@
 ---
 name: moai:1-plan
-description: "Define specifications and create development branch or worktree"
+description: 'Define specifications and create development branch or worktree'
 argument-hint: Title 1 Title 2 ... | SPEC-ID modifications [--worktree | --branch]
 allowed-tools: Read, Write, Edit, Grep, Glob, WebFetch, WebSearch, Bash, TodoWrite, AskUserQuestion, Task, Skill
 model: inherit
 ---
 
-##  Pre-execution Context
+## Pre-execution Context
 
 !git status --porcelain
 !git branch --show-current
@@ -14,7 +14,7 @@ model: inherit
 !git diff --name-only HEAD
 !find .moai/specs -name "\*.md" -type f 2>/dev/null
 
-##  Essential Files
+## Essential Files
 
 @.moai/config/config.json
 @.moai/project/product.md
@@ -24,19 +24,19 @@ model: inherit
 
 ---
 
-#  MoAI-ADK Step 1: Establish a plan (Plan) - Always make a plan first and then proceed
+# MoAI-ADK Step 1: Establish a plan (Plan) - Always make a plan first and then proceed
 
 > Batched Design: All AskUserQuestion calls follow batched design principles (1-4 questions per call) to minimize user interaction turns. See CLAUDE.md section "Alfred Command Completion Pattern" for details.
 
 4-Step Workflow Integration: This command implements Steps 1-2 of Alfred's workflow (Intent Understanding → Plan Creation). See CLAUDE.md for full workflow details.
 
-##  Command Purpose
+## Command Purpose
 
 "Plan → Run → Sync" As the first step in the workflow, it supports the entire planning process from ideation to plan creation.
 
 Plan for: $ARGUMENTS
 
-###  Usage Scenarios (3 Execution Patterns)
+### Usage Scenarios (3 Execution Patterns)
 
 Scenario 1: SPEC Only (Default)
 
@@ -68,27 +68,27 @@ Scenario 3: SPEC + Worktree (NEW)
 
 Flag Priority: `--worktree` > `--branch` > default (SPEC only)
 
-##  CodeRabbit AI Integration (Local Only)
+## CodeRabbit AI Integration (Local Only)
 
 This local environment includes CodeRabbit AI review integration for SPEC documents:
 
 Automatic workflows:
 
--  SPEC review: CodeRabbit analyzes SPEC metadata and EARS structure
--  GitHub Issue sync: SPEC files automatically create/update GitHub Issues
--  Auto-approval: Draft PRs are approved when quality meets standards (80%+)
--  SPEC quality validation: Checklist for metadata, structure, and content
+- SPEC review: CodeRabbit analyzes SPEC metadata and EARS structure
+- GitHub Issue sync: SPEC files automatically create/update GitHub Issues
+- Auto-approval: Draft PRs are approved when quality meets standards (80%+)
+- SPEC quality validation: Checklist for metadata, structure, and content
 
 Scope:
 
--  Local environment: Full CodeRabbit integration with auto-approval
--  Published packages: Users get GitHub Issue sync only (no CodeRabbit)
+- Local environment: Full CodeRabbit integration with auto-approval
+- Published packages: Users get GitHub Issue sync only (no CodeRabbit)
 
 > See `.coderabbit.yaml` for detailed review rules and SPEC validation checklist
 
 ---
 
-##  Associated Agents & Skills
+## Associated Agents & Skills
 
 | Agent/Skill                    | Purpose                                       |
 | ------------------------------ | --------------------------------------------- |
@@ -114,7 +114,7 @@ Phase 1B: Specialized Analysis
 
 ---
 
-##  Execution Philosophy: "Always make a plan first and then proceed."
+## Execution Philosophy: "Always make a plan first and then proceed."
 
 `/moai:1-plan` performs SPEC planning through complete agent delegation:
 
@@ -135,12 +135,12 @@ User Command: /moai:1-plan "description"
 
 This command uses ONLY Task() and AskUserQuestion():
 
--  No Read (file operations delegated)
--  No Write (file operations delegated)
--  No Edit (file operations delegated)
--  No Bash (all bash commands delegated)
--  Task() for orchestration
--  AskUserQuestion() for user interaction
+- No Read (file operations delegated)
+- No Write (file operations delegated)
+- No Edit (file operations delegated)
+- No Bash (all bash commands delegated)
+- Task() for orchestration
+- AskUserQuestion() for user interaction
 
 All complexity is handled by specialized agents.
 
@@ -169,11 +169,11 @@ Each phase contains explicit step-by-step instructions.
 
 ---
 
-##  PHASE 1: Project Analysis & SPEC Planning (STEP 1)
+## PHASE 1: Project Analysis & SPEC Planning (STEP 1)
 
 PHASE 1 consists of two independent sub-phases to provide flexible workflow based on user request clarity:
 
-###  PHASE 1 Workflow Overview
+### PHASE 1 Workflow Overview
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
@@ -215,7 +215,7 @@ Key Points:
 
 ---
 
-###  PHASE 1A: Project Exploration (Optional - if needed)
+### PHASE 1A: Project Exploration (Optional - if needed)
 
 #### When to run Phase A
 
@@ -266,7 +266,7 @@ Decision Logic: If user provided clear SPEC title (like "Add authentication modu
 
 ---
 
-###  PHASE 1B: SPEC Planning (Required)
+### PHASE 1B: SPEC Planning (Required)
 
 #### Step 1B.1: Invoke manager-spec for project analysis
 
@@ -296,13 +296,11 @@ Task Instructions:
 PHASE 1B.1: Project Analysis and SPEC Discovery
 
 1. Document Analysis: Scan for existing documentation and patterns
-
    - Product document: Find relevant files
    - Structure document: Identify architectural patterns
    - Tech document: Discover technical constraints
 
 2. SPEC Candidate Generation: Create 1-3 SPEC candidates
-
    - Analyze existing SPECs in `.moai/specs/` for duplicates
    - Check related GitHub issues via appropriate tools
    - Generate unique SPEC candidates with proper naming
@@ -448,27 +446,27 @@ IF user selected "Cancel":
 
 ---
 
-##  PHASE 2: SPEC Document Creation (STEP 2 - After Approval)
+## PHASE 2: SPEC Document Creation (STEP 2 - After Approval)
 
 This phase ONLY executes IF the user selected "Proceed" in Step 3.5.
 
 Your task is to create the SPEC document files in the correct directory structure.
 
-###  Critical Rule: Directory Naming Convention
+### Critical Rule: Directory Naming Convention
 
 Format that MUST be followed: `.moai/specs/SPEC-{ID}/`
 
 Correct Examples:
 
--  `SPEC-AUTH-001/`
--  `SPEC-REFACTOR-001/`
--  `SPEC-UPDATE-REFACTOR-001/`
+- `SPEC-AUTH-001/`
+- `SPEC-REFACTOR-001/`
+- `SPEC-UPDATE-REFACTOR-001/`
 
 Incorrect examples:
 
--  `AUTH-001/` (missing SPEC- prefix)
--  `SPEC-001-auth/` (additional text after ID)
--  `SPEC-AUTH-001-jwt/` (additional text after ID)
+- `AUTH-001/` (missing SPEC- prefix)
+- `SPEC-001-auth/` (additional text after ID)
+- `SPEC-AUTH-001-jwt/` (additional text after ID)
 
 Duplicate check required: Verify SPEC ID uniqueness before creation
 
@@ -484,8 +482,8 @@ Return:
 
 Composite Domain Rules:
 
--  Allow: `UPDATE-REFACTOR-001` (2 domains)
--  Caution: `UPDATE-REFACTOR-FIX-001` (3+ domains, simplification recommended)
+- Allow: `UPDATE-REFACTOR-001` (2 domains)
+- Caution: `UPDATE-REFACTOR-FIX-001` (3+ domains, simplification recommended)
 
 ### Step 1: Invoke manager-spec for SPEC creation
 
@@ -512,10 +510,10 @@ Critical Language Rules:
 
 SPEC File Generation Rules (MANDATORY):
 
- YOU MUST FOLLOW THESE RULES EXACTLY OR QUALITY GATE WILL FAIL:
+YOU MUST FOLLOW THESE RULES EXACTLY OR QUALITY GATE WILL FAIL:
 
-1. NEVER create single .md file:  WRONG: .moai/specs/SPEC-AUTH-001.md
-2. ALWAYS create folder structure:  CORRECT: .moai/specs/SPEC-AUTH-001/ (directory)
+1. NEVER create single .md file: WRONG: .moai/specs/SPEC-AUTH-001.md
+2. ALWAYS create folder structure: CORRECT: .moai/specs/SPEC-AUTH-001/ (directory)
 3. ALWAYS verify before creation: Check directory name format and ID duplicates
 
 SPEC Document Creation (Step-by-Step):
@@ -523,8 +521,8 @@ SPEC Document Creation (Step-by-Step):
 Step 1: Verify SPEC ID Format
 
 - Format: SPEC-{DOMAIN}-{NUMBER}
-- Examples:  SPEC-AUTH-001, SPEC-REFACTOR-001, SPEC-UPDATE-REFACTOR-001
-- Wrong:  AUTH-001, SPEC-001-auth, SPEC-AUTH-001-jwt
+- Examples: SPEC-AUTH-001, SPEC-REFACTOR-001, SPEC-UPDATE-REFACTOR-001
+- Wrong: AUTH-001, SPEC-001-auth, SPEC-AUTH-001-jwt
 
 Step 2: Verify ID Uniqueness
 
@@ -589,9 +587,9 @@ Git Integration:
 
 ---
 
-##  PHASE 3: Git Branch & PR Setup (STEP 2 continuation)
+## PHASE 3: Git Branch & PR Setup (STEP 2 continuation)
 
-###  CRITICAL: PHASE 3 Execution is Conditional on Config AND Flags
+### CRITICAL: PHASE 3 Execution is Conditional on Config AND Flags
 
 PHASE 3 executes ONLY IF:
 
@@ -1086,7 +1084,7 @@ Would you like to enable automatic branch creation for future SPEC creations?
 
 ---
 
-##  Summary: Your Execution Checklist
+## Summary: Your Execution Checklist
 
 Before you consider this command complete, verify:
 
@@ -1113,18 +1111,18 @@ IF any checkbox is unchecked → Identify missing step and complete it before en
 
 ---
 
-##  Quick Reference
+## Quick Reference
 
 | Scenario               | Mode               | Entry Point                                                         | Key Phases                                                   | Expected Outcome                             |
 | ---------------------- | ------------------ | ------------------------------------------------------------------- | ------------------------------------------------------------ | -------------------------------------------- |
 | Clear feature request  | Direct to Planning | `/moai:1-plan "feature description"`                                | Phase 1B → Phase 2 → Phase 3                                 | SPEC created + branch/worktree (conditional) |
 | Vague user request     | Exploration First  | `/moai:1-plan "vague request"`                                      | Phase 1A → Phase 1B → Phase 2 → Phase 3                      | Exploration → SPEC + branch/worktree         |
 | Resume draft SPEC      | Resume Existing    | `/moai:1-plan resume SPEC-XXX`                                      | Phase 1B → Phase 2 → Phase 3                                 | Complete existing SPEC                       |
-| Worktree creation  | NEW            | `/moai:1-plan "feature" --worktree`                                 | Phase 1B → Phase 2 → Phase 3 (worktree)                      | SPEC + isolated worktree environment     |
+| Worktree creation      | NEW                | `/moai:1-plan "feature" --worktree`                                 | Phase 1B → Phase 2 → Phase 3 (worktree)                      | SPEC + isolated worktree environment         |
 | Branch creation prompt | User Choice        | `/moai:1-plan "feature"` (prompt_always: true)                      | Phase 1-2 → User chooses (worktree/branch/current) → Phase 3 | SPEC + user-selected strategy                |
 | Auto branch creation   | Automated          | `/moai:1-plan "feature"` (prompt_always: false, auto_enabled: true) | Phase 1-2 → Auto branch creation → Phase 3                   | SPEC + auto branch (Personal/Team)           |
 
-###  New Worktree Workflow Examples
+### New Worktree Workflow Examples
 
 Basic Worktree Creation:
 
@@ -1177,9 +1175,9 @@ NEW: WorktreeManager integration for parallel SPEC development
 
 ---
 
-##  SPEC-WORKTREE-001 Integration Status
+## SPEC-WORKTREE-001 Integration Status
 
-Status:  COMPLETE - Full integration achieved on 2025-11-28
+Status: COMPLETE - Full integration achieved on 2025-11-28
 
 ### What Was Implemented
 
@@ -1214,12 +1212,12 @@ Status:  COMPLETE - Full integration achieved on 2025-11-28
 
 ### Completion Criteria (All Met)
 
--  Flag Parsing: `--worktree` flag detected and processed correctly
--  Worktree Creation: WorktreeManager.create() called with correct parameters
--  User Guidance: Next steps displayed in user-friendly format
--  Error Handling: Fallback messages when worktree creation fails
--  Documentation: All references updated with worktree scenarios
--  Backward Compatibility: Existing --branch and default behavior preserved
+- Flag Parsing: `--worktree` flag detected and processed correctly
+- Worktree Creation: WorktreeManager.create() called with correct parameters
+- User Guidance: Next steps displayed in user-friendly format
+- Error Handling: Fallback messages when worktree creation fails
+- Documentation: All references updated with worktree scenarios
+- Backward Compatibility: Existing --branch and default behavior preserved
 
 SPEC-WORKTREE-001: 100% Complete - All 85% existing implementation + 15% missing integration now complete
 
@@ -1261,7 +1259,7 @@ Important:
 - No emojis in any AskUserQuestion fields
 - Always provide clear next step options
 
-##  EXECUTION DIRECTIVE
+## EXECUTION DIRECTIVE
 
 You must NOW execute the command following the "The 4-Step Agent-Based Workflow Command Logic" described above.
 

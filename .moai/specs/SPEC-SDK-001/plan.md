@@ -9,10 +9,12 @@
 ## Phase 1: Cleanup (기존 SDK 삭제)
 
 ### 작업 내용
+
 1. `packages/sdk/` 디렉토리 전체 삭제
 2. 기존 viem 기반 SDK 제거
 
 ### 명령어
+
 ```bash
 rm -rf packages/sdk/
 ```
@@ -101,22 +103,15 @@ export default defineConfig({
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html'],
-      exclude: [
-        'node_modules/',
-        'dist/',
-        'tests/',
-        '**/*.d.ts',
-        '**/*.config.*',
-        '**/mockData'
-      ],
+      exclude: ['node_modules/', 'dist/', 'tests/', '**/*.d.ts', '**/*.config.*', '**/mockData'],
       thresholds: {
         statements: 90,
         branches: 85,
         functions: 90,
-        lines: 90
-      }
-    }
-  }
+        lines: 90,
+      },
+    },
+  },
 });
 ```
 
@@ -127,6 +122,7 @@ export default defineConfig({
 ### 3.1 types.ts (타입 정의)
 
 **내용**:
+
 - Environment 타입
 - MSQPayConfig 인터페이스
 - CreatePaymentParams/Response
@@ -138,18 +134,21 @@ export default defineConfig({
 ### 3.2 constants.ts (상수)
 
 **내용**:
+
 - API_URLS (환경별 URL 매핑)
 - DEFAULT_HEADERS
 
 ### 3.3 errors.ts (에러 클래스)
 
 **내용**:
+
 - MSQPayError 클래스
 - 에러 코드 상수
 
 ### 3.4 client.ts (메인 클라이언트)
 
 **내용**:
+
 - MSQPayClient 클래스
 - constructor (config 처리)
 - setApiUrl / getApiUrl
@@ -162,6 +161,7 @@ export default defineConfig({
 ### 3.5 index.ts (진입점)
 
 **내용**:
+
 - 모든 타입 export
 - MSQPayClient export
 - MSQPayError export
@@ -172,15 +172,15 @@ export default defineConfig({
 
 ### 4.1 테스트 케이스
 
-| 메서드 | 성공 케이스 | 실패 케이스 |
-|--------|-----------|-----------|
-| constructor | 환경별 URL 설정 | custom 환경 apiUrl 누락 |
-| createPayment | 정상 응답 | VALIDATION_ERROR |
-| getPaymentStatus | 정상 응답 | NOT_FOUND |
-| submitGasless | 정상 응답 | INVALID_SIGNATURE |
-| executeRelay | 정상 응답 | INVALID_TRANSACTION_DATA |
-| setApiUrl | URL 변경 | - |
-| getApiUrl | URL 반환 | - |
+| 메서드           | 성공 케이스     | 실패 케이스              |
+| ---------------- | --------------- | ------------------------ |
+| constructor      | 환경별 URL 설정 | custom 환경 apiUrl 누락  |
+| createPayment    | 정상 응답       | VALIDATION_ERROR         |
+| getPaymentStatus | 정상 응답       | NOT_FOUND                |
+| submitGasless    | 정상 응답       | INVALID_SIGNATURE        |
+| executeRelay     | 정상 응답       | INVALID_TRANSACTION_DATA |
+| setApiUrl        | URL 변경        | -                        |
+| getApiUrl        | URL 반환        | -                        |
 
 ### 4.2 Mock 전략
 
@@ -191,14 +191,14 @@ vi.stubGlobal('fetch', vi.fn());
 // 성공 응답
 vi.mocked(fetch).mockResolvedValueOnce({
   ok: true,
-  json: async () => ({ success: true, paymentId: 'test-id' })
+  json: async () => ({ success: true, paymentId: 'test-id' }),
 });
 
 // 에러 응답
 vi.mocked(fetch).mockResolvedValueOnce({
   ok: false,
   status: 400,
-  json: async () => ({ code: 'VALIDATION_ERROR', message: '검증 실패' })
+  json: async () => ({ code: 'VALIDATION_ERROR', message: '검증 실패' }),
 });
 ```
 
@@ -250,14 +250,14 @@ Implements: SPEC-SDK-001"
 
 ## Summary
 
-| Phase | 작업 |
-|-------|------|
-| 1 | Cleanup |
-| 2 | Package Setup |
-| 3 | Core Implementation |
-| 4 | Testing |
-| 5 | Documentation |
-| 6 | Git Operations |
+| Phase | 작업                |
+| ----- | ------------------- |
+| 1     | Cleanup             |
+| 2     | Package Setup       |
+| 3     | Core Implementation |
+| 4     | Testing             |
+| 5     | Documentation       |
+| 6     | Git Operations      |
 
 ---
 
@@ -267,10 +267,10 @@ Implements: SPEC-SDK-001"
 
 ## Risks
 
-| Risk | Mitigation |
-|------|------------|
+| Risk                 | Mitigation              |
+| -------------------- | ----------------------- |
 | 서버 API 스키마 변경 | 타입 테스트로 조기 감지 |
-| fetch mock 이슈 | vitest 최신 버전 사용 |
+| fetch mock 이슈      | vitest 최신 버전 사용   |
 
 ---
 

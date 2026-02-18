@@ -1,6 +1,7 @@
 # SPEC-LOG-001: Console.log를 Pino 로거로 전환
 
 ---
+
 id: SPEC-LOG-001
 title: Console.log를 Pino 로거로 전환
 status: completed
@@ -8,6 +9,7 @@ priority: high
 created: 2025-12-09
 completed: 2025-12-09
 tags: [logging, pino, fastify, refactoring]
+
 ---
 
 ## 1. 개요
@@ -20,13 +22,13 @@ pay-server 패키지에서 현재 `console.log`, `console.error`, `console.warn`
 
 **대상 파일 및 console 문 분포:**
 
-| 파일 | log | error | warn | 합계 |
-|------|-----|-------|------|------|
-| src/index.ts | 5 | 2 | 0 | 7 |
-| src/db/redis.ts | 0 | 0 | 3 | 3 |
-| src/config/chains.config.ts | 1 | 1 | 0 | 2 |
-| src/services/defender.service.ts | 3 | 5 | 2 | 10 |
-| src/services/blockchain.service.ts | 1 | 6 | 2 | 9 |
+| 파일                               | log | error | warn | 합계 |
+| ---------------------------------- | --- | ----- | ---- | ---- |
+| src/index.ts                       | 5   | 2     | 0    | 7    |
+| src/db/redis.ts                    | 0   | 0     | 3    | 3    |
+| src/config/chains.config.ts        | 1   | 1     | 0    | 2    |
+| src/services/defender.service.ts   | 3   | 5     | 2    | 10   |
+| src/services/blockchain.service.ts | 1   | 6     | 2    | 9    |
 
 **총계: 36개 console 문 (log: 10, error: 14, warn: 7)**
 
@@ -88,11 +90,11 @@ pay-server 패키지에서 현재 `console.log`, `console.error`, `console.warn`
 
 ### 3.2 로그 레벨 매핑
 
-| console 메서드 | Pino 레벨 |
-|---------------|-----------|
-| console.log | logger.info |
-| console.error | logger.error |
-| console.warn | logger.warn |
+| console 메서드 | Pino 레벨    |
+| -------------- | ------------ |
+| console.log    | logger.info  |
+| console.error  | logger.error |
+| console.warn   | logger.warn  |
 
 ### 3.3 구조화된 로그 형식
 
@@ -112,12 +114,14 @@ pay-server 패키지에서 현재 `console.log`, `console.error`, `console.warn`
 ### 3.4 이모지 처리
 
 현재 로그 메시지에 사용된 이모지는 그대로 유지합니다:
+
 - 시각적 명확성을 위해 이모지 접두사 보존
 - 예: `logger.info('Server running on...')` (이모지 포함 메시지)
 
 ### 3.5 한국어 메시지 처리
 
 현재 에러 메시지의 한국어 텍스트는 그대로 유지합니다:
+
 - 사용자/개발자 친화적인 메시지 보존
 - 예: `logger.error({ err }, '릴레이 상태 조회 실패')`
 
@@ -164,18 +168,18 @@ Fastify (logger: true)
 
 ## 6. 추적성
 
-| 요구사항 ID | 구현 위치 | 테스트 케이스 |
-|------------|----------|--------------|
-| REQ-U-001 | src/lib/logger.ts | TC-001 |
-| REQ-U-002 | 모든 대상 파일 | TC-002 |
-| REQ-U-003 | createLogger() | TC-003 |
-| REQ-E-001 | getLogLevel() | TC-004 |
-| REQ-E-002 | 에러 로깅 패턴 | TC-005 |
-| REQ-E-003 | child logger 생성 | TC-006 |
-| REQ-S-001 | src/db/redis.ts | TC-007 |
-| REQ-S-002 | src/services/defender.service.ts | TC-008 |
-| REQ-X-001 | getLogLevel() | TC-009 |
-| REQ-X-002 | 코드 리뷰 | TC-010 |
+| 요구사항 ID | 구현 위치                        | 테스트 케이스 |
+| ----------- | -------------------------------- | ------------- |
+| REQ-U-001   | src/lib/logger.ts                | TC-001        |
+| REQ-U-002   | 모든 대상 파일                   | TC-002        |
+| REQ-U-003   | createLogger()                   | TC-003        |
+| REQ-E-001   | getLogLevel()                    | TC-004        |
+| REQ-E-002   | 에러 로깅 패턴                   | TC-005        |
+| REQ-E-003   | child logger 생성                | TC-006        |
+| REQ-S-001   | src/db/redis.ts                  | TC-007        |
+| REQ-S-002   | src/services/defender.service.ts | TC-008        |
+| REQ-X-001   | getLogLevel()                    | TC-009        |
+| REQ-X-002   | 코드 리뷰                        | TC-010        |
 
 ---
 

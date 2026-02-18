@@ -1,10 +1,10 @@
 ---
 id: SPEC-DEMO-002
 type: plan
-version: "1.0.2"
-status: "draft"
-created: "2025-12-01"
-updated: "2025-12-01"
+version: '1.0.2'
+status: 'draft'
+created: '2025-12-01'
+updated: '2025-12-01'
 ---
 
 # SPEC-DEMO-002 구현 계획 (수정됨)
@@ -22,11 +22,13 @@ updated: "2025-12-01"
 > 프론트엔드에서 `amount`를 직접 서버로 전송하면 안됩니다!
 >
 > **올바른 구현**:
+>
 > 1. 프론트엔드 → Next.js API Route: `productId`만 전송
 > 2. Next.js API Route: 상품 가격 조회 (constants/DB)
 > 3. Next.js API Route → 결제서버: 조회된 가격으로 API 호출
 
 **⚠️ 중요 변경사항**:
+
 - 경로 변경: `packages/demo-app/` → `apps/demo/`
 - zod 설치 단계 추가 (Phase 0)
 - PaymentModal 수정 범위 축소 (이미 441줄 구현됨)
@@ -49,6 +51,7 @@ updated: "2025-12-01"
 ### 0.1 zod 설치
 
 **명령어**:
+
 ```bash
 cd apps/demo
 pnpm add zod
@@ -264,6 +267,7 @@ export async function createPayment(
 ### 🎯 현재 구현 상태
 
 ✅ **이미 구현된 기능** (apps/demo/src/components/PaymentModal.tsx, 441줄):
+
 - useAccount, useWalletClient, useChainId 사용
 - Token approval 처리
 - Direct payment 처리
@@ -272,11 +276,13 @@ export async function createPayment(
 - Dark mode 지원
 
 ❌ **수정 필요 사항**:
+
 - Line 12: `getContractsForChain` import 제거
 - Line 106-107: `getContractsForChain()` 호출 제거
 - Line 218-229: 하드코딩된 주소를 서버 응답 주소로 변경
 
 🆕 **추가 필요 사항**:
+
 - `createPayment()` 함수 호출 추가
 - 서버 응답 상태 관리 (serverConfig)
 - 로딩/에러 UI 개선
@@ -297,7 +303,7 @@ import { CreatePaymentResponse } from '@/lib/api'; // 🆕 타입
 // ===== State 추가 =====
 // ⚠️ 보안: amount 대신 productId 사용!
 interface PaymentModalProps {
-  productId: string;  // ✅ 보안: productId만 전송, amount 절대 불가!
+  productId: string; // ✅ 보안: productId만 전송, amount 절대 불가!
   merchantId: string;
   chainId: number;
   currency: 'USDC' | 'USDT';
@@ -307,7 +313,7 @@ interface PaymentModalProps {
 }
 
 export function PaymentModal({
-  productId,  // ✅ 보안: productId만 받음
+  productId, // ✅ 보안: productId만 받음
   merchantId,
   chainId,
   currency,
@@ -339,6 +345,7 @@ export function PaymentModal({
 **파일**: `apps/demo/src/lib/wagmi.ts`
 
 **삭제할 코드** (Line 58-75):
+
 ```typescript
 // ❌ 삭제
 // const LEGACY_CONTRACTS = { ... };
@@ -346,6 +353,7 @@ export function PaymentModal({
 ```
 
 **유지할 코드**:
+
 ```typescript
 // ✅ 유지: getTokenForChain() - UI 표시용
 export function getTokenForChain(chainId: number) {
@@ -441,13 +449,13 @@ pnpm test -- --coverage
 
 ## 📊 성공 지표
 
-| 지표 | 목표 | 검증 방법 |
-|------|------|----------|
-| **테스트 커버리지** | ≥90% | `pnpm test -- --coverage` |
-| **TypeScript 에러** | 0개 | `pnpm type-check` |
-| **ESLint 에러** | 0개 | `pnpm lint` |
-| **API 응답 시간** | ≤3초 | 통합 테스트 로그 확인 |
-| **번들 크기 증가** | <5KB | `pnpm build` 후 크기 확인 |
+| 지표                 | 목표 | 검증 방법                     |
+| -------------------- | ---- | ----------------------------- |
+| **테스트 커버리지**  | ≥90% | `pnpm test -- --coverage`     |
+| **TypeScript 에러**  | 0개  | `pnpm type-check`             |
+| **ESLint 에러**      | 0개  | `pnpm lint`                   |
+| **API 응답 시간**    | ≤3초 | 통합 테스트 로그 확인         |
+| **번들 크기 증가**   | <5KB | `pnpm build` 후 크기 확인     |
 | **레거시 코드 제거** | 100% | `./scripts/verify-cleanup.sh` |
 
 ---

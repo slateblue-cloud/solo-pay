@@ -83,6 +83,7 @@ export function useGaslessPayment({
     abi: FORWARDER_ABI,
     functionName: 'nonces',
     args: walletClient?.account?.address ? [walletClient.account.address] : undefined,
+    chainId: paymentDetails?.chainId,
     query: {
       enabled: !!forwarderAddress && !!walletClient?.account?.address,
     },

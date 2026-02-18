@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { useSwitchChain } from 'wagmi';
 import TokenApproval from './TokenApproval';
 import PaymentConfirm from './PaymentConfirm';
 import PaymentProcessing from './PaymentProcessing';
@@ -103,7 +104,9 @@ export default function PaymentStep({ urlParams }: PaymentStepProps) {
   const [configError, setConfigError] = useState<string | null>(null);
 
   // Wallet connection state from wagmi
-  const { address, isConnected, disconnect } = useWallet();
+  const { address, isConnected, chain, disconnect } = useWallet();
+  const { switchChainAsync } = useSwitchChain();
+  const [isSwitchingChain, setIsSwitchingChain] = useState(false);
 
   // API hook for payment operations
   const { payment: paymentDetails, isLoading, error: apiError, createPayment } = usePaymentApi();
@@ -149,11 +152,13 @@ export default function PaymentStep({ urlParams }: PaymentStepProps) {
   }, [urlParams, createPayment]);
 
   // Human-readable amount (for display)
-  const displayAmount =
-    urlParams?.amount ??
-    (paymentDetails
-      ? formatUnits(BigInt(paymentDetails.amount), paymentDetails.tokenDecimals)
-      : '0');
+  // When currency conversion is used, show the converted token amount instead of the fiat input
+  const displayAmount = paymentDetails?.currency
+    ? formatUnits(BigInt(paymentDetails.amount), paymentDetails.tokenDecimals)
+    : (urlParams?.amount ??
+      (paymentDetails
+        ? formatUnits(BigInt(paymentDetails.amount), paymentDetails.tokenDecimals)
+        : '0'));
 
   // Payment amount in wei (bigint)
   const paymentAmountWei = paymentDetails ? BigInt(paymentDetails.amount) : BigInt(0);
@@ -167,18 +172,42 @@ export default function PaymentStep({ urlParams }: PaymentStepProps) {
   const goToPaymentProcessing = () => setCurrentStep('payment-processing');
   const goToPaymentComplete = () => setCurrentStep('payment-complete');
 
-  // Auto-advance when wallet connects
-  // If token supports EIP-2612 permit, skip approval step entirely
-  // (permit will be signed inline during gasless payment)
+  // Auto-switch chain and advance when wallet connects
   useEffect(() => {
-    if (isConnected && address && paymentDetails) {
+    if (!isConnected || !address || !paymentDetails) return;
+
+    const targetChainId = paymentDetails.chainId;
+    const needsSwitch = chain?.id !== targetChainId;
+
+    if (needsSwitch && !isSwitchingChain) {
+      setIsSwitchingChain(true);
+      switchChainAsync({ chainId: targetChainId })
+        .then(() => {
+          setIsSwitchingChain(false);
+        })
+        .catch((err) => {
+          console.warn('Chain switch failed:', err);
+          setIsSwitchingChain(false);
+        });
+      return;
+    }
+
+    if (!isSwitchingChain) {
       if (isPermitSupported) {
         setCurrentStep('payment-confirm');
       } else {
         setCurrentStep('token-approval');
       }
     }
-  }, [isConnected, address, paymentDetails, isPermitSupported]);
+  }, [
+    isConnected,
+    address,
+    paymentDetails,
+    isPermitSupported,
+    chain?.id,
+    isSwitchingChain,
+    switchChainAsync,
+  ]);
 
   // Auto-advance after approval confirmation
   useEffect(() => {
@@ -384,21 +413,24 @@ export default function PaymentStep({ urlParams }: PaymentStepProps) {
 
       case 'payment-confirm':
         return (
-          <div>
-            {/* Configuration Error */}
-            {configError && (
-              <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
-                <p className="text-sm text-red-700">{configError}</p>
-              </div>
-            )}
-            <PaymentConfirm
-              product={`Order #${paymentDetails.orderId}`}
-              amount={displayAmount}
-              token={paymentDetails.tokenSymbol}
-              network={getNetworkName(paymentDetails.chainId)}
-              onPay={handlePay}
-            />
-          </div>
+          <PaymentConfirm
+            product={`Order #${paymentDetails.orderId}`}
+            amount={displayAmount}
+            token={paymentDetails.tokenSymbol}
+            network={getNetworkName(paymentDetails.chainId)}
+            walletAddress={address ? formatAddress(address) : undefined}
+            currency={paymentDetails.currency}
+            fiatAmount={paymentDetails.fiatAmount}
+            error={
+              configError ??
+              (!hasSufficientBalance
+                ? `Insufficient balance. You need ${displayAmount} ${paymentDetails.tokenSymbol}`
+                : undefined)
+            }
+            onPay={handlePay}
+            onChangeWallet={handleDisconnect}
+            onCancel={urlParams?.failUrl ? handleCancel : undefined}
+          />
         );
 
       case 'payment-processing':
