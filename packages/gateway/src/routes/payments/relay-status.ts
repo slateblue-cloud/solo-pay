@@ -148,16 +148,11 @@ Returns the latest relay transaction status for a payment.
               relayService.updateStatus(latest.id, newStatus),
             ];
             if (relayerStatus.transactionHash) {
-              updatePromises.push(
-                relayService.setTxHash(latest.id, relayerStatus.transactionHash)
-              );
+              updatePromises.push(relayService.setTxHash(latest.id, relayerStatus.transactionHash));
             }
             if (newStatus === 'FAILED') {
               updatePromises.push(
-                relayService.setErrorMessage(
-                  latest.id,
-                  'Relay transaction failed (from relayer)'
-                )
+                relayService.setErrorMessage(latest.id, 'Relay transaction failed (from relayer)')
               );
             }
             await Promise.all(updatePromises);
