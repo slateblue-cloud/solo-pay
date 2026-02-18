@@ -7,7 +7,7 @@ import { usePaymentApi } from '../../hooks/usePaymentApi';
 import { useWallet } from '../../hooks/useWallet';
 import { useToken } from '../../hooks/useToken';
 import { useGaslessPayment } from '../../hooks/useGaslessPayment';
-import { ConnectButton } from '../ConnectButton';
+import { ConnectWalletButton } from '../ConnectWalletButton';
 import type { PaymentStepType, WidgetUrlParams } from '../../types/index';
 import { formatUnits } from 'viem';
 
@@ -140,9 +140,9 @@ export default function PaymentStep({ urlParams }: PaymentStepProps) {
   // Prevent double API call in React Strict Mode
   const isInitialized = useRef(false);
 
-  // Create payment on mount when urlParams is available
+  // Create payment on mount when urlParams is available (skip when walletOnly — no gateway API)
   useEffect(() => {
-    if (urlParams && !isInitialized.current) {
+    if (urlParams && !urlParams.walletOnly && !isInitialized.current) {
       isInitialized.current = true;
       createPayment(urlParams);
     }
@@ -306,8 +306,8 @@ export default function PaymentStep({ urlParams }: PaymentStepProps) {
     }
   }, [urlParams?.failUrl]);
 
-  // Loading state
-  if (isLoading) {
+  // Loading state (skip when walletOnly — no API call)
+  if (!urlParams?.walletOnly && isLoading) {
     return (
       <div className="text-center py-8">
         <div className="animate-spin w-8 h-8 border-2 border-blue-600 border-t-transparent rounded-full mx-auto mb-4" />
@@ -316,8 +316,8 @@ export default function PaymentStep({ urlParams }: PaymentStepProps) {
     );
   }
 
-  // API Error state
-  if (apiError) {
+  // API Error state (skip when walletOnly)
+  if (!urlParams?.walletOnly && apiError) {
     return (
       <div className="text-center py-8">
         <div className="text-red-500 mb-4">
@@ -349,8 +349,8 @@ export default function PaymentStep({ urlParams }: PaymentStepProps) {
     );
   }
 
-  // No payment details yet
-  if (!paymentDetails) {
+  // No payment details yet (skip when walletOnly — we never fetch payment)
+  if (!urlParams?.walletOnly && !paymentDetails) {
     return (
       <div className="text-center py-8">
         <p className="text-sm text-gray-600">Initializing payment...</p>
@@ -358,10 +358,64 @@ export default function PaymentStep({ urlParams }: PaymentStepProps) {
     );
   }
 
+  // Wallet-only mode: show connect, then "Wallet connected" with redirect to successUrl
+  if (urlParams?.walletOnly) {
+    if (!isConnected || !address) {
+      return (
+        <div className="w-full">
+          <ConnectWalletButton />
+        </div>
+      );
+    }
+    const isIframe = typeof window !== 'undefined' && window.parent !== window;
+    const handleWalletOnlyContinue = () => {
+      const successUrl = urlParams.successUrl;
+      try {
+        const url = new URL(successUrl);
+        url.searchParams.set('wallet', address);
+        if (isIframe) {
+          window.parent.postMessage(
+            { type: 'wallet_connected', address, successUrl: url.toString() },
+            url.origin
+          );
+        }
+        window.location.href = url.toString();
+      } catch {
+        window.location.href = successUrl;
+      }
+    };
+    return (
+      <div className="text-center py-6">
+        <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-green-100 text-green-600 mb-4">
+          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+          </svg>
+        </div>
+        <p className="font-medium text-gray-900 mb-1">Wallet connected</p>
+        <p className="text-sm text-gray-500 mb-4">{formatAddress(address)}</p>
+        <button
+          type="button"
+          onClick={handleWalletOnlyContinue}
+          className="w-full px-4 py-3 bg-blue-600 text-white rounded-xl font-medium hover:bg-blue-700 active:bg-blue-800"
+        >
+          Continue
+        </button>
+        <button
+          type="button"
+          onClick={handleDisconnect}
+          className="mt-3 text-sm text-gray-500 hover:text-gray-700"
+        >
+          Disconnect
+        </button>
+      </div>
+    );
+  }
+
   const renderStep = () => {
+    if (!paymentDetails) return null;
     switch (currentStep) {
       case 'wallet-connect':
-        return <ConnectButton />;
+        return <ConnectWalletButton />;
 
       case 'token-approval':
         return (

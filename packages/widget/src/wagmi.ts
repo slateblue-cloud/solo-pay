@@ -30,8 +30,8 @@ export const config = createConfig({
   connectors: [
     // Injected connector for wallet browsers (Trust Wallet, MetaMask mobile, etc.)
     injected(),
-    // MetaMask SDK for desktop extension + mobile deeplink
-    metaMask(),
+    // MetaMask SDK for desktop extension + mobile deeplink (analytics off to avoid ERR_BLOCKED_BY_CLIENT from ad blockers)
+    metaMask({ enableAnalytics: false }),
   ],
   chains,
   transports: {
