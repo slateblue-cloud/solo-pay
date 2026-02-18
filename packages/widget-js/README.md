@@ -77,7 +77,7 @@ export default function CheckoutButton() {
 | Option         | Type                               | Default                       | Description             |
 | -------------- | ---------------------------------- | ----------------------------- | ----------------------- |
 | `publicKey`    | `string`                           | required                      | Your SoloPay public key |
-| `widgetUrl`    | `string`                           | `https://widget.solo-pay.com` | Widget URL              |
+| `widgetUrl`    | `string`                           | `https://widget.solo-pay.com` | Widget base URL (no path). SDK uses `/` on mobile, `/pc` on desktop |
 | `debug`        | `boolean`                          | `false`                       | Enable debug logging    |
 | `redirectMode` | `'auto' \| 'iframe' \| 'redirect'` | `'auto'`                      | How to open widget      |
 

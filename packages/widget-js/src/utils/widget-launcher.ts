@@ -19,7 +19,7 @@ export class WidgetLauncher {
 
   constructor(config: WidgetLauncherConfig) {
     this.publicKey = config.publicKey;
-    this.widgetUrl = config.widgetUrl;
+    this.widgetUrl = config.widgetUrl.replace(/\/+$/, '');
     this.debug = config.debug ?? false;
   }
 
@@ -29,8 +29,15 @@ export class WidgetLauncher {
     }
   }
 
-  /** Build widget URL with payment parameters */
-  buildWidgetUrl(request: PaymentRequest): string {
+  /** Base URL for device: mobile → index (/), PC → /pc */
+  private getBaseUrlForDevice(forMobile: boolean): string {
+    return forMobile ? this.widgetUrl : `${this.widgetUrl}/pc`;
+  }
+
+  /** Build widget URL with payment parameters. Uses current device (mobile → /, PC → /pc) when forMobile is omitted. */
+  buildWidgetUrl(request: PaymentRequest, forMobile?: boolean): string {
+    const mobile = forMobile ?? isMobile();
+    const baseUrl = this.getBaseUrlForDevice(mobile);
     const params = new URLSearchParams({
       pk: this.publicKey,
       orderId: request.orderId,
@@ -43,8 +50,8 @@ export class WidgetLauncher {
       params.set('currency', request.currency);
     }
 
-    const url = `${this.widgetUrl}?${params.toString()}`;
-    this.log('Built widget URL:', url);
+    const url = `${baseUrl}?${params.toString()}`;
+    this.log('Built widget URL:', url, `(${mobile ? 'mobile' : 'pc'})`);
     return url;
   }
 
@@ -56,7 +63,7 @@ export class WidgetLauncher {
     return mode;
   }
 
-  /** Open widget in specified mode */
+  /** Open widget in specified mode. URL path is chosen by device: mobile → /, PC → /pc. */
   open(
     request: PaymentRequest,
     mode: RedirectMode = 'auto',
@@ -65,7 +72,8 @@ export class WidgetLauncher {
       onClose?: () => void;
     }
   ): void {
-    const url = this.buildWidgetUrl(request);
+    const mobile = isMobile();
+    const url = this.buildWidgetUrl(request, mobile);
     const resolvedMode = this.resolveMode(mode);
 
     this.log('Opening widget in mode:', resolvedMode, '(requested:', mode, ')');

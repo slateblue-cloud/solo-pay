@@ -2,7 +2,7 @@
 export interface SoloPayConfig {
   /** Public key for merchant authentication (pk_xxx) */
   publicKey: string;
-  /** Widget base URL (default: https://widget.solo-pay.com) */
+  /** Widget base URL, no path (default: https://widget.solo-pay.com). SDK uses / on mobile, /pc on desktop. */
   widgetUrl?: string;
   /** Enable debug logging */
   debug?: boolean;
