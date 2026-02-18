@@ -1,7 +1,7 @@
 ---
 name: moai:0-project
-description: "Initialize project metadata and documentation"
-argument-hint: "[<empty>|setting|update|--glm-on <token>]"
+description: 'Initialize project metadata and documentation'
+argument-hint: '[<empty>|setting|update|--glm-on <token>]'
 allowed-tools: Read, Write, Edit, Grep, Glob, WebFetch, WebSearch, Bash, TodoWrite, AskUserQuestion, Task, Skill
 model: inherit
 ---
@@ -32,7 +32,7 @@ model: inherit
 
 ---
 
-##  Command Purpose
+## Command Purpose
 
 Initialize or update project metadata with language-first architecture. Supports five execution modes:
 
@@ -44,7 +44,7 @@ Initialize or update project metadata with language-first architecture. Supports
 
 ---
 
-##  Associated Agents & Skills
+## Associated Agents & Skills
 
 | Agent/Skill             | Purpose                                                                  |
 | ----------------------- | ------------------------------------------------------------------------ |
@@ -54,7 +54,7 @@ Initialize or update project metadata with language-first architecture. Supports
 
 ---
 
-##  Language Configuration (Pre-set by moai-adk CLI)
+## Language Configuration (Pre-set by moai-adk CLI)
 
 Core Principle: Language is already configured by `moai-adk init` or `moai-adk update` CLI commands.
 
@@ -68,7 +68,7 @@ Core Principle: Language is already configured by `moai-adk init` or `moai-adk u
 
 ---
 
-##  Execution Philosophy: "Plan → Configure → Complete"
+## Execution Philosophy: "Plan → Configure → Complete"
 
 `/moai:0-project` performs project setup through complete agent delegation:
 
@@ -89,19 +89,19 @@ User Command: /moai:0-project [setting]
 
 This command uses ONLY Task() and AskUserQuestion():
 
--  No Read (file operations delegated)
--  No Write (file operations delegated)
--  No Edit (file operations delegated)
--  No Bash (all bash commands delegated)
--  No TodoWrite (delegated to manager-project)
--  Task() for orchestration
--  AskUserQuestion() for user interaction
+- No Read (file operations delegated)
+- No Write (file operations delegated)
+- No Edit (file operations delegated)
+- No Bash (all bash commands delegated)
+- No TodoWrite (delegated to manager-project)
+- Task() for orchestration
+- AskUserQuestion() for user interaction
 
 All complexity is handled by the manager-project agent.
 
 ---
 
-##  PHASE 1: Command Routing & Analysis
+## PHASE 1: Command Routing & Analysis
 
 Goal: Detect subcommand and prepare execution context.
 
@@ -110,7 +110,6 @@ Goal: Detect subcommand and prepare execution context.
 Analyze the command user provided:
 
 1. `/moai:0-project --glm-on [api-token]` → GLM CONFIGURATION MODE
-
    - Detect if token provided in argument
    - If token missing: Check `.env.glm` (auto-load if exists)
    - If token missing: Check `ANTHROPIC_AUTH_TOKEN` environment variable
@@ -119,14 +118,12 @@ Analyze the command user provided:
    - Call setup-glm.py script to configure GLM
 
 2. `/moai:0-project setting` → SETTINGS MODE
-
    - Always uses interactive tab selection via AskUserQuestion
    - User selects specific tab or "Modify All Tabs" option
 
 3. `/moai:0-project update` → UPDATE MODE
 
 4. `/moai:0-project` (no args):
-
    - Check if `.moai/config/config.json` exists
    - Exists → AUTO-DETECT MODE
    - Missing → INITIALIZATION MODE
@@ -202,7 +199,7 @@ Store: Response in `$MODE_EXECUTION_RESULT`
 
 ---
 
-##  PHASE 2: Execute Mode
+## PHASE 2: Execute Mode
 
 Goal: Execute the appropriate mode based on routing decision.
 
@@ -264,7 +261,7 @@ This ensures `.claude/settings.json` contains announcements in the user's select
 
 ---
 
-##  SETTINGS MODE: Tab-Based Configuration (NEW)
+## SETTINGS MODE: Tab-Based Configuration (NEW)
 
 > Version: v2.0.0 | Last Updated: 2025-11-19 | Changes: Removed [tab_ID] arg, added git_strategy.mode selection, expanded Tab 3 with conditional batches, fixed 26 field name errors, +16 settings
 
@@ -289,23 +286,18 @@ Which settings tab would you like to modify?
 Options:
 
 1. Tab 1: User & Language
-
    - Configure user name, conversation language, agent prompt language
 
 2. Tab 2: Project Basic Information
-
    - Configure project name, description, owner, mode
 
 3. Tab 3: Git Strategy & Workflow
-
    - Configure Personal/Team Git settings, commit/branch strategy
 
 4. Tab 4: Quality Principles & Reports
-
    - Configure TRUST 5, report generation, storage location
 
 5. Tab 5: System & GitHub Integration
-
    - Configure MoAI system, GitHub automation
 
 6. Modify All Tabs
@@ -452,13 +444,11 @@ For each question in batch:
 Checkpoint Locations (from tab_schema navigation_flow):
 
 1. After Tab 1 (Language settings):
-
    - Verify conversation_language is valid (ko, en, ja, es, etc)
    - Verify agent_prompt_language consistency
    - Error recovery: Re-ask Tab 1 if validation fails
 
 2. After Tab 3 (Git strategy):
-
    - Validate Personal/Team mode conflicts
      - If Personal: main_branch should not be "develop"
      - If Team: PR base must be develop or main (never direct to main)
@@ -680,7 +670,7 @@ Language:
 
 ---
 
-##  PHASE 2.5: Save Phase Context
+## PHASE 2.5: Save Phase Context
 
 Goal: Persist phase execution results for explicit context passing to subsequent commands.
 
@@ -728,7 +718,7 @@ Error Handling Strategy:
 
 ---
 
-##  PHASE 3: Completion & Next Steps
+## PHASE 3: Completion & Next Steps
 
 Goal: Guide user to next action in their selected language.
 
@@ -753,7 +743,7 @@ Critical: NO EMOJIS in AskUserQuestion fields. Use clear text only.
 
 ---
 
-##  Critical Rules
+## Critical Rules
 
 MANDATORY:
 
@@ -768,12 +758,12 @@ MANDATORY:
 
 No Direct Tool Usage:
 
--  NO Read (file operations)
--  NO Write (file operations)
--  NO Edit (file operations)
--  NO Bash (delegated to agents)
--  NO TodoWrite (delegated to agents)
--  ONLY Task() and AskUserQuestion()
+- NO Read (file operations)
+- NO Write (file operations)
+- NO Edit (file operations)
+- NO Bash (delegated to agents)
+- NO TodoWrite (delegated to agents)
+- ONLY Task() and AskUserQuestion()
 
 Configuration Priority:
 
@@ -783,7 +773,7 @@ Configuration Priority:
 
 ---
 
-##  Quick Reference
+## Quick Reference
 
 | Scenario             | Mode           | Entry Point                       | Key Phases                                                     |
 | -------------------- | -------------- | --------------------------------- | -------------------------------------------------------------- |
@@ -855,7 +845,7 @@ Important:
 - No emojis in any AskUserQuestion fields
 - Always provide clear next step options
 
-##  EXECUTION DIRECTIVE
+## EXECUTION DIRECTIVE
 
 You must NOW execute the command following the "Execution Philosophy" described above.
 

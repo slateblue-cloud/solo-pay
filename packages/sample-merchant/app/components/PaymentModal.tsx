@@ -20,6 +20,7 @@ export default function PaymentModal({
     url.searchParams.set('orderId', `${paymentId}`);
     url.searchParams.set('amount', `${product.price}`);
     url.searchParams.set('tokenAddress', tokenAddress);
+    url.searchParams.set('currency', 'USD');
     url.searchParams.set(
       'successUrl',
       `${window.location.origin}/payments/success?paymentId=${paymentId}`

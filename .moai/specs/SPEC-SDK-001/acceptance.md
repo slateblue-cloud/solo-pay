@@ -12,14 +12,15 @@
 
 **조건**: 모든 API 메서드가 서버 응답 타입과 일치해야 한다.
 
-| 메서드 | 서버 엔드포인트 | 응답 타입 일치 |
-|--------|---------------|---------------|
-| createPayment() | POST /payments/create | ✅ |
-| getPaymentStatus() | GET /payments/:id/status | ✅ |
-| submitGasless() | POST /payments/:id/gasless | ✅ |
-| executeRelay() | POST /payments/:id/relay | ✅ |
+| 메서드             | 서버 엔드포인트            | 응답 타입 일치 |
+| ------------------ | -------------------------- | -------------- |
+| createPayment()    | POST /payments/create      | ✅             |
+| getPaymentStatus() | GET /payments/:id/status   | ✅             |
+| submitGasless()    | POST /payments/:id/gasless | ✅             |
+| executeRelay()     | POST /payments/:id/relay   | ✅             |
 
 **검증 방법**:
+
 ```typescript
 // TypeScript 컴파일 에러 없이 빌드
 pnpm build
@@ -38,6 +39,7 @@ const response = await client.createPayment(params);
 **조건**: 에러 발생 시 MSQPayError 인스턴스를 throw해야 한다.
 
 **검증 방법**:
+
 ```typescript
 try {
   await client.createPayment(invalidParams);
@@ -66,6 +68,7 @@ try {
 **조건**: 테스트 커버리지 ≥ 90%
 
 **검증 방법**:
+
 ```bash
 pnpm test:coverage
 ```
@@ -85,6 +88,7 @@ pnpm test:coverage
 **조건**: Node 18+ native fetch 사용 (외부 HTTP 라이브러리 의존성 없음)
 
 **검증 방법**:
+
 ```bash
 # package.json dependencies 확인
 cat packages/sdk/package.json | jq '.dependencies'
@@ -110,7 +114,7 @@ describe('createPayment', () => {
       userId: 'user-1',
       amount: 1000,
       tokenAddress: '0x...',
-      recipientAddress: '0x...'
+      recipientAddress: '0x...',
     });
 
     expect(result.success).toBe(true);
@@ -125,8 +129,7 @@ describe('createPayment', () => {
 it('should throw MSQPayError on validation failure', async () => {
   mockFetchError(400, { code: 'VALIDATION_ERROR', message: '입력 검증 실패' });
 
-  await expect(client.createPayment(invalidParams))
-    .rejects.toThrow(MSQPayError);
+  await expect(client.createPayment(invalidParams)).rejects.toThrow(MSQPayError);
 });
 ```
 
@@ -149,8 +152,10 @@ it('should get payment status successfully', async () => {
 it('should throw MSQPayError when payment not found', async () => {
   mockFetchError(404, { code: 'NOT_FOUND', message: '결제 정보를 찾을 수 없습니다' });
 
-  await expect(client.getPaymentStatus('invalid-id'))
-    .rejects.toMatchObject({ code: 'NOT_FOUND', statusCode: 404 });
+  await expect(client.getPaymentStatus('invalid-id')).rejects.toMatchObject({
+    code: 'NOT_FOUND',
+    statusCode: 404,
+  });
 });
 ```
 
@@ -163,7 +168,7 @@ it('should submit gasless transaction successfully', async () => {
   const result = await client.submitGasless({
     paymentId: 'pay-123',
     forwarderAddress: '0x...',
-    signature: '0x...'
+    signature: '0x...',
   });
 
   expect(result.success).toBe(true);
@@ -175,12 +180,17 @@ it('should submit gasless transaction successfully', async () => {
 
 ```typescript
 it('should execute relay successfully', async () => {
-  mockFetch({ success: true, relayRequestId: 'relay-123', status: 'mined', transactionHash: '0x...' });
+  mockFetch({
+    success: true,
+    relayRequestId: 'relay-123',
+    status: 'mined',
+    transactionHash: '0x...',
+  });
 
   const result = await client.executeRelay({
     paymentId: 'pay-123',
     transactionData: '0x...',
-    gasEstimate: 100000
+    gasEstimate: 100000,
   });
 
   expect(result.success).toBe(true);
@@ -198,13 +208,16 @@ describe('environment', () => {
   });
 
   it('should use custom URL', () => {
-    const client = new MSQPayClient({ environment: 'custom', apiKey: 'test', apiUrl: 'https://custom.api.com' });
+    const client = new MSQPayClient({
+      environment: 'custom',
+      apiKey: 'test',
+      apiUrl: 'https://custom.api.com',
+    });
     expect(client.getApiUrl()).toBe('https://custom.api.com');
   });
 
   it('should throw error when custom environment without apiUrl', () => {
-    expect(() => new MSQPayClient({ environment: 'custom', apiKey: 'test' }))
-      .toThrow();
+    expect(() => new MSQPayClient({ environment: 'custom', apiKey: 'test' })).toThrow();
   });
 });
 ```
@@ -236,12 +249,12 @@ describe('URL management', () => {
 
 ## Sign-off
 
-| 항목 | 완료 | 검증 |
-|------|------|------|
-| 코드 구현 | ✅ 2025-11-29 | 26개 테스트 통과 |
-| 테스트 | ✅ 2025-11-29 | 100% 커버리지 달성 |
-| 문서화 | ✅ 2025-11-29 | README & SPEC 완성 |
-| 코드 리뷰 | ✅ 2025-11-29 | TRUST 5 검증 통과 |
+| 항목      | 완료          | 검증               |
+| --------- | ------------- | ------------------ |
+| 코드 구현 | ✅ 2025-11-29 | 26개 테스트 통과   |
+| 테스트    | ✅ 2025-11-29 | 100% 커버리지 달성 |
+| 문서화    | ✅ 2025-11-29 | README & SPEC 완성 |
+| 코드 리뷰 | ✅ 2025-11-29 | TRUST 5 검증 통과  |
 
 ---
 

@@ -74,8 +74,7 @@ export class PriceService {
     address: string,
     convert: string = 'USD'
   ): Promise<TokenPriceResult> {
-    const normalizedAddress = address.toLowerCase();
-    const cacheKey = `price:${chainId}:${normalizedAddress}:${convert}`;
+    const cacheKey = `price:${chainId}:${address}:${convert}`;
 
     const cached = await getCache(cacheKey);
     if (cached) {
@@ -85,9 +84,17 @@ export class PriceService {
 
     logger.debug({ chainId, address, convert }, 'Cache miss, looking up token');
 
+    const chain = await this.prisma.chain.findUnique({
+      where: { network_id: chainId },
+    });
+
+    if (!chain) {
+      throw new TokenNotFoundError(`Chain not found: ${chainId}`);
+    }
+
     const token = await this.prisma.token.findUnique({
       where: {
-        chain_id_address: { chain_id: chainId, address: normalizedAddress },
+        chain_id_address: { chain_id: chain.id, address },
       },
     });
 
@@ -99,15 +106,15 @@ export class PriceService {
       throw new TokenNotFoundError(`Token is disabled: ${chainId}:${address}`);
     }
 
-    if (!token.cmc_id) {
-      throw new CmcIdMissingError(`CMC ID not set for token: ${token.symbol} (${address})`);
+    if (!token.cmc_slug) {
+      throw new CmcIdMissingError(`CMC slug not set for token: ${token.symbol} (${address})`);
     }
 
-    const cmcData = await this.fetchCmcById(token.cmc_id, convert);
-    const cmcToken = cmcData.data[String(token.cmc_id)];
+    const cmcData = await this.fetchCmcBySlug(token.cmc_slug, convert);
+    const cmcToken = Object.values(cmcData.data)[0];
 
     if (!cmcToken) {
-      throw new Error(`CMC returned no data for id: ${token.cmc_id}`);
+      throw new Error(`CMC returned no data for slug: ${token.cmc_slug}`);
     }
 
     const quote: Record<string, TokenQuote> = {};
@@ -127,8 +134,8 @@ export class PriceService {
       id: cmcToken.id,
       name: cmcToken.name,
       symbol: cmcToken.symbol,
-      address: token.address,
-      chain_id: token.chain_id,
+      address,
+      chain_id: chainId,
       quote,
     };
 
@@ -136,9 +143,9 @@ export class PriceService {
     return result;
   }
 
-  private async fetchCmcById(cmcId: number, convert: string): Promise<CmcQuoteResponse> {
+  private async fetchCmcBySlug(slug: string, convert: string): Promise<CmcQuoteResponse> {
     const params = new URLSearchParams({
-      id: String(cmcId),
+      slug,
       convert,
     });
 

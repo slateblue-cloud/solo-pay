@@ -383,7 +383,7 @@ function _verifyRefundSignature(
 
 - [x] refundedPayments mapping 추가
 - [x] REFUND_REQUEST_TYPEHASH 추가 (deadline 제거됨)
-- [x] _verifyRefundSignature() 함수 구현
+- [x] \_verifyRefundSignature() 함수 구현
 - [x] refund() 함수 구현
 - [x] RefundCompleted 이벤트 추가
 - [x] IPaymentGateway 인터페이스 업데이트
@@ -462,15 +462,15 @@ function _verifyRefundSignature(
 
 ## 9. 추적성 매트릭스 (Traceability Matrix)
 
-| 구현 항목 | 관련 파일 | 테스트 파일 |
-|----------|----------|-----------|
-| RefundStatus, Refund 모델 | schema.prisma, init.sql | - |
-| refund() 함수 | PaymentGatewayV1.sol | PaymentGatewayV1.refund.test.ts |
-| RefundService | services/refund.service.ts | refund.service.test.ts |
-| POST /refunds | routes/refunds/create.ts | refunds.create.test.ts |
-| GET /refunds/:id | routes/refunds/status.ts | refunds.status.test.ts |
-| GET /refunds | routes/refunds/list.ts | refunds.list.test.ts |
-| RefundCompleted 리스너 | listeners/refund-completed.ts | refund-completed.test.ts |
+| 구현 항목                 | 관련 파일                     | 테스트 파일                     |
+| ------------------------- | ----------------------------- | ------------------------------- |
+| RefundStatus, Refund 모델 | schema.prisma, init.sql       | -                               |
+| refund() 함수             | PaymentGatewayV1.sol          | PaymentGatewayV1.refund.test.ts |
+| RefundService             | services/refund.service.ts    | refund.service.test.ts          |
+| POST /refunds             | routes/refunds/create.ts      | refunds.create.test.ts          |
+| GET /refunds/:id          | routes/refunds/status.ts      | refunds.status.test.ts          |
+| GET /refunds              | routes/refunds/list.ts        | refunds.list.test.ts            |
+| RefundCompleted 리스너    | listeners/refund-completed.ts | refund-completed.test.ts        |
 
 ---
 

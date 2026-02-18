@@ -16,6 +16,7 @@ created_at: 2025-11-29
 무상태(Stateless) 아키텍처 기반 결제 서버 구현 계획.
 
 **핵심 원칙**:
+
 - Contract as Source of Truth
 - No Database, No Redis
 - RESTful API with Fastify v5
@@ -30,6 +31,7 @@ created_at: 2025-11-29
 **목표**: Fastify 서버 초기 설정 및 개발 환경 구성
 
 **Tasks**:
+
 1. **프로젝트 구조 생성**
    - `packages/pay-server/` 디렉토리 생성
    - `package.json` 설정 (Fastify, viem, zod, ethers, OZ Defender SDK)
@@ -46,6 +48,7 @@ created_at: 2025-11-29
    - ESLint + Prettier 설정
 
 **Deliverables**:
+
 - ✅ Fastify 서버가 로컬 3000 포트에서 실행
 - ✅ TypeScript 컴파일 성공
 - ✅ 헬스체크 엔드포인트 (`GET /health`) 응답
@@ -59,6 +62,7 @@ created_at: 2025-11-29
 **목표**: viem 기반 컨트랙트 연결 및 RPC 클라이언트 설정
 
 **Tasks**:
+
 1. **viem 클라이언트 초기화**
    - `src/blockchain/client.ts`: Public Client 생성
    - Polygon Mumbai RPC 연결
@@ -73,6 +77,7 @@ created_at: 2025-11-29
    - `POLYGON_RPC_URL`, `MSQPAY_CONTRACT_ADDRESS` 필수 체크
 
 **Deliverables**:
+
 - ✅ viem 클라이언트로 Polygon Mumbai 블록 높이 조회 성공
 - ✅ MSQPay 컨트랙트 ABI 로드 완료
 - ✅ 환경 변수 검증 통과
@@ -88,6 +93,7 @@ created_at: 2025-11-29
 #### 3-1. POST /payments/create
 
 **TDD Workflow**:
+
 1. **RED**: `tests/payments/create.spec.ts` 작성
    - 정상 케이스: 결제 생성 성공
    - 실패 케이스: 잘못된 merchantId, amount 형식
@@ -102,6 +108,7 @@ created_at: 2025-11-29
    - `src/utils/errors.ts`: 커스텀 에러 클래스
 
 **Acceptance Criteria**:
+
 - ✅ 유효한 입력으로 결제 생성 성공
 - ✅ 잘못된 입력 시 400 에러 반환
 - ✅ 테스트 커버리지 ≥ 90%
@@ -109,6 +116,7 @@ created_at: 2025-11-29
 #### 3-2. GET /payments/:id/status
 
 **TDD Workflow**:
+
 1. **RED**: `tests/payments/status.spec.ts` 작성
    - 정상 케이스: 결제 상태 조회 성공
    - 실패 케이스: 존재하지 않는 paymentId
@@ -121,6 +129,7 @@ created_at: 2025-11-29
    - `src/types/responses.ts`: 공통 응답 타입
 
 **Acceptance Criteria**:
+
 - ✅ 존재하는 결제 ID로 상태 조회 성공
 - ✅ 존재하지 않는 ID는 404 반환
 - ✅ 응답 시간 < 500ms (RPC 호출 포함)
@@ -128,6 +137,7 @@ created_at: 2025-11-29
 #### 3-3. POST /payments/:id/gasless
 
 **TDD Workflow**:
+
 1. **RED**: `tests/payments/gasless.spec.ts` 작성
    - 정상 케이스: Gasless 트랜잭션 실행
    - 실패 케이스: 잘못된 서명
@@ -141,6 +151,7 @@ created_at: 2025-11-29
    - `src/blockchain/relayer.ts`: OZ Defender SDK 래핑
 
 **Acceptance Criteria**:
+
 - ✅ 유효한 서명으로 Gasless 실행 성공
 - ✅ 잘못된 서명 시 401 에러
 - ✅ 릴레이 실행 결과 추적 가능
@@ -148,6 +159,7 @@ created_at: 2025-11-29
 #### 3-4. POST /payments/:id/relay
 
 **TDD Workflow**:
+
 1. **RED**: `tests/payments/relay.spec.ts` 작성
    - 정상 케이스: 백엔드에서 릴레이 실행
    - 실패 케이스: 네트워크 에러
@@ -160,6 +172,7 @@ created_at: 2025-11-29
    - `src/middleware/errorHandler.ts`: 전역 에러 핸들러
 
 **Acceptance Criteria**:
+
 - ✅ 릴레이 실행 성공 및 완료 확인
 - ✅ 네트워크 장애 시 3회 재시도
 - ✅ 타임아웃 시 적절한 에러 반환
@@ -173,6 +186,7 @@ created_at: 2025-11-29
 **목표**: 무상태 아키텍처 검증 및 성능 테스트
 
 **Tasks**:
+
 1. **통합 테스트 작성**
    - `tests/integration/stateless.spec.ts`: 무상태 검증
    - 서버 재시작 후 상태 조회 가능 확인
@@ -186,6 +200,7 @@ created_at: 2025-11-29
    - 결제 생성 → 상태 조회 → Gasless 실행
 
 **Deliverables**:
+
 - ✅ 무상태 아키텍처 검증 완료
 - ✅ 성능 기준 충족 (< 500ms)
 - ✅ E2E 테스트 통과
@@ -199,6 +214,7 @@ created_at: 2025-11-29
 **목표**: OpenAPI 문서 생성 및 Docker 컨테이너화
 
 **Tasks**:
+
 1. **OpenAPI 스펙 생성**
    - `src/swagger.ts`: Fastify Swagger 플러그인
    - `/docs` 엔드포인트에서 API 문서 제공
@@ -213,6 +229,7 @@ created_at: 2025-11-29
    - `DEPLOYMENT.md`: 프로덕션 배포 절차
 
 **Deliverables**:
+
 - ✅ OpenAPI 문서 자동 생성
 - ✅ Docker 이미지 빌드 성공
 - ✅ 배포 가이드 문서 작성
@@ -225,13 +242,13 @@ created_at: 2025-11-29
 
 ### Architecture Decisions
 
-| Decision | Rationale | Trade-off |
-|----------|-----------|-----------|
-| **Fastify v5** | 고성능, TypeScript 지원 | Express 대비 플러그인 생태계 작음 |
-| **viem v2** | 경량, Tree-shakable | ethers v6 대비 레거시 코드 부족 |
-| **Stateless** | 수평 확장성, 단순성 | DB 기반 복잡 쿼리 불가 |
-| **Zod** | 런타임 타입 검증 | joi, yup 대비 번들 크기 작음 |
-| **OZ Defender** | 안정적인 릴레이 | 자체 구현 대비 비용 발생 |
+| Decision        | Rationale               | Trade-off                         |
+| --------------- | ----------------------- | --------------------------------- |
+| **Fastify v5**  | 고성능, TypeScript 지원 | Express 대비 플러그인 생태계 작음 |
+| **viem v2**     | 경량, Tree-shakable     | ethers v6 대비 레거시 코드 부족   |
+| **Stateless**   | 수평 확장성, 단순성     | DB 기반 복잡 쿼리 불가            |
+| **Zod**         | 런타임 타입 검증        | joi, yup 대비 번들 크기 작음      |
+| **OZ Defender** | 안정적인 릴레이         | 자체 구현 대비 비용 발생          |
 
 ### Directory Structure
 
@@ -308,31 +325,35 @@ packages/pay-server/
 
 ## Risks and Mitigation
 
-| Risk | Probability | Impact | Mitigation |
-|------|------------|--------|------------|
-| RPC 장애 | Medium | High | 다중 RPC 엔드포인트 + 재시도 |
-| 네트워크 혼잡 | High | Medium | Gas Price 모니터링 |
-| 컨트랙트 버그 | Low | Critical | 테스트넷 검증 + 감사 |
-| 동시 요청 급증 | Medium | Medium | Rate Limiting + 로드밸런싱 |
+| Risk           | Probability | Impact   | Mitigation                   |
+| -------------- | ----------- | -------- | ---------------------------- |
+| RPC 장애       | Medium      | High     | 다중 RPC 엔드포인트 + 재시도 |
+| 네트워크 혼잡  | High        | Medium   | Gas Price 모니터링           |
+| 컨트랙트 버그  | Low         | Critical | 테스트넷 검증 + 감사         |
+| 동시 요청 급증 | Medium      | Medium   | Rate Limiting + 로드밸런싱   |
 
 ---
 
 ## Testing Strategy
 
 ### Unit Tests
+
 - **Coverage Target**: ≥ 90%
 - **Framework**: Vitest
 - **Focus**: 개별 함수 및 유틸리티
 
 ### Integration Tests
+
 - **Environment**: 로컬 Hardhat 네트워크
 - **Focus**: 컨트랤트 연동 및 무상태 아키텍처
 
 ### E2E Tests
+
 - **Environment**: Polygon Mumbai 테스트넷
 - **Focus**: 전체 결제 플로우
 
 ### Performance Tests
+
 - **Tool**: Artillery
 - **Metrics**:
   - 응답 시간: 95 percentile < 500ms

@@ -1,22 +1,22 @@
 ---
 id: SPEC-DEMO-002
-version: "1.1.0"
-status: "completed"
-created: "2025-12-01"
-updated: "2025-12-01"
-author: "Harry"
-priority: "high"
-parent: "SPEC-API-001"
+version: '1.1.0'
+status: 'completed'
+created: '2025-12-01'
+updated: '2025-12-01'
+author: 'Harry'
+priority: 'high'
+parent: 'SPEC-API-001'
 ---
 
 # HISTORY
 
-| Version | Date | Author | Changes |
-|---------|------|--------|---------|
-| 1.0.0 | 2025-12-01 | Harry | Initial draft |
-| 1.0.2 | 2025-12-01 | Harry | 금액 조작 방지 보안 요구사항 추가 |
-| 1.0.3 | 2025-12-01 | Harry | Decimals 동적 처리 요구사항 추가 |
-| 1.1.0 | 2025-12-01 | Harry | 구현 완료 - 서버 기반 블록체인 설정, 토큰 심볼 수정, Hardhat 체인 설정 |
+| Version | Date       | Author | Changes                                                                |
+| ------- | ---------- | ------ | ---------------------------------------------------------------------- |
+| 1.0.0   | 2025-12-01 | Harry  | Initial draft                                                          |
+| 1.0.2   | 2025-12-01 | Harry  | 금액 조작 방지 보안 요구사항 추가                                      |
+| 1.0.3   | 2025-12-01 | Harry  | Decimals 동적 처리 요구사항 추가                                       |
+| 1.1.0   | 2025-12-01 | Harry  | 구현 완료 - 서버 기반 블록체인 설정, 토큰 심볼 수정, Hardhat 체인 설정 |
 
 ---
 
@@ -31,22 +31,26 @@ SPEC-API-001의 서버 기반 블록체인 설정을 Demo App에 적용합니다
 > Demo App에서도 프론트엔드에서 `amount`를 직접 서버로 전송하면 안됩니다!
 >
 > **올바른 구현**:
+>
 > 1. 프론트엔드: `productId`만 Next.js API Route로 전송
 > 2. Next.js API Route: 상품 가격 조회 후 결제서버 호출
 > 3. 결제서버: paymentId 생성 및 응답
 >
 > **Demo App 특수 사항**:
+>
 > - 상점서버가 없으므로 Next.js API Routes가 상점서버 역할 수행
 > - 상품 가격은 서버에서 조회 (constants 또는 DB)
 > - 프론트엔드는 절대 `amount`를 직접 전송하지 않음
 
 **문제점**:
+
 - PaymentModal.tsx가 레거시 하드코딩 함수 사용 중 (`getContractsForChain()`)
 - wagmi.ts에 DEPRECATED 코드 존재 (`LEGACY_CONTRACTS`, `getContractsForChain()`)
 - 서버 Single Source of Truth 미반영 (클라이언트가 여전히 하드코딩 주소 사용)
 - **[보안] 프론트엔드에서 amount를 직접 전송하여 금액 조작 가능**
 
 **해결 방안**:
+
 - 서버 API 호출로 블록체인 설정 로드 (`/payments/create` POST)
 - 레거시 코드 완전 제거 (하드코딩 제거)
 - 에러 처리 및 성능 최적화 강화 (재시도, 캐싱)

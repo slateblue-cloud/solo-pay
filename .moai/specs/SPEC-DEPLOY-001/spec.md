@@ -19,11 +19,13 @@
 ### 핵심 설계 원칙
 
 Hardhat Ignition 기본 기능 활용:
+
 - Ignition이 자동 생성하는 `ignition/deployments/chain-{chainId}/` 디렉토리 사용
 - `deployed_addresses.json`을 통한 주소 관리
 - 별도의 커스텀 저장소 불필요
 
 RPC Provider 독립성:
+
 - 환경변수로 RPC URL 직접 설정
 - 특정 Provider(Alchemy, Infura 등)에 종속되지 않음
 - Public RPC를 fallback으로 제공
@@ -31,16 +33,19 @@ RPC Provider 독립성:
 ### 지원 체인 목록
 
 Testnet 환경:
+
 - Polygon Amoy (chainId: 80002)
 - Ethereum Sepolia (chainId: 11155111)
 - BNB Chain Testnet (chainId: 97)
 
 Mainnet 환경:
+
 - Polygon Mainnet (chainId: 137)
 - Ethereum Mainnet (chainId: 1)
 - BNB Chain (chainId: 56)
 
 Local 환경:
+
 - Hardhat Local (chainId: 31337)
 
 ## 배경 및 동기
@@ -48,11 +53,13 @@ Local 환경:
 ### 현재 상태
 
 현재 배포 프로세스:
+
 - Local Hardhat 배포는 docker-compose로 자동화됨
 - Ignition이 `ignition/deployments/chain-31337/`에 배포 정보 자동 저장
 - Testnet/Mainnet 네트워크 설정이 불완전함 (polygonAmoy만 설정됨)
 
 현재 Ignition 배포 구조 (chain-31337 예시):
+
 ```
 contracts/ignition/deployments/chain-31337/
 ├── deployed_addresses.json    # 배포된 컨트랙트 주소
@@ -64,6 +71,7 @@ contracts/ignition/deployments/chain-31337/
 ### 목표 상태
 
 개선된 배포 프로세스:
+
 - hardhat.config.ts에 6개 체인 네트워크 설정 완료
 - 단일 명령어로 Testnet/Mainnet 배포
 - Ignition 기본 구조 그대로 활용
@@ -88,10 +96,12 @@ contracts/ignition/deployments/chain-31337/
 ### RPC Provider
 
 환경변수로 자유롭게 설정 가능:
+
 - Alchemy, Infura, QuickNode 등 유료 Provider
 - Public RPC (fallback)
 
 Public RPC (fallback용):
+
 - Polygon Amoy: https://rpc-amoy.polygon.technology
 - Polygon Mainnet: https://polygon-rpc.com
 - Ethereum Sepolia: https://rpc.sepolia.org
@@ -126,11 +136,13 @@ Public RPC (fallback용):
 EARS 형식: **When** 컨트랙트가 배포될 때, **the system shall** Hardhat Ignition의 기본 디렉토리 구조를 사용하여 **so that** 별도의 커스텀 저장소 없이 배포 주소를 관리할 수 있습니다.
 
 Ignition 자동 생성 구조:
+
 - ignition/deployments/chain-{chainId}/deployed_addresses.json
 - ignition/deployments/chain-{chainId}/journal.jsonl
 - ignition/deployments/chain-{chainId}/artifacts/
 
 deployed_addresses.json 형식 (Ignition 기본):
+
 ```json
 {
   "PaymentGateway#ERC2771Forwarder": "0x...",
@@ -145,6 +157,7 @@ deployed_addresses.json 형식 (Ignition 기본):
 EARS 형식: **When** Hardhat이 초기화될 때, **the system shall** 6개 체인의 네트워크 설정을 로드하여 **so that** 모든 지원 체인에 배포할 수 있습니다.
 
 네트워크 설정 항목:
+
 - chainId
 - RPC URL (환경변수, Public RPC fallback)
 - 배포자 계정
@@ -155,6 +168,7 @@ EARS 형식: **When** Hardhat이 초기화될 때, **the system shall** 6개 체
 EARS 형식: **When** 개발자가 배포 명령을 실행할 때, **the system shall** Hardhat Ignition을 통해 지정된 네트워크에 배포하여 **so that** 일관된 배포 프로세스가 보장됩니다.
 
 지원 명령어:
+
 - pnpm hardhat ignition deploy ignition/modules/PaymentGateway.ts --network polygonAmoy
 - pnpm hardhat ignition deploy ignition/modules/PaymentGateway.ts --network sepolia
 - pnpm hardhat ignition deploy ignition/modules/PaymentGateway.ts --network bscTestnet
@@ -163,6 +177,7 @@ EARS 형식: **When** 개발자가 배포 명령을 실행할 때, **the system 
 - pnpm hardhat ignition deploy ignition/modules/PaymentGateway.ts --network bsc
 
 package.json 스크립트 (선택적):
+
 - pnpm deploy:amoy
 - pnpm deploy:sepolia
 - pnpm deploy:bsc-testnet
@@ -172,9 +187,11 @@ package.json 스크립트 (선택적):
 EARS 형식: **When** 컨트랙트가 배포된 후, **the system shall** Hardhat Ignition의 verify 기능을 통해 Block Explorer에 소스코드를 verify하여 **so that** 컨트랙트의 투명성이 보장됩니다.
 
 verify 명령어:
+
 - pnpm hardhat ignition verify chain-{chainId} --network {network}
 
 지원 Explorer:
+
 - Polygonscan (Polygon Amoy, Mainnet)
 - Etherscan (Sepolia, Mainnet)
 - BSCScan (BNB Testnet, Mainnet)
@@ -184,6 +201,7 @@ verify 명령어:
 ### 디렉토리 구조
 
 배포 후 Ignition이 자동 생성하는 구조:
+
 ```
 contracts/ignition/deployments/
 ├── chain-31337/                 # Hardhat Local
@@ -291,6 +309,7 @@ Subgraph, Pay-Server 등에서 배포 주소 참조 방법:
 경로: `contracts/ignition/deployments/chain-{chainId}/deployed_addresses.json`
 
 주소 키 매핑:
+
 - Forwarder: `PaymentGateway#ERC2771Forwarder`
 - Gateway Proxy: `PaymentGateway#PaymentGatewayProxy`
 - Gateway Implementation: `PaymentGateway#PaymentGatewayV1`

@@ -96,10 +96,7 @@
     },
     "step_6_push_manual": {
       "instruction": "User manually pushes to local/remote",
-      "commands": [
-        "git push origin feature/SPEC-001",
-        "# OR for main branch (if direct commit)"
-      ],
+      "commands": ["git push origin feature/SPEC-001", "# OR for main branch (if direct commit)"],
       "notes": "User controls push timing and target. Pre-push hooks show warnings but don't block."
     }
   },

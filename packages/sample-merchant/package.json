@@ -6,7 +6,9 @@
     "dev": "next dev",
     "build": "prisma generate && next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test": "echo \"No tests yet\"",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@prisma/adapter-mariadb": "^7.4.0",

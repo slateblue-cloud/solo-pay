@@ -6,7 +6,7 @@ statusline:
   enabled: true
 
   # Display mode: compact (80 chars) | extended (120 chars) | minimal (40 chars)
-  mode: "extended"
+  mode: 'extended'
 
   # Refresh interval in milliseconds (Claude Code API limitation: 300ms)
   refresh_interval_ms: 300
@@ -14,73 +14,73 @@ statusline:
   # Color configuration
   colors:
     enabled: true
-    theme: "auto"  # auto | light | dark | high-contrast
+    theme: 'auto' # auto | light | dark | high-contrast
     palette:
-      model: "38;5;33"        # Blue
-      output_style: "38;5;219"   # Pink/Magenta
-      feature_branch: "38;5;226"   # Yellow
-      develop_branch: "38;5;51"    # Cyan
-      main_branch: "38;5;46"       # Green
-      staged: "38;5;46"            # Green
-      modified: "38;5;208"         # Orange
-      untracked: "38;5;196"        # Red
-      update_available: "38;5;208" # Orange
-      memory_usage: "38;5;172"     # Brown/Orange
-      duration: "38;5;240"         # Gray
-      todo_count: "38;5;123"       # Purple
-      separator: "38;5;250"        # Light Gray
+      model: '38;5;33' # Blue
+      output_style: '38;5;219' # Pink/Magenta
+      feature_branch: '38;5;226' # Yellow
+      develop_branch: '38;5;51' # Cyan
+      main_branch: '38;5;46' # Green
+      staged: '38;5;46' # Green
+      modified: '38;5;208' # Orange
+      untracked: '38;5;196' # Red
+      update_available: '38;5;208' # Orange
+      memory_usage: '38;5;172' # Brown/Orange
+      duration: '38;5;240' # Gray
+      todo_count: '38;5;123' # Purple
+      separator: '38;5;250' # Light Gray
 
   # Caching configuration (Windows optimization)
   # Performance improvements: git 5→10s, alfred 1→5s, update 300→600s
   cache:
-    git_ttl_seconds: 10          # Git command results (5→10: process creation reduced)
-    metrics_ttl_seconds: 10      # Session metrics (unchanged)
-    alfred_ttl_seconds: 5        # Alfred task state (1→5: file I/O reduced 80%)
-    todo_ttl_seconds: 5          # TODO items count (3→5)
-    memory_ttl_seconds: 10       # Memory usage information (5→10)
+    git_ttl_seconds: 10 # Git command results (5→10: process creation reduced)
+    metrics_ttl_seconds: 10 # Session metrics (unchanged)
+    alfred_ttl_seconds: 5 # Alfred task state (1→5: file I/O reduced 80%)
+    todo_ttl_seconds: 5 # TODO items count (3→5)
+    memory_ttl_seconds: 10 # Memory usage information (5→10)
     output_style_ttl_seconds: 120 # Output style configuration (60→120)
-    version_ttl_seconds: 120     # Version information (60→120)
-    update_ttl_seconds: 600      # Update check (300→600: network I/O reduced 83%)
+    version_ttl_seconds: 120 # Version information (60→120)
+    update_ttl_seconds: 600 # Update check (300→600: network I/O reduced 83%)
 
   # Information display settings - Custom ordered status bar
   display:
-    model: true                  # 🤖 Model name (glm-4.6, claude-3.5-sonnet, etc.)
-    version: true                # 🗿 MoAI-ADK version (0.23.0, etc.)
-    output_style: true           # ✍️ Output style (Explanatory, Concise, etc.)
-    memory_usage: true           # 💾 Session memory usage
-    todo_count: true             # 📋 Active TODO items count
-    branch: true                 # 🔀 Git branch
-    git_status: true             # ✅2 M1 ?10 Git changes status
-    duration: true               # ⏱️ Session elapsed time
-    directory: true              # 📁 Project name/directory
-    active_task: true            # 🎯 Alfred active task
-    update_indicator: true       # 🔄 Update notification
+    model: true # 🤖 Model name (glm-4.6, claude-3.5-sonnet, etc.)
+    version: true # 🗿 MoAI-ADK version (0.23.0, etc.)
+    output_style: true # ✍️ Output style (Explanatory, Concise, etc.)
+    memory_usage: true # 💾 Session memory usage
+    todo_count: true # 📋 Active TODO items count
+    branch: true # 🔀 Git branch
+    git_status: true # ✅2 M1 ?10 Git changes status
+    duration: true # ⏱️ Session elapsed time
+    directory: true # 📁 Project name/directory
+    active_task: true # 🎯 Alfred active task
+    update_indicator: true # 🔄 Update notification
 
   # Error handling (Windows: reduced logging I/O)
   error_handling:
-    graceful_degradation: true   # Return default values on error
-    log_level: "error"           # warning | error (Windows: error for minimal I/O)
-    fallback_text: ""            # Text to display on error (blank recommended)
+    graceful_degradation: true # Return default values on error
+    log_level: 'error' # warning | error (Windows: error for minimal I/O)
+    fallback_text: '' # Text to display on error (blank recommended)
 
   # Format configuration
   format:
-    max_branch_length: 30        # Truncate long branch names
-    truncate_with: "..."         # Truncation indicator
-    separator: " | "             # Section separator
+    max_branch_length: 30 # Truncate long branch names
+    truncate_with: '...' # Truncation indicator
+    separator: ' | ' # Section separator
 
     # Icon configuration for better visual recognition
     icons:
-      git: "🔀"                 # Git branch icon (more intuitive than 📊)
-      staged: "✅"              # Staged files
-      modified: "📝"            # Modified files
-      untracked: "❓"           # Untracked files
-      added: "➕"               # Added files
-      deleted: "➖"             # Deleted files
-      renamed: "🔄"             # Renamed files
-      conflict: "⚠️"           # Conflict files
-      model: "🤖"               # AI model
-      output_style: "💬"        # Writing style
-      duration: "⏱️"            # Time duration
-      todo: "📋"                # TODO items
-      update: "🔄"              # Update available
-      project: "📁"             # Project directory
+      git: '🔀' # Git branch icon (more intuitive than 📊)
+      staged: '✅' # Staged files
+      modified: '📝' # Modified files
+      untracked: '❓' # Untracked files
+      added: '➕' # Added files
+      deleted: '➖' # Deleted files
+      renamed: '🔄' # Renamed files
+      conflict: '⚠️' # Conflict files
+      model: '🤖' # AI model
+      output_style: '💬' # Writing style
+      duration: '⏱️' # Time duration
+      todo: '📋' # TODO items
+      update: '🔄' # Update available
+      project: '📁' # Project directory

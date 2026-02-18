@@ -89,7 +89,7 @@ describe('Price Routes', () => {
       expect(body.error).toBe('Not Found');
     });
 
-    it('should return 404 when cmc_id not configured', async () => {
+    it('should return 404 when cmc_slug not configured', async () => {
       vi.spyOn(priceService, 'getPrice').mockRejectedValueOnce(
         new CmcIdMissingError('CMC ID not set')
       );

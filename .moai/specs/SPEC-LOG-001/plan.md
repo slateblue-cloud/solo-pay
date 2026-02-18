@@ -1,9 +1,11 @@
 # SPEC-LOG-001: 구현 계획
 
 ---
+
 id: SPEC-LOG-001
 title: Console.log를 Pino 로거로 전환 - 구현 계획
 status: completed
+
 ---
 
 ## 1. 구현 개요
@@ -16,12 +18,12 @@ status: completed
 
 ### 1.2 변경 영향도
 
-| 구분 | 내용 |
-|------|------|
-| 변경 파일 수 | 6개 (1개 신규 + 5개 수정) |
-| 변경 라인 수 | 약 80-100 라인 |
-| 위험도 | 낮음 (로깅만 변경, 비즈니스 로직 유지) |
-| 의존성 추가 | 없음 (Fastify 내장 Pino 사용) |
+| 구분         | 내용                                   |
+| ------------ | -------------------------------------- |
+| 변경 파일 수 | 6개 (1개 신규 + 5개 수정)              |
+| 변경 라인 수 | 약 80-100 라인                         |
+| 위험도       | 낮음 (로깅만 변경, 비즈니스 로직 유지) |
+| 의존성 추가  | 없음 (Fastify 내장 Pino 사용)          |
 
 ---
 
@@ -39,6 +41,7 @@ status: completed
 4. rootLogger 인스턴스 export
 
 **산출물:**
+
 - `/packages/pay-server/src/lib/logger.ts`
 
 ### Phase 2: 서비스 레이어 전환 (Primary)
@@ -58,6 +61,7 @@ status: completed
    - console.warn: 2개
 
 **변환 패턴:**
+
 - `console.log(msg)` -> `logger.info(msg)`
 - `console.error(msg, err)` -> `logger.error({ err }, msg)`
 - `console.warn(msg)` -> `logger.warn(msg)`
@@ -86,6 +90,7 @@ status: completed
    - console.error: 2개
 
 **특이 사항:**
+
 - Fastify 인스턴스의 `server.log` 활용 가능
 - 서버 시작/종료 로그는 server.log 사용 권장
 
@@ -166,61 +171,61 @@ logger.info({ paymentId, txId: tx.transactionId }, '트랜잭션 제출됨');
 
 ### 4.1 src/services/defender.service.ts
 
-| 라인 | 현재 | 변환 후 |
-|------|------|---------|
-| 172-174 | console.log | logger.info({ paymentId, txId }) |
-| 182 | console.error | logger.error({ err, paymentId }) |
-| 259-261 | console.log | logger.info({ paymentId, txId }) |
-| 269 | console.error | logger.error({ err, paymentId }) |
-| 327 | console.error | logger.error({ err, relayRequestId }) |
-| 354-355 | console.warn | logger.warn({ relayRequestId }) |
-| 366-368 | console.warn | logger.warn({ relayRequestId }) |
-| 371 | console.error | logger.error({ err, relayRequestId }) |
-| 442 | console.error | logger.error({ err, gasLimit }) |
-| 469 | console.error | logger.error({ err, address }) |
-| 505 | console.error | logger.error({ err }) |
+| 라인    | 현재          | 변환 후                               |
+| ------- | ------------- | ------------------------------------- |
+| 172-174 | console.log   | logger.info({ paymentId, txId })      |
+| 182     | console.error | logger.error({ err, paymentId })      |
+| 259-261 | console.log   | logger.info({ paymentId, txId })      |
+| 269     | console.error | logger.error({ err, paymentId })      |
+| 327     | console.error | logger.error({ err, relayRequestId }) |
+| 354-355 | console.warn  | logger.warn({ relayRequestId })       |
+| 366-368 | console.warn  | logger.warn({ relayRequestId })       |
+| 371     | console.error | logger.error({ err, relayRequestId }) |
+| 442     | console.error | logger.error({ err, gasLimit })       |
+| 469     | console.error | logger.error({ err, address })        |
+| 505     | console.error | logger.error({ err })                 |
 
 ### 4.2 src/services/blockchain.service.ts
 
-| 라인 | 현재 | 변환 후 |
-|------|------|---------|
-| 111 | console.log | logger.info({ chainId, name, rpcUrl }) |
-| 257 | console.error | logger.error({ err, paymentId }) |
-| 328 | console.error | logger.error({ err, paymentId }) |
-| 354 | console.error | logger.error({ err }) |
-| 383 | console.error | logger.error({ err, txHash }) |
-| 402 | console.error | logger.error({ err }) |
-| 422 | console.error | logger.error({ err, tokenAddress }) |
-| 447 | console.error | logger.error({ err, tokenAddress }) |
-| 467 | console.error | logger.error({ err, tokenAddress }) |
-| 556 | console.error | logger.error({ err, payerAddress }) |
-| 575 | console.warn | logger.warn({ tokenAddress }) |
+| 라인 | 현재          | 변환 후                                |
+| ---- | ------------- | -------------------------------------- |
+| 111  | console.log   | logger.info({ chainId, name, rpcUrl }) |
+| 257  | console.error | logger.error({ err, paymentId })       |
+| 328  | console.error | logger.error({ err, paymentId })       |
+| 354  | console.error | logger.error({ err })                  |
+| 383  | console.error | logger.error({ err, txHash })          |
+| 402  | console.error | logger.error({ err })                  |
+| 422  | console.error | logger.error({ err, tokenAddress })    |
+| 447  | console.error | logger.error({ err, tokenAddress })    |
+| 467  | console.error | logger.error({ err, tokenAddress })    |
+| 556  | console.error | logger.error({ err, payerAddress })    |
+| 575  | console.warn  | logger.warn({ tokenAddress })          |
 
 ### 4.3 src/index.ts
 
-| 라인 | 현재 | 변환 후 |
-|------|------|---------|
-| 33 | console.log | logger.info({ configPath }) |
-| 38 | console.log | logger.info({ chains }) |
+| 라인  | 현재          | 변환 후                           |
+| ----- | ------------- | --------------------------------- |
+| 33    | console.log   | logger.info({ configPath })       |
+| 38    | console.log   | logger.info({ chains })           |
 | 40-41 | console.error | logger.error({ err, configPath }) |
-| 112 | console.log | logger.info({ signal }) |
-| 117 | console.log | logger.info() |
-| 120 | console.error | logger.error({ err }) |
-| 137 | console.log | logger.info({ host, port }) |
+| 112   | console.log   | logger.info({ signal })           |
+| 117   | console.log   | logger.info()                     |
+| 120   | console.error | logger.error({ err })             |
+| 137   | console.log   | logger.info({ host, port })       |
 
 ### 4.4 src/db/redis.ts
 
-| 라인 | 현재 | 변환 후 |
-|------|------|---------|
-| 29 | console.warn | logger.warn({ err }) |
-| 64 | console.warn | logger.warn({ key, err }) |
-| 78 | console.warn | logger.warn({ key, err }) |
-| 91 | console.warn | logger.warn({ key, err }) |
+| 라인 | 현재         | 변환 후                   |
+| ---- | ------------ | ------------------------- |
+| 29   | console.warn | logger.warn({ err })      |
+| 64   | console.warn | logger.warn({ key, err }) |
+| 78   | console.warn | logger.warn({ key, err }) |
+| 91   | console.warn | logger.warn({ key, err }) |
 
 ### 4.5 src/config/chains.config.ts
 
-| 라인 | 현재 | 변환 후 |
-|------|------|---------|
+| 라인  | 현재          | 변환 후                  |
+| ----- | ------------- | ------------------------ |
 | 60-61 | console.error | logger.error({ errors }) |
 
 ---
@@ -229,11 +234,11 @@ logger.info({ paymentId, txId: tx.transactionId }, '트랜잭션 제출됨');
 
 ### 5.1 잠재적 리스크
 
-| 리스크 | 확률 | 영향 | 대응 |
-|--------|------|------|------|
-| 로그 출력 형식 변경으로 모니터링 도구 호환성 문제 | 낮음 | 중간 | 기존 이모지/메시지 보존 |
-| 성능 저하 (구조화 로깅 오버헤드) | 매우 낮음 | 낮음 | Pino는 고성능, 무시 가능 수준 |
-| 누락된 console 문 존재 | 중간 | 낮음 | grep으로 전체 검색 후 처리 |
+| 리스크                                            | 확률      | 영향 | 대응                          |
+| ------------------------------------------------- | --------- | ---- | ----------------------------- |
+| 로그 출력 형식 변경으로 모니터링 도구 호환성 문제 | 낮음      | 중간 | 기존 이모지/메시지 보존       |
+| 성능 저하 (구조화 로깅 오버헤드)                  | 매우 낮음 | 낮음 | Pino는 고성능, 무시 가능 수준 |
+| 누락된 console 문 존재                            | 중간      | 낮음 | grep으로 전체 검색 후 처리    |
 
 ### 5.2 롤백 계획
 
@@ -261,12 +266,12 @@ logger.info({ paymentId, txId: tx.transactionId }, '트랜잭션 제출됨');
 
 ### 7.1 Phase별 완료 기준
 
-| Phase | 완료 기준 |
-|-------|----------|
-| Phase 1 | logger.ts 생성, createLogger 동작 확인 |
-| Phase 2 | 서비스 파일 console 문 0개 |
-| Phase 3 | 인프라 파일 console 문 0개 |
-| Phase 4 | index.ts console 문 0개 |
+| Phase   | 완료 기준                                      |
+| ------- | ---------------------------------------------- |
+| Phase 1 | logger.ts 생성, createLogger 동작 확인         |
+| Phase 2 | 서비스 파일 console 문 0개                     |
+| Phase 3 | 인프라 파일 console 문 0개                     |
+| Phase 4 | index.ts console 문 0개                        |
 | Phase 5 | 전체 프로젝트 console 문 0개, 수동 테스트 통과 |
 
 ### 7.2 전체 완료 기준

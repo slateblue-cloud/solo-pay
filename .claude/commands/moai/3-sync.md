@@ -1,12 +1,12 @@
 ---
 name: moai:3-sync
-description: "Synchronize documentation and finalize PR"
-argument-hint: "Mode target path - Mode: auto (default)|force|status|project, target path: Synchronization target path"
+description: 'Synchronize documentation and finalize PR'
+argument-hint: 'Mode target path - Mode: auto (default)|force|status|project, target path: Synchronization target path'
 allowed-tools: Read, Write, Edit, Grep, Glob, WebFetch, WebSearch, Bash, TodoWrite, AskUserQuestion, Task, Skill
 model: inherit
 ---
 
-##  Pre-execution Context
+## Pre-execution Context
 
 !git status --porcelain
 !git diff --name-only HEAD
@@ -14,7 +14,7 @@ model: inherit
 !git log --oneline -10
 !find .moai/specs -name "spec.md" -type f 2>/dev/null
 
-##  Essential Files
+## Essential Files
 
 @.moai/config/config.json
 @.moai/specs/
@@ -23,7 +23,7 @@ model: inherit
 
 ---
 
-#  MoAI-ADK Step 3: Document Synchronization (+Optional PR Ready)
+# MoAI-ADK Step 3: Document Synchronization (+Optional PR Ready)
 
 > Batched Design: All AskUserQuestion calls follow batched design principles (1-4 questions per call) to minimize user interaction turns. See CLAUDE.md section "Alfred Command Completion Pattern" for details.
 
@@ -31,7 +31,7 @@ model: inherit
 
 ---
 
-##  Command Purpose
+## Command Purpose
 
 CRITICAL: This command orchestrates ONLY - delegates all sync work to manager-docs agent
 
@@ -55,12 +55,12 @@ Edit file.md "update documentation"
 
 ---
 
-##  Execution Modes
+## Execution Modes
 
 This command supports 4 operational modes:
 
-| Mode               | Scope                   | PR Processing         | Use Case                            |
-| ------------------ | ----------------------- | --------------------- | ----------------------------------- |
+| Mode           | Scope                   | PR Processing         | Use Case                            |
+| -------------- | ----------------------- | --------------------- | ----------------------------------- |
 | auto (default) | Smart selective sync    | PR Ready conversion   | Daily development workflow          |
 | force          | Full project re-sync    | Full regeneration     | Error recovery, major refactoring   |
 | status         | Status check only       | Report only           | Quick health check                  |
@@ -79,7 +79,7 @@ Command usage examples:
 
 ---
 
-##  Associated Agents & Skills
+## Associated Agents & Skills
 
 | Agent/Skill                  | Purpose                                         |
 | ---------------------------- | ----------------------------------------------- |
@@ -93,7 +93,7 @@ Command usage examples:
 
 ---
 
-##  Execution Philosophy: "Sync → Verify → Commit"
+## Execution Philosophy: "Sync → Verify → Commit"
 
 `/moai:3-sync` performs documentation synchronization through complete agent delegation:
 
@@ -113,19 +113,19 @@ User Command: /moai:3-sync [mode] [path]
 
 This command uses ONLY Task(), AskUserQuestion(), and TodoWrite():
 
--  No Read (file operations delegated)
--  No Write (file operations delegated)
--  No Edit (file operations delegated)
--  No Bash (all bash commands delegated)
--  Task() for orchestration
--  AskUserQuestion() for user interaction
--  TodoWrite() for progress tracking
+- No Read (file operations delegated)
+- No Write (file operations delegated)
+- No Edit (file operations delegated)
+- No Bash (all bash commands delegated)
+- Task() for orchestration
+- AskUserQuestion() for user interaction
+- TodoWrite() for progress tracking
 
 All complexity is handled by specialized agents (manager-docs, manager-quality, manager-git).
 
 ---
 
-##  OVERALL WORKFLOW STRUCTURE
+## OVERALL WORKFLOW STRUCTURE
 
 ```
 ┌──────────────────────────────────────────────────────────┐
@@ -160,7 +160,7 @@ All complexity is handled by specialized agents (manager-docs, manager-quality, 
 
 ---
 
-##  PHASE 1: Analysis & Planning
+## PHASE 1: Analysis & Planning
 
 Goal: Gather project context, verify project status, and get user approval.
 
@@ -169,17 +169,14 @@ Goal: Gather project context, verify project status, and get user approval.
 Execute these verification steps:
 
 1. TUI System Ready:
-
    - Interactive menus are available for all user interactions
 
 2. Verify MoAI-ADK structure:
-
    - Check: `.moai/` directory exists
    - Check: `.claude/` directory exists
    - IF missing → Print error and exit
 
 3. Verify Git repository:
-
    - Execute: `git rev-parse --is-inside-work-tree`
    - IF not a Git repo → Print error and exit
 
@@ -196,27 +193,23 @@ Result: Prerequisites verified. TUI system ready.
 Gather context for synchronization planning:
 
 1. Analyze Git changes:
-
    - Execute: `git status --porcelain`
    - Execute: `git diff --name-only HEAD`
    - Count: Python files, test files, documents, SPEC files
 
 2. Read project configuration:
-
    - Read: `.moai/config.json`
    - Extract: `git_strategy.mode` (Personal/Team)
    - Extract: `language.conversation_language` (for document updates)
    - Extract: `git_strategy.spec_git_workflow`
 
 3. Determine synchronization mode:
-
    - Parse $ARGUMENTS for mode: `auto`, `force`, `status`, `project`
    - IF empty → Default to `auto`
    - Parse flags: `--auto-merge`, `--skip-pre-check`, `--skip-quality-check`
    - Parse special flags: `--worktree`, `--branch`
 
 4. Handle worktree detection:
-
    - Check if current directory is inside a worktree:
      - Execute: `git rev-parse --git-dir` to find git directory
      - IF git directory path contains `worktrees/` → We're in a worktree
@@ -227,7 +220,6 @@ Gather context for synchronization planning:
      - Set up worktree-specific workflow options
 
 5. Handle branch detection:
-
    - IF `--branch` flag present OR not on main branch:
      - Detect current branch name: `git branch --show-current`
      - Store `$BRANCH_MODE=true` and `$CURRENT_BRANCH`
@@ -329,7 +321,6 @@ Present synchronization plan and get user decision:
    ```
 
 2. Ask for user approval using AskUserQuestion:
-
    - `question`: "Synchronization plan is ready. How would you like to proceed?"
    - `header`: "Plan Approval"
    - `multiSelect`: false
@@ -349,7 +340,7 @@ Result: User decision captured. Command proceeds or exits.
 
 ---
 
-##  PHASE 2: Execute Document Synchronization
+## PHASE 2: Execute Document Synchronization
 
 Goal: Synchronize documents with code changes, update SPECs, verify quality.
 
@@ -358,15 +349,12 @@ Goal: Synchronize documents with code changes, update SPECs, verify quality.
 Before making any changes:
 
 1. Generate timestamp:
-
    - Execute: `date +%Y-%m-%d-%H%M%S` → Store as `$TIMESTAMP`
 
 2. Create backup directory:
-
    - Execute: `mkdir -p .moai-backups/sync-$TIMESTAMP/`
 
 3. Backup critical files:
-
    - Copy: `README.md` (if exists)
    - Copy: `docs/` directory (if exists)
    - Copy: `.moai/specs/` directory
@@ -405,25 +393,21 @@ Previous analysis results:
 Task Instructions:
 
 1. Living Document synchronization:
-
    - Reflect changed code in documentation
    - Auto-generate/update API documentation
    - Update README (if needed)
    - Synchronize Architecture documents
 
 2. Project improvements:
-
    - Update SPEC index (.moai/indexes/tags.db)
    - Fix project issues (if possible)
    - Restore broken references
 
 3. SPEC synchronization:
-
    - Ensure SPEC documents match implementation
    - Update EARS statements if needed
 
 4. Domain-based documentation:
-
    - Detect changed domains (frontend/backend/devops/database/ml/mobile)
    - Generate domain-specific documentation updates
 
@@ -480,7 +464,6 @@ After successful synchronization, update SPEC status to completed:
    ```
 
 2. Verify status updates:
-
    - Check results from batch update
    - Record version changes and status transitions
    - Include status changes in sync report
@@ -502,7 +485,7 @@ Integration: Status updates are included in the Git commit from Phase 3 with det
 
 ---
 
-##  PHASE 3: Git Operations & PR
+## PHASE 3: Git Operations & PR
 
 Goal: Commit changes, transition PR (if Team mode), optionally auto-merge.
 
@@ -575,12 +558,10 @@ Verify:
 For Team mode projects only:
 
 1. Check if Team mode:
-
    - Read: `git_strategy.mode` from config
    - IF Personal → Skip to next phase
 
 2. Transition PR to Ready:
-
    - Use Task tool:
      - `subagent_type`: "manager-git"
      - `description`: "Transition PR to Ready for Review"
@@ -595,17 +576,14 @@ For Team mode projects only:
 If `--auto-merge` flag is set:
 
 1. Check CI/CD status:
-
    - Execute: `gh pr checks`
    - IF failing → Print warning and skip merge
 
 2. Check merge conflicts:
-
    - Execute: `gh pr view --json mergeable`
    - IF conflicts exist → Print warning and skip merge
 
 3. Execute auto-merge:
-
    - Execute: `gh pr merge --squash --delete-branch`
 
 4. Branch cleanup:
@@ -615,7 +593,7 @@ If `--auto-merge` flag is set:
 
 ---
 
-##  PHASE 4: Completion & Next Steps
+## PHASE 4: Completion & Next Steps
 
 Goal: Report results and guide user to next action.
 
@@ -753,7 +731,7 @@ Use AskUserQuestion to guide next steps:
 
 ---
 
-##  Graceful Exit (User Aborts)
+## Graceful Exit (User Aborts)
 
 If user chooses to abort in PHASE 1:
 
@@ -779,7 +757,7 @@ Exit command with code 0.
 
 ---
 
-##  Quick Reference
+## Quick Reference
 
 | Scenario             | Mode    | Entry Point                 | Key Phases                                          | Expected Outcome          |
 | -------------------- | ------- | --------------------------- | --------------------------------------------------- | ------------------------- |
@@ -843,7 +821,7 @@ Important:
 - No emojis in any AskUserQuestion fields
 - Always provide clear next step options
 
-##  EXECUTION DIRECTIVE
+## EXECUTION DIRECTIVE
 
 You must NOW execute the command following the "OVERALL WORKFLOW STRUCTURE" described above.
 
