@@ -144,16 +144,23 @@ Returns the latest relay transaction status for a payment.
           try {
             const relayerStatus = await relayerService.getRelayStatus(latest.relay_ref);
             const newStatus = mapRelayerStatusToDb(relayerStatus.status);
-            await relayService.updateStatus(latest.id, newStatus);
+            const updatePromises: Promise<unknown>[] = [
+              relayService.updateStatus(latest.id, newStatus),
+            ];
             if (relayerStatus.transactionHash) {
-              await relayService.setTxHash(latest.id, relayerStatus.transactionHash);
-            }
-            if (newStatus === 'FAILED') {
-              await relayService.setErrorMessage(
-                latest.id,
-                'Relay transaction failed (from relayer)'
+              updatePromises.push(
+                relayService.setTxHash(latest.id, relayerStatus.transactionHash)
               );
             }
+            if (newStatus === 'FAILED') {
+              updatePromises.push(
+                relayService.setErrorMessage(
+                  latest.id,
+                  'Relay transaction failed (from relayer)'
+                )
+              );
+            }
+            await Promise.all(updatePromises);
             relayRequests = await relayService.findByPaymentId(payment.id);
             latest = relayRequests[0];
           } catch {

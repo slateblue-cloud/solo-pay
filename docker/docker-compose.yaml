@@ -23,8 +23,8 @@ services:
         ['CMD', 'mysql', '-h', 'localhost', '-u', 'solopay', '-ppass', 'solopay', '-e', 'SELECT 1']
       interval: 5s
       timeout: 5s
-      retries: 30
-      start_period: 45s
+      retries: 20
+      start_period: 30s
 
   # Database Init (creates extra databases and grants, runs once as root)
   db-init:

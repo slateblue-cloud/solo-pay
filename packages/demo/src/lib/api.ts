@@ -338,16 +338,19 @@ export async function submitGaslessPayment(
 
     const data = await response.json();
     const parsed = GaslessPaymentResponseSchema.safeParse(data);
-    const payload: GaslessPaymentResponse = parsed.success
-      ? parsed.data
-      : {
-          success: true,
-          status: (data as { status?: string }).status ?? 'submitted',
-          message: (data as { message?: string }).message,
-        };
+
+    if (!parsed.success) {
+      return {
+        success: false,
+        code: ApiErrorCode.SERVER_ERROR,
+        message: 'Received an invalid response from the server.',
+      };
+    }
+
     return {
-      success: true,
-      data: payload,
+      success: parsed.data.success,
+      data: parsed.data,
+      ...(parsed.data.success === false && parsed.data.message && { message: parsed.data.message }),
     };
   } catch (err) {
     return {
