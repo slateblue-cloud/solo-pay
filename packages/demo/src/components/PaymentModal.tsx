@@ -137,7 +137,6 @@ export function PaymentModal({ product, onClose, onSuccess }: PaymentModalProps)
   const [pendingTxHash, setPendingTxHash] = useState<Address | undefined>(undefined);
   const [approveTxHash, setApproveTxHash] = useState<Address | undefined>(undefined);
   const [currentPaymentId, setCurrentPaymentId] = useState<string | null>(null);
-  const [relayRequestId, setRelayRequestId] = useState<string | null>(null);
   // ⚠️ SECURITY: serverConfig contains server-verified price (not from client)
   const [serverConfig, setServerConfig] = useState<CheckoutResponse | null>(null);
   const [isLoadingConfig, setIsLoadingConfig] = useState<boolean>(false);
@@ -522,9 +521,7 @@ export function PaymentModal({ product, onClose, onSuccess }: PaymentModalProps)
         throw new Error(submitResponse.message || 'Failed to submit gasless payment');
       }
 
-      setRelayRequestId(submitResponse.data.relayRequestId);
-
-      // 6. Poll payment status until CONFIRMED (gateway no longer exposes relay status endpoint)
+      // 6. Poll payment status until CONFIRMED
       await pollPaymentStatus(paymentId);
 
       // 7. Get final status for txHash
@@ -724,22 +721,6 @@ export function PaymentModal({ product, onClose, onSuccess }: PaymentModalProps)
                         {pendingTxHash.slice(0, 10)}...{pendingTxHash.slice(-8)}
                       </span>
                       <CopyButton text={pendingTxHash} />
-                    </span>
-                  </div>
-                )}
-
-                {/* Relay Request ID (Gasless only) */}
-                {gasMode === 'gasless' && relayRequestId && (
-                  <div className="flex justify-between items-center">
-                    <span className="text-gray-600 dark:text-gray-400">Relay ID:</span>
-                    <span className="flex items-center">
-                      <span
-                        className="font-mono text-gray-900 dark:text-gray-100"
-                        title={relayRequestId}
-                      >
-                        {relayRequestId.slice(0, 10)}...{relayRequestId.slice(-8)}
-                      </span>
-                      <CopyButton text={relayRequestId} />
                     </span>
                   </div>
                 )}

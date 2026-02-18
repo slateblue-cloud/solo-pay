@@ -17,7 +17,8 @@ services:
     networks:
       - solo-pay-network
     healthcheck:
-      test: ['CMD', 'mysqladmin', 'ping', '-h', 'localhost', '-u', 'root', '-ppass']
+      test:
+        ['CMD', 'mysql', '-h', 'localhost', '-u', 'solopay', '-ppass', 'solopay', '-e', 'SELECT 1']
       interval: 5s
       timeout: 5s
       retries: 10
@@ -187,7 +188,8 @@ services:
       SOLO_PAY_API_KEY: '123'
       SOLO_PAY_PUBLIC_KEY: 'pk_test_demo'
     depends_on:
-      - gateway
+      gateway:
+        condition: service_healthy
     networks:
       - solo-pay-network
 
