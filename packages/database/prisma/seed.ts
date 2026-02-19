@@ -10,6 +10,10 @@ import {
   TokenUpdateInput,
   TokenCreateInput,
   MerchantPaymentMethodModel,
+  CurrencyUpdateInput,
+  CurrencyCreateInput,
+  ChainCreateInput,
+  ChainUpdateInput,
 } from '../src/generated/prisma/internal/prismaNamespace';
 
 /** Prisma MariaDB adapter expects scheme mariadb:// (not mysql://) */
@@ -415,18 +419,17 @@ const currencies: CurrencyModel[] = [
 
 async function main() {
   for (const chain of chains) {
-    const { id, network_id, ...data } = chain;
     await prisma.chain.upsert({
-      where: { network_id },
-      update: data,
-      create: { id, network_id, ...data },
+      where: { id: chain.id },
+      update: chain as ChainUpdateInput,
+      create: chain as ChainCreateInput,
     });
   }
   console.log(`Seeded ${chains.length} chains`);
 
   for (const token of tokens) {
     await prisma.token.upsert({
-      where: { id: token.id },
+      where: { id: token.id, chain_id_address: { chain_id: token.chain_id, address: token.address } },
       update: token as TokenUpdateInput,
       create: token as TokenCreateInput,
     });
@@ -444,7 +447,7 @@ async function main() {
 
   for (const pm of paymentMethods) {
     await prisma.merchantPaymentMethod.upsert({
-      where: { merchant_id_token_id: { merchant_id: pm.merchant_id, token_id: pm.token_id } },
+      where: { id: pm.id, merchant_id_token_id: { merchant_id: pm.merchant_id, token_id: pm.token_id } },
       update: {},
       create: pm,
     });
@@ -452,11 +455,10 @@ async function main() {
   console.log(`Seeded ${paymentMethods.length} payment methods`);
 
   for (const currency of currencies) {
-    const { id, code, ...data } = currency;
     await prisma.currency.upsert({
-      where: { code },
-      update: data,
-      create: { id, code, ...data },
+      where: { id: currency.id },
+      update: currency as CurrencyUpdateInput,
+      create: currency as CurrencyCreateInput,
     });
   }
   console.log(`Seeded ${currencies.length} currencies`);
