@@ -145,6 +145,8 @@ services:
     depends_on:
       db-init:
         condition: service_completed_successfully
+    command: >
+      sh -c "npx prisma db push && npx tsx prisma/seed.ts"
     networks:
       - solo-pay-network
 
@@ -194,7 +196,6 @@ services:
     environment:
       NODE_ENV: development
       PORT: 3001
-      DATABASE_URL: mysql://solopay:pass@mysql:3306/solopay
       MYSQL_HOST: mysql
       MYSQL_PORT: 3306
       MYSQL_USER: solopay
@@ -203,8 +204,6 @@ services:
       REDIS_HOST: redis
       REDIS_PORT: 6379
       BLOCKCHAIN_RPC_URL: http://hardhat-node:8545
-      # Simple Relayer API URL (Local gasless relay)
-      RELAY_API_URL: http://simple-relayer:3001
       # Hardhat well-known dev account #4 (deterministic, safe to commit)
       # Address: 0x15d34AAf54267DB7D7c367839AAf71A00a2C6A65
       SIGNER_PRIVATE_KEY: '0x47e179ec197488593b187f80a00eb0da91f1b9d0b13f8733639f19c30a34926a'
@@ -300,9 +299,6 @@ services:
       context: ..
       dockerfile: docker/Dockerfile.packages
       target: sample-merchant
-      args:
-        NEXT_PUBLIC_SOLO_PAY_PUBLIC_KEY: ${NEXT_PUBLIC_SOLO_PAY_PUBLIC_KEY:-pk_live_xqKZ6PpVdfUaaVBJhS6qI8RbUbZUbvSq}
-        NEXT_PUBLIC_WIDGET_URL: ${NEXT_PUBLIC_WIDGET_URL:-http://localhost:3005}
     image: 347765734000.dkr.ecr.ap-northeast-2.amazonaws.com/solo-pay/sample-merchant:nightly
     container_name: solo-pay-sample-merchant
     restart: always
@@ -313,6 +309,8 @@ services:
       DATABASE_URL: mysql://solopay:pass@mysql:3306/solopay_sample_merchant
       SOLO_PAY_MERCHANT_KEY: merchant_sample_001
       SOLO_PAY_API_KEY: sample_api_key_001
+      SOLO_PAY_PUBLIC_KEY: ${SOLO_PAY_PUBLIC_KEY:-pk_live_xqKZ6PpVdfUaaVBJhS6qI8RbUbZUbvSq}
+      WIDGET_URL: ${WIDGET_URL:-http://widget:3005}
       GATEWAY_API_URL: http://gateway:3001
     depends_on:
       mysql:

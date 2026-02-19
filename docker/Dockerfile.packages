@@ -42,6 +42,7 @@ COPY packages/faucet-manager ./packages/faucet-manager
 
 # Sample merchant has its own independent schema (separate database)
 COPY packages/sample-merchant/prisma ./packages/sample-merchant/prisma
+COPY packages/sample-merchant/prisma.config.ts ./packages/sample-merchant/prisma.config.ts
 RUN cd /app/packages/sample-merchant && pnpm exec prisma generate
 
 # Helper script for copying .prisma/client to deploy targets
@@ -62,15 +63,26 @@ FROM deps AS contracts
 WORKDIR /app/packages/contracts
 CMD ["npx", "hardhat", "run", "scripts/check-and-deploy.ts", "--network", "localhost"]
 
-# === Database Migration ===
-FROM deps AS database-sync
+# === Database Sync Builder ===
+FROM deps AS database-sync-builder
+
+WORKDIR /app
+RUN pnpm --filter @solo-pay/database deploy --legacy /deploy/database
+RUN cp -r /app/packages/database/dist /deploy/database/dist
+RUN cp -r /app/packages/database/prisma /deploy/database/prisma
+RUN cp -r /app/packages/database/prisma.config.ts /deploy/database/prisma.config.ts
+RUN cp -r /app/packages/database/src/generated /deploy/database/src/generated
+
+# === Database Migration (lightweight runtime) ===
+FROM node:20-alpine AS database-sync
 
 RUN apk add --no-cache curl
+WORKDIR /app
+COPY --from=database-sync-builder /deploy/database .
 
-WORKDIR /app/packages/database
 ENV NODE_ENV=production
 
-CMD ["sh", "-c", "npx prisma db push && pnpm exec tsx prisma/seed.ts"]
+CMD ["sh", "-c", "npx prisma db push"]
 
 # === Webhook Manager Builder + Deploy ===
 FROM deps AS webhook-manager-builder
@@ -240,18 +252,20 @@ WORKDIR /app
 COPY eslint.config.ts ./
 COPY packages/sample-merchant ./packages/sample-merchant
 RUN cd /app/packages/sample-merchant && pnpm exec prisma generate
-ARG NEXT_PUBLIC_SOLO_PAY_PUBLIC_KEY
-ARG NEXT_PUBLIC_WIDGET_URL
-ENV NEXT_PUBLIC_SOLO_PAY_PUBLIC_KEY=${NEXT_PUBLIC_SOLO_PAY_PUBLIC_KEY}
-ENV NEXT_PUBLIC_WIDGET_URL=${NEXT_PUBLIC_WIDGET_URL}
 WORKDIR /app/packages/sample-merchant
 RUN pnpm build
 
-# === Sample Merchant DB Init (db push + seed) ===
-# Runs from full build stage (has all deps including prisma + generated client)
-FROM sample-merchant-builder AS sample-merchant-init
-WORKDIR /app/packages/sample-merchant
-CMD ["sh", "-c", "pnpm exec prisma db push && pnpm exec tsx prisma/seed.ts"]
+# === Sample Merchant DB Init (lightweight runtime) ===
+FROM node:20-alpine AS sample-merchant-init
+
+WORKDIR /app
+COPY --from=deps /app/packages/sample-merchant/prisma ./prisma
+COPY --from=deps /app/packages/sample-merchant/prisma.config.ts ./prisma.config.ts
+COPY --from=deps /app/packages/sample-merchant/app/generated ./app/generated
+RUN npm install prisma@7.4.0 @prisma/client@7.4.0 @prisma/adapter-mariadb@7.4.0 tsx@4
+
+ENV NODE_ENV=production
+CMD ["sh", "-c", "npx prisma db push && npx tsx prisma/seed.ts"]
 
 # === Sample Merchant Runtime ===
 # Uses Next.js standalone output with outputFileTracingRoot set to monorepo root.

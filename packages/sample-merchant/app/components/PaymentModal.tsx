@@ -5,18 +5,22 @@ export default function PaymentModal({
   product,
   paymentId,
   tokenAddress,
+  widgetUrl,
+  publicKey,
   onClose,
 }: {
   product: { price: number };
   paymentId: string;
   tokenAddress: string;
+  widgetUrl: string;
+  publicKey: string;
   onClose: () => void;
 }) {
   const router = useRouter();
 
-  const widgetUrl = useMemo(() => {
-    const url = new URL(process.env.NEXT_PUBLIC_WIDGET_URL || 'http://localhost:3005');
-    url.searchParams.set('pk', process.env.NEXT_PUBLIC_SOLO_PAY_PUBLIC_KEY || '');
+  const widgetSrc = useMemo(() => {
+    const url = new URL(widgetUrl);
+    url.searchParams.set('pk', publicKey);
     url.searchParams.set('orderId', `${paymentId}`);
     url.searchParams.set('amount', `${product.price}`);
     url.searchParams.set('tokenAddress', tokenAddress);
@@ -27,7 +31,7 @@ export default function PaymentModal({
     );
     url.searchParams.set('failUrl', `${window.location.origin}`);
     return url.toString();
-  }, [paymentId, product.price, tokenAddress]);
+  }, [paymentId, product.price, tokenAddress, widgetUrl, publicKey]);
 
   // Lock body scroll while modal is open
   useEffect(() => {
@@ -62,7 +66,7 @@ export default function PaymentModal({
         >
           &#x2715;
         </button>
-        <iframe src={widgetUrl} className="w-full h-[700px] border-none" />
+        <iframe src={widgetSrc} className="w-full h-[700px] border-none" />
       </div>
     </div>
   );

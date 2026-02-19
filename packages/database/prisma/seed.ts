@@ -5,10 +5,6 @@ import {
   CurrencyModel,
   TokenModel,
   MerchantModel,
-  MerchantUpdateInput,
-  MerchantCreateInput,
-  TokenUpdateInput,
-  TokenCreateInput,
   MerchantPaymentMethodModel,
 } from '../src/generated/prisma/internal/prismaNamespace';
 
@@ -47,6 +43,7 @@ const chains: ChainModel[] = [
     rpc_url: 'http://hardhat-node:8545',
     gateway_address: '0xCf7Ed3AccA5a467e9e704C703E8D87F634fB0Fc9',
     forwarder_address: '0x5FbDB2315678afecb367f032d93F642f64180aa3',
+    relayer_url: 'http://simple-relayer:3001',
     is_testnet: true,
     is_enabled: true,
     is_deleted: false,
@@ -61,6 +58,7 @@ const chains: ChainModel[] = [
     rpc_url: 'https://ethereum-sepolia-rpc.publicnode.com',
     gateway_address: null,
     forwarder_address: null,
+    relayer_url: null,
     is_testnet: true,
     is_enabled: true,
     is_deleted: false,
@@ -75,6 +73,7 @@ const chains: ChainModel[] = [
     rpc_url: 'https://rpc-amoy.polygon.technology',
     gateway_address: '0x2024b6669A2BE5fF9624792cB1BB657d20C4b24B',
     forwarder_address: '0xE8a3C8e530dddd14e02DA1C81Df6a15f41ad78DE',
+    relayer_url: null,
     is_testnet: true,
     is_enabled: true,
     is_deleted: false,
@@ -89,6 +88,7 @@ const chains: ChainModel[] = [
     rpc_url: 'https://data-seed-prebsc-1-s1.binance.org:8545',
     gateway_address: null,
     forwarder_address: null,
+    relayer_url: null,
     is_testnet: true,
     is_enabled: true,
     is_deleted: false,
@@ -103,6 +103,7 @@ const chains: ChainModel[] = [
     rpc_url: 'https://polygon-rpc.com',
     gateway_address: '0x4F81a1481fc3d6479E2e6d56052fC60539F707ec',
     forwarder_address: '0xec63c3E7BD0c51AA6DC08f587A2B147a671cf888',
+    relayer_url: null,
     is_testnet: false,
     is_enabled: true,
     is_deleted: false,
@@ -117,6 +118,7 @@ const chains: ChainModel[] = [
     rpc_url: 'https://eth.llamarpc.com',
     gateway_address: null,
     forwarder_address: null,
+    relayer_url: null,
     is_testnet: false,
     is_enabled: true,
     is_deleted: false,
@@ -131,6 +133,7 @@ const chains: ChainModel[] = [
     rpc_url: 'https://bsc-dataseed.binance.org',
     gateway_address: null,
     forwarder_address: null,
+    relayer_url: null,
     is_testnet: false,
     is_enabled: true,
     is_deleted: false,
@@ -190,7 +193,7 @@ const tokens: TokenModel[] = [
     updated_at: new Date(),
   },
   {
-    id: 3,
+    id: 4,
     chain_id: 5,
     address: '0x82DbF4227a981211d84f59092889eAdbb9C2a4D2',
     symbol: 'DST',
@@ -204,7 +207,7 @@ const tokens: TokenModel[] = [
     updated_at: new Date(),
   },
   {
-    id: 4,
+    id: 5,
     chain_id: 3,
     address: '0xE4C687167705Abf55d709395f92e254bdF5825a2',
     symbol: 'SUT',
@@ -218,7 +221,7 @@ const tokens: TokenModel[] = [
     updated_at: new Date(),
   },
   {
-    id: 5,
+    id: 6,
     chain_id: 3,
     address: '0x7350C119cb048c2Ea6b2532bcE82c2F7c042ff6b',
     symbol: 'MSQ',
@@ -347,7 +350,14 @@ const currencies: CurrencyModel[] = [
     created_at: new Date(),
     updated_at: new Date(),
   },
-  { id: 3, code: 'EUR', name: 'Euro', symbol: '€', created_at: new Date(), updated_at: new Date() },
+  {
+    id: 3,
+    code: 'EUR',
+    name: 'Euro',
+    symbol: '€',
+    created_at: new Date(),
+    updated_at: new Date(),
+  },
   {
     id: 4,
     code: 'JPY',
@@ -408,48 +418,52 @@ const currencies: CurrencyModel[] = [
 
 async function main() {
   for (const chain of chains) {
-    const { id, network_id, ...data } = chain;
+    const { id, ...data } = chain;
     await prisma.chain.upsert({
-      where: { network_id },
+      where: { id },
       update: data,
-      create: { id, network_id, ...data },
+      create: chain,
     });
   }
   console.log(`Seeded ${chains.length} chains`);
 
   for (const token of tokens) {
+    const { id, ...data } = token;
     await prisma.token.upsert({
-      where: { id: token.id },
-      update: token as TokenUpdateInput,
-      create: token as TokenCreateInput,
+      where: { id },
+      update: data,
+      create: token,
     });
   }
   console.log(`Seeded ${tokens.length} tokens`);
 
   for (const merchant of merchants) {
+    const { id, allowed_domains, ...data } = merchant;
+    const domains = allowed_domains ?? [];
     await prisma.merchant.upsert({
-      where: { id: merchant.id },
-      update: merchant as MerchantUpdateInput,
-      create: merchant as MerchantCreateInput,
+      where: { id },
+      update: { allowed_domains: domains, ...data },
+      create: { id, allowed_domains: domains, ...data },
     });
   }
   console.log(`Seeded ${merchants.length} merchants`);
 
   for (const pm of paymentMethods) {
+    const { id, ...data } = pm;
     await prisma.merchantPaymentMethod.upsert({
-      where: { merchant_id_token_id: { merchant_id: pm.merchant_id, token_id: pm.token_id } },
-      update: {},
+      where: { id },
+      update: data,
       create: pm,
     });
   }
   console.log(`Seeded ${paymentMethods.length} payment methods`);
 
   for (const currency of currencies) {
-    const { id, code, ...data } = currency;
+    const { id, ...data } = currency;
     await prisma.currency.upsert({
-      where: { code },
+      where: { id },
       update: data,
-      create: { id, code, ...data },
+      create: currency,
     });
   }
   console.log(`Seeded ${currencies.length} currencies`);
