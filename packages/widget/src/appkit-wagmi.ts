@@ -12,7 +12,7 @@ import {
   sepolia,
   defineChain,
 } from '@reown/appkit/networks';
-import { metadata } from './appkit-config';
+import { getMetadata } from './appkit-config';
 import { config as fallbackConfig } from './wagmi';
 import type { Config } from 'wagmi';
 
@@ -49,15 +49,16 @@ type WagmiAdapterConfig = ConstructorParameters<typeof WagmiAdapter>[0];
  * projectId is passed from WidgetConfigProvider (from URL query wcProjectId).
  */
 export function createAppKitConfig(projectId: string): AppKitConfigResult {
+  const dynamicMetadata = getMetadata();
   const adapter = new WagmiAdapter({
     projectId,
     networks: appkitNetworks as WagmiAdapterConfig['networks'],
     ssr: true,
     metadata: {
-      name: metadata.name,
-      description: metadata.description,
-      url: metadata.url || 'https://solopay.example',
-      icons: metadata.icons,
+      name: dynamicMetadata.name,
+      description: dynamicMetadata.description,
+      url: dynamicMetadata.url || 'https://solopay.example',
+      icons: dynamicMetadata.icons,
     },
   } as WagmiAdapterConfig);
   return { adapter, config: adapter.wagmiConfig };
