@@ -23,9 +23,6 @@ function getFaucetApiUrl(): string {
 // Error Handling
 // ============================================================================
 
-/**
- * API error with structured information
- */
 export class PaymentApiError extends Error {
   constructor(
     public code: string,
@@ -48,9 +45,6 @@ interface ErrorResponse {
 // API Types
 // ============================================================================
 
-/**
- * Request body for POST /payments
- */
 export interface CreatePaymentRequest {
   orderId: string;
   amount: number;
@@ -60,10 +54,6 @@ export interface CreatePaymentRequest {
   currency?: string;
 }
 
-/**
- * Response from POST /payments
- * This matches PaymentDetails type
- */
 export interface CreatePaymentResponse extends PaymentDetails {}
 
 // ============================================================================
@@ -72,46 +62,20 @@ export interface CreatePaymentResponse extends PaymentDetails {}
 
 /**
  * Create a payment (POST /payments).
- *
- * This is the main API call for the widget. It creates a payment record
- * on the server and returns all the information needed to execute the
- * blockchain transaction. Auth: x-public-key header + Origin (allowed_domains check).
- *
- * @param publicKey - Merchant's public key (pk_live_xxx or pk_test_xxx)
- * @param params - Payment parameters from URL
- * @returns Payment details including paymentId, serverSignature, addresses, etc.
- * @throws PaymentApiError if the API call fails
- *
- * @example
- * ```typescript
- * const payment = await createPayment(
- *   'pk_live_xxx',
- *   {
- *     orderId: '123',
- *     amount: 10,
- *     tokenAddress: '0x...',
- *     successUrl: 'https://example.com/success',
- *     failUrl: 'https://example.com/fail',
- *   }
- * );
- * console.log(payment.paymentId, payment.serverSignature);
- * ```
+ * Auth: x-public-key header. Origin is verified by the browser automatically.
  */
 export async function createPayment(
   publicKey: string,
-  params: CreatePaymentRequest,
-  options?: { origin?: string }
+  params: CreatePaymentRequest
 ): Promise<CreatePaymentResponse> {
   const apiBase = getGatewayApiBase();
-  const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
-    'x-public-key': publicKey,
-  };
-  if (options?.origin) headers['origin'] = options.origin;
 
   const response = await fetch(`${apiBase}/payments`, {
     method: 'POST',
-    headers,
+    headers: {
+      'Content-Type': 'application/json',
+      'x-public-key': publicKey,
+    },
     body: JSON.stringify(params),
     cache: 'no-store',
   });
@@ -128,7 +92,6 @@ export async function createPayment(
     );
   }
 
-  // Gateway returns { success: true, ...paymentFields }; strip `success` before returning
   if (data && typeof data === 'object' && 'success' in data) {
     const { success: _success, ...rest } = data as Record<string, unknown>;
     return rest as unknown as CreatePaymentResponse;
@@ -138,47 +101,25 @@ export async function createPayment(
 }
 
 /**
- * Create payment from validated URL parameters
- *
- * Convenience function that takes WidgetUrlParams directly.
- *
- * @param urlParams - Validated URL parameters from validateWidgetUrlParams()
- * @returns Payment details
- * @throws PaymentApiError if the API call fails
- *
- * @example
- * ```typescript
- * const result = validateWidgetUrlParams(searchParams);
- * if (result.isValid) {
- *   const payment = await createPaymentFromUrlParams(result.params);
- * }
- * ```
+ * Create payment from validated URL parameters.
  */
 export async function createPaymentFromUrlParams(
   urlParams: WidgetUrlParams
 ): Promise<CreatePaymentResponse> {
-  const origin = typeof window !== 'undefined' ? window.location.origin : undefined;
-  return createPayment(
-    urlParams.pk,
-    {
-      orderId: urlParams.orderId,
-      amount: parseFloat(urlParams.amount),
-      tokenAddress: urlParams.tokenAddress,
-      successUrl: urlParams.successUrl,
-      failUrl: urlParams.failUrl,
-      ...(urlParams.currency ? { currency: urlParams.currency } : {}),
-    },
-    { origin }
-  );
+  return createPayment(urlParams.pk, {
+    orderId: urlParams.orderId,
+    amount: parseFloat(urlParams.amount),
+    tokenAddress: urlParams.tokenAddress,
+    successUrl: urlParams.successUrl,
+    failUrl: urlParams.failUrl,
+    ...(urlParams.currency ? { currency: urlParams.currency } : {}),
+  });
 }
 
 // ============================================================================
 // Payment Status
 // ============================================================================
 
-/**
- * Payment status response
- */
 export interface PaymentStatusResponse {
   paymentId: string;
   status: 'PENDING' | 'PROCESSING' | 'CONFIRMED' | 'FAILED' | 'EXPIRED';
@@ -186,30 +127,12 @@ export interface PaymentStatusResponse {
   confirmedAt?: string;
 }
 
-/**
- * Options for getPaymentStatus (public auth when gateway requires it)
- */
 export interface GetPaymentStatusOptions {
-  /** Public key (pk_live_xxx) for gateway public auth */
   publicKey?: string;
-  /** x-origin for GET (proxy often strips Origin); e.g. window.location.origin */
-  origin?: string;
 }
 
 /**
- * Get payment status
- *
- * @param paymentId - Payment ID (hash)
- * @param options - Optional publicKey and origin for gateway public auth
- * @returns Payment status
- *
- * @example
- * ```typescript
- * const status = await getPaymentStatus(payment.paymentId, { publicKey: pk, origin: window.location.origin });
- * if (status.status === 'CONFIRMED') {
- *   // Payment completed
- * }
- * ```
+ * Get payment status (GET /payments/:id).
  */
 export async function getPaymentStatus(
   paymentId: string,
@@ -218,7 +141,6 @@ export async function getPaymentStatus(
   const apiBase = getGatewayApiBase();
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
   if (options?.publicKey) headers['x-public-key'] = options.publicKey;
-  if (options?.origin) headers['x-origin'] = options.origin;
 
   const response = await fetch(`${apiBase}/payments/${paymentId}`, {
     method: 'GET',
@@ -238,7 +160,6 @@ export async function getPaymentStatus(
     );
   }
 
-  // Gateway returns { success: true, data: { status, transactionHash, payment_hash, ... } }
   if (data && data.success === true && data.data) {
     const d = data.data as {
       status: string;
@@ -260,21 +181,7 @@ export async function getPaymentStatus(
 }
 
 /**
- * Poll payment status until completion or timeout
- *
- * @param paymentId - Payment ID
- * @param options - Polling options
- * @returns Final payment status
- * @throws PaymentApiError if payment fails or times out
- *
- * @example
- * ```typescript
- * const finalStatus = await pollPaymentStatus(payment.paymentId, {
- *   maxAttempts: 30,
- *   intervalMs: 2000,
- *   onStatusChange: (status) => console.log('Status:', status),
- * });
- * ```
+ * Poll payment status until completion or timeout.
  */
 export async function pollPaymentStatus(
   paymentId: string,
@@ -282,15 +189,11 @@ export async function pollPaymentStatus(
     maxAttempts?: number;
     intervalMs?: number;
     onStatusChange?: (status: PaymentStatusResponse) => void;
-    /** Public key for gateway public auth */
     publicKey?: string;
-    /** Origin for allowed_domains check */
-    origin?: string;
   } = {}
 ): Promise<PaymentStatusResponse> {
-  const { maxAttempts = 30, intervalMs = 2000, onStatusChange, publicKey, origin } = options;
-  const statusOptions =
-    publicKey !== undefined || origin !== undefined ? { publicKey, origin } : undefined;
+  const { maxAttempts = 30, intervalMs = 2000, onStatusChange, publicKey } = options;
+  const statusOptions = publicKey !== undefined ? { publicKey } : undefined;
 
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
     const status = await getPaymentStatus(paymentId, statusOptions);
@@ -319,9 +222,6 @@ export async function pollPaymentStatus(
 // Request Gas (Faucet)
 // ============================================================================
 
-/**
- * Response from POST /payments/request-gas
- */
 export interface RequestGasResponse {
   txHash: string;
   amount: string;
@@ -329,12 +229,10 @@ export interface RequestGasResponse {
 }
 
 /**
- * Request one-time gas grant for approve. Requires public key + origin.
- * Fails if not approved, already has gas, or already granted for (wallet, chain).
+ * Request one-time gas grant for approve. Requires public key.
  */
 export async function requestGas(
   publicKey: string,
-  origin: string,
   paymentId: string,
   walletAddress: string
 ): Promise<RequestGasResponse> {
@@ -345,7 +243,6 @@ export async function requestGas(
     headers: {
       'Content-Type': 'application/json',
       'x-public-key': publicKey,
-      Origin: origin,
     },
     body: JSON.stringify({ paymentId, walletAddress }),
     cache: 'no-store',
@@ -370,9 +267,6 @@ export async function requestGas(
 // Gasless Payment (Meta-Transaction)
 // ============================================================================
 
-/**
- * ERC2771 ForwardRequest type for gasless payments
- */
 export interface ForwardRequest {
   from: string;
   to: string;
@@ -384,17 +278,11 @@ export interface ForwardRequest {
   signature: string;
 }
 
-/**
- * Gasless payment submission response (POST /payments/:id/relay)
- */
 export interface GaslessPaymentResponse {
   status: string;
   message: string;
 }
 
-/**
- * Relay transaction status response (GET /payments/:id/relay)
- */
 export interface RelayStatusResponse {
   status: 'QUEUED' | 'SUBMITTED' | 'CONFIRMED' | 'FAILED';
   transactionHash?: string | null;
@@ -404,30 +292,22 @@ export interface RelayStatusResponse {
 }
 
 /**
- * Submit a gasless payment via relay service
- *
- * @param paymentId - Payment ID (hash)
- * @param forwarderAddress - ERC2771Forwarder contract address
- * @param forwardRequest - Signed ERC2771 ForwardRequest
- * @returns Relay request ID for tracking
+ * Submit a gasless payment via relay service (POST /payments/:id/relay).
  */
 export async function submitGaslessPayment(
   paymentId: string,
   forwarderAddress: string,
   forwardRequest: ForwardRequest,
-  publicKey: string,
-  options?: { origin?: string }
+  publicKey: string
 ): Promise<GaslessPaymentResponse> {
   const apiBase = getGatewayApiBase();
-  const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
-    'x-public-key': publicKey,
-  };
-  if (options?.origin) headers['origin'] = options.origin;
 
   const response = await fetch(`${apiBase}/payments/${paymentId}/relay`, {
     method: 'POST',
-    headers,
+    headers: {
+      'Content-Type': 'application/json',
+      'x-public-key': publicKey,
+    },
     body: JSON.stringify({
       paymentId,
       forwarderAddress,
@@ -448,7 +328,6 @@ export async function submitGaslessPayment(
     );
   }
 
-  // Gateway returns { success: true, status, message }; strip `success`
   if (data && typeof data === 'object' && 'success' in data) {
     const { success: _success, ...rest } = data as Record<string, unknown>;
     return rest as unknown as GaslessPaymentResponse;
@@ -458,11 +337,7 @@ export async function submitGaslessPayment(
 }
 
 /**
- * Get relay transaction status (GET /payments/:id/relay)
- *
- * @param paymentId - Payment ID (hash)
- * @param options - Public auth options
- * @returns Current relay status
+ * Get relay transaction status (GET /payments/:id/relay).
  */
 export async function getRelayStatus(
   paymentId: string,
@@ -471,7 +346,6 @@ export async function getRelayStatus(
   const apiBase = getGatewayApiBase();
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
   if (options?.publicKey) headers['x-public-key'] = options.publicKey;
-  if (options?.origin) headers['x-origin'] = options.origin;
 
   const response = await fetch(`${apiBase}/payments/${paymentId}/relay`, {
     method: 'GET',
@@ -491,7 +365,6 @@ export async function getRelayStatus(
     );
   }
 
-  // Gateway returns { success: true, data: { status, transactionHash, errorMessage, ... } }
   if (data && data.success === true && data.data) {
     return data.data as RelayStatusResponse;
   }
@@ -500,11 +373,7 @@ export async function getRelayStatus(
 }
 
 /**
- * Wait for relay transaction to complete
- *
- * @param paymentId - Payment ID (hash)
- * @param options - Timeout, interval, and public auth options
- * @returns Final relay status
+ * Wait for relay transaction to complete.
  */
 export async function waitForRelayTransaction(
   paymentId: string,
@@ -512,12 +381,10 @@ export async function waitForRelayTransaction(
     timeout?: number;
     interval?: number;
     publicKey?: string;
-    origin?: string;
   } = {}
 ): Promise<RelayStatusResponse> {
-  const { timeout = 120000, interval = 3000, publicKey, origin } = options;
-  const authOptions =
-    publicKey !== undefined || origin !== undefined ? { publicKey, origin } : undefined;
+  const { timeout = 120000, interval = 3000, publicKey } = options;
+  const authOptions = publicKey !== undefined ? { publicKey } : undefined;
   const startTime = Date.now();
 
   while (Date.now() - startTime < timeout) {

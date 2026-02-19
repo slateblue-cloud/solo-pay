@@ -6,6 +6,8 @@
   "types": "./dist/index.d.ts",
   "scripts": {
     "prisma:generate": "prisma generate",
+    "migrate:diff": "git show main:packages/database/prisma/schema.prisma > /tmp/schema.old.prisma && prisma migrate diff --from-schema /tmp/schema.old.prisma --to-schema prisma/schema.prisma --script",
+    "migrate:create": "git show main:packages/database/prisma/schema.prisma > /tmp/schema.old.prisma && prisma migrate diff --from-schema /tmp/schema.old.prisma --to-schema prisma/schema.prisma --script -o",
     "build": "prisma generate && tsc -p tsconfig.build.json",
     "clean": "rm -rf dist",
     "typecheck": "tsc --noEmit"

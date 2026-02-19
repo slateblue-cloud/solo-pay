@@ -249,7 +249,6 @@ const merchants: MerchantModel[] = [
     api_key_hash: 'a665a45920422f9d417e4867efdc4fb8a04a1f3fff1fa07e998e86f7f7a27ae3',
     public_key: 'pk_test_demo',
     public_key_hash: 'cfaaf44f4fcf9f65805b2a4642a68173d0b427f104dd192adbb489f01e392b76',
-    allowed_domains: ['http://localhost:3000'],
     webhook_url: 'http://demo:3000/api/webhook',
     fee_bps: 0,
     recipient_address: '0x70997970C51812dc3A010C7d01b50e0d17dc79C8',
@@ -267,7 +266,6 @@ const merchants: MerchantModel[] = [
     api_key_hash: '0136f3e97619f4aa51dffe177e9b7d6bf495ffd6b09547f5463ef483d1db705a',
     public_key: null,
     public_key_hash: null,
-    allowed_domains: [],
     webhook_url: null,
     fee_bps: 0,
     recipient_address: '0x7bE4CfF95eb3c3d2162410abCd5506f691C624Ed',
@@ -285,7 +283,6 @@ const merchants: MerchantModel[] = [
     api_key_hash: '9074171b675d51a53e7524e3b79d1dfa920d72063dcaab734856dd8f97749bd3',
     public_key: 'pk_live_xqKZ6PpVdfUaaVBJhS6qI8RbUbZUbvSq',
     public_key_hash: '05994e195c9cde2a1548d848fa5d40d3506da18d0071785981db25daeb86d4f6',
-    allowed_domains: ['http://localhost:3005'],
     webhook_url: 'http://sample-merchant:3004/api/webhook',
     fee_bps: 0,
     recipient_address: '0x976EA74026E726554dB657fA54763abd0C3a0aa9',
@@ -438,12 +435,11 @@ async function main() {
   console.log(`Seeded ${tokens.length} tokens`);
 
   for (const merchant of merchants) {
-    const { id, allowed_domains, ...data } = merchant;
-    const domains = allowed_domains ?? [];
+    const { id, ...data } = merchant;
     await prisma.merchant.upsert({
       where: { id },
-      update: { allowed_domains: domains, ...data },
-      create: { id, allowed_domains: domains, ...data },
+      update: data,
+      create: { id, ...data },
     });
   }
   console.log(`Seeded ${merchants.length} merchants`);

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, forwardRef, useImperativeHandle } from 'react';
+import { useState, useEffect, useImperativeHandle, type Ref } from 'react';
 import { useAccount, useChainId } from 'wagmi';
 import { formatUnits } from 'viem';
 import { getPaymentHistory, PaymentHistoryItem } from '@/lib/api';
@@ -36,7 +36,7 @@ export interface PaymentHistoryRef {
   refresh: () => Promise<void>;
 }
 
-export const PaymentHistory = forwardRef<PaymentHistoryRef>(function PaymentHistory(_, ref) {
+export function PaymentHistory({ ref }: { ref?: Ref<PaymentHistoryRef> }) {
   const { address } = useAccount();
   const chainId = useChainId();
   const [payments, setPayments] = useState<PaymentHistoryItem[]>([]);
@@ -172,4 +172,4 @@ export const PaymentHistory = forwardRef<PaymentHistoryRef>(function PaymentHist
       </div>
     </div>
   );
-});
+}

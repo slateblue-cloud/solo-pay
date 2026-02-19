@@ -84,7 +84,6 @@ const mockMerchant = {
   is_enabled: true,
   recipient_address: '0x70997970C51812dc3A010C7d01b50e0d17dc79C8',
   fee_bps: 0,
-  allowed_domains: [TEST_ORIGIN],
 };
 
 const mockChain = {
@@ -362,13 +361,13 @@ describe('POST /payments', () => {
       expect(body.code === 'VALIDATION_ERROR' || body.code === 'FST_ERR_VALIDATION').toBe(true);
     });
 
-    it('Origin이 allowed_domains에 없으면 403을 반환해야 함', async () => {
+    it('ALLOWED_WIDGET_ORIGIN가 미설정이면 origin 무관하게 통과해야 함', async () => {
       const response = await app.inject({
         method: 'POST',
         url: `${API_V1_BASE_PATH}/payments`,
-        headers: { 'x-public-key': TEST_PUBLIC_KEY, origin: 'https://not-allowed.example.com' },
+        headers: { 'x-public-key': TEST_PUBLIC_KEY, origin: 'https://any-origin.example.com' },
         payload: {
-          orderId: 'order-001',
+          orderId: 'order-origin-test',
           amount: 100,
           tokenAddress: '0xE4C687167705Abf55d709395f92e254bdF5825a2',
           successUrl: 'https://example.com/success',
@@ -376,7 +375,7 @@ describe('POST /payments', () => {
         },
       });
 
-      expect(response.statusCode).toBe(403);
+      expect(response.statusCode).not.toBe(403);
     });
 
     it('tokenAddress가 whitelist에 없으면 404 TOKEN_NOT_FOUND를 반환해야 함', async () => {

@@ -217,18 +217,13 @@ export function useGaslessPayment({
       setIsPayingGasless(false);
       setIsRelayConfirming(true);
 
-      const origin = typeof window !== 'undefined' ? window.location.origin : undefined;
-      await submitGaslessPayment(paymentId, forwarderAddress, forwardRequest, publicKey ?? '', {
-        origin,
-      });
+      await submitGaslessPayment(paymentId, forwarderAddress, forwardRequest, publicKey ?? '');
 
       // 7. Poll relay status until CONFIRMED/FAILED
-      const relayOrigin = typeof window !== 'undefined' ? window.location.origin : undefined;
       const relayResult = await waitForRelayTransaction(paymentId, {
         timeout: 120000,
         interval: 3000,
         publicKey: publicKey ?? undefined,
-        origin: relayOrigin,
       });
 
       setRelayTxHash(relayResult.transactionHash ?? '');

@@ -7,7 +7,7 @@ export interface SoloPayConfig {
   apiUrl?: string;
   /** Public key (pk_live_xxx or pk_test_xxx) for POST /payments. Required when using createPayment(). */
   publicKey?: string;
-  /** Origin header value; must match one of merchant allowed_domains. Required when using createPayment(). */
+  /** @deprecated Origin is now verified by the browser automatically via ALLOWED_WIDGET_ORIGIN on gateway. No need to set manually. */
   origin?: string;
 }
 
@@ -162,7 +162,6 @@ export interface MerchantInfoResponse {
     chain: ChainInfo | null;
     webhook_url: string | null;
     public_key: string | null;
-    allowed_domains: string[] | null;
     is_enabled: boolean;
     created_at: string;
     updated_at: string;

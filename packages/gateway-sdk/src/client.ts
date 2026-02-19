@@ -236,16 +236,18 @@ export class SoloPayClient {
     path: string,
     body?: CreatePaymentParams
   ): Promise<T> {
-    if (!this.publicKey || !this.origin) {
+    if (!this.publicKey) {
       throw new Error(
-        'requestWithPublicKey requires publicKey and origin in SoloPayConfig (for POST /payments auth)'
+        'requestWithPublicKey requires publicKey in SoloPayConfig (for POST /payments auth)'
       );
     }
-    const headers = {
+    const headers: Record<string, string> = {
       ...DEFAULT_HEADERS,
       'x-public-key': this.publicKey,
-      Origin: this.origin,
     };
+    if (this.origin) {
+      headers['Origin'] = this.origin;
+    }
 
     const response = await fetch(`${this.apiUrl}${path}`, {
       method,

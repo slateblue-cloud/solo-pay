@@ -8,6 +8,8 @@ declare module 'fastify' {
   }
 }
 
+const ALLOWED_WIDGET_ORIGIN = (process.env.ALLOWED_WIDGET_ORIGIN || '').trim();
+
 /**
  * Resolve origin from request: Origin header, or x-origin when Origin is stripped (e.g. GET behind some proxies).
  */
@@ -22,7 +24,7 @@ function resolveOrigin(request: FastifyRequest): string {
 /**
  * Public Key authentication middleware for client-side integration.
  * Validates x-public-key header, resolves merchant by public key hash,
- * and ensures Origin (or x-origin fallback) is in merchant.allowed_domains.
+ * and verifies request Origin matches ALLOWED_WIDGET_ORIGIN env.
  * Sets request.merchant on success; returns 401 for invalid/missing key, 403 for origin mismatch.
  */
 export function createPublicAuthMiddleware(merchantService: MerchantService) {
@@ -49,22 +51,14 @@ export function createPublicAuthMiddleware(merchantService: MerchantService) {
         });
       }
 
-      const allowedDomains = ((merchant.allowed_domains as string[] | null) ?? [])
-        .map((d) => (typeof d === 'string' ? d.trim() : ''))
-        .filter(Boolean);
-      if (allowedDomains.length === 0) {
-        return reply.code(403).send({
-          code: 'FORBIDDEN',
-          message: 'No allowed domains configured for this public key',
-        });
-      }
-
-      const origin = resolveOrigin(request);
-      if (!origin || !allowedDomains.includes(origin)) {
-        return reply.code(403).send({
-          code: 'FORBIDDEN',
-          message: 'Origin not allowed for this public key',
-        });
+      if (ALLOWED_WIDGET_ORIGIN) {
+        const origin = resolveOrigin(request);
+        if (!origin || origin !== ALLOWED_WIDGET_ORIGIN) {
+          return reply.code(403).send({
+            code: 'FORBIDDEN',
+            message: 'Origin not allowed',
+          });
+        }
       }
 
       request.merchant = merchant;
