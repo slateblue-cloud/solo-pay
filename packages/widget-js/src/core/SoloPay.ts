@@ -4,15 +4,14 @@ import { validatePaymentRequest } from '../utils/validators';
 
 /** Options for requestPayment */
 export interface RequestPaymentOptions {
-  /** Container element for embedded iframe (optional) */
-  iframeContainer?: HTMLElement;
-  /** Callback when widget is closed */
+  /** Callback when widget is closed (e.g. when user closes the popup on PC) */
   onClose?: () => void;
 }
 
 interface SoloPayConfigInternal {
   publicKey: string;
   widgetUrl: string;
+  wcProjectId?: string;
   debug: boolean;
   redirectMode: RedirectMode;
 }
@@ -30,6 +29,7 @@ export class SoloPay {
     this.config = {
       publicKey: config.publicKey,
       widgetUrl: config.widgetUrl ?? 'https://widget.solo-pay.com',
+      wcProjectId: config.wcProjectId,
       debug: config.debug ?? false,
       redirectMode: config.redirectMode ?? 'auto',
     };
@@ -37,6 +37,7 @@ export class SoloPay {
     this.widgetLauncher = new WidgetLauncher({
       publicKey: this.config.publicKey,
       widgetUrl: this.config.widgetUrl,
+      wcProjectId: this.config.wcProjectId,
       debug: this.config.debug,
     });
 
@@ -50,10 +51,10 @@ export class SoloPay {
   }
 
   /**
-   * Request a payment - opens widget in specified mode
+   * Open the payment widget. On PC opens a popup; on mobile redirects.
    * @param request Payment request parameters
-   * @param mode How to open the widget: 'auto' | 'redirect' | 'iframe'
-   * @param options Additional options (iframeContainer, onClose callback)
+   * @param mode Ignored on PC (always popup). On mobile: 'auto' | 'redirect' | 'iframe'
+   * @param options onClose callback when the widget/popup is closed
    */
   requestPayment(
     request: PaymentRequest,
@@ -72,7 +73,6 @@ export class SoloPay {
     const redirectMode = mode ?? this.config.redirectMode;
 
     this.widgetLauncher.open(request, redirectMode, {
-      iframeContainer: options?.iframeContainer,
       onClose: options?.onClose,
     });
   }
@@ -84,7 +84,7 @@ export class SoloPay {
     return this.widgetLauncher.buildWidgetUrl(request);
   }
 
-  /** Close any open popup/iframe */
+  /** Close the payment popup if open. */
   closeWidget(): void {
     this.widgetLauncher.closeAll();
   }

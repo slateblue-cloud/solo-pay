@@ -1,9 +1,11 @@
 import type { PaymentRequest, RedirectMode } from '../types';
-import { isMobile, lockBodyScroll } from './dom';
+import { isMobile } from './dom';
 
 export interface WidgetLauncherConfig {
   publicKey: string;
   widgetUrl: string;
+  /** When set, appended to widget URL so connect step uses AppKit (WalletConnect). */
+  wcProjectId?: string;
   debug?: boolean;
 }
 
@@ -11,15 +13,18 @@ export interface WidgetLauncherConfig {
 export class WidgetLauncher {
   private publicKey: string;
   private widgetUrl: string;
+  private wcProjectId: string | undefined;
   private debug: boolean;
-  private iframeElement: HTMLIFrameElement | null = null;
-  private modalOverlay: HTMLElement | null = null;
-  private unlockScroll: (() => void) | null = null;
   private onClose?: () => void;
+  private popupWindow: Window | null = null;
+  private popupCheckInterval: ReturnType<typeof setInterval> | null = null;
+  /** Stored failUrl for current popup; used to redirect on manual close */
+  private pendingFailUrl: string | null = null;
 
   constructor(config: WidgetLauncherConfig) {
     this.publicKey = config.publicKey;
     this.widgetUrl = config.widgetUrl.replace(/\/+$/, '');
+    this.wcProjectId = config.wcProjectId;
     this.debug = config.debug ?? false;
   }
 
@@ -49,47 +54,31 @@ export class WidgetLauncher {
     if (request.currency) {
       params.set('currency', request.currency);
     }
+    if (this.wcProjectId) {
+      params.set('wcProjectId', this.wcProjectId);
+    }
 
     const url = `${baseUrl}?${params.toString()}`;
     this.log('Built widget URL:', url, `(${mobile ? 'mobile' : 'pc'})`);
     return url;
   }
 
-  /** Resolve 'auto' mode to actual mode based on device */
-  private resolveMode(mode: RedirectMode): 'redirect' | 'iframe' {
-    if (mode === 'auto') {
-      return isMobile() ? 'redirect' : 'iframe';
-    }
-    return mode;
-  }
-
-  /** Open widget in specified mode. URL path is chosen by device: mobile → /, PC → /pc. */
+  /** Open widget. PC → popup window, mobile → redirect. */
   open(
     request: PaymentRequest,
-    mode: RedirectMode = 'auto',
-    options?: {
-      iframeContainer?: HTMLElement;
-      onClose?: () => void;
-    }
+    _mode: RedirectMode = 'auto',
+    options?: { onClose?: () => void }
   ): void {
     const mobile = isMobile();
     const url = this.buildWidgetUrl(request, mobile);
-    const resolvedMode = this.resolveMode(mode);
 
-    this.log('Opening widget in mode:', resolvedMode, '(requested:', mode, ')');
+    this.log('Opening widget:', mobile ? 'redirect' : 'popup');
     this.onClose = options?.onClose;
 
-    switch (resolvedMode) {
-      case 'redirect':
-        this.openRedirect(url);
-        break;
-      case 'iframe':
-        if (options?.iframeContainer) {
-          this.openIframeInContainer(url, options.iframeContainer);
-        } else {
-          this.openIframeModal(url);
-        }
-        break;
+    if (mobile) {
+      this.openRedirect(url);
+    } else {
+      this.openPopup(url, request.failUrl);
     }
   }
 
@@ -99,139 +88,87 @@ export class WidgetLauncher {
     window.location.href = url;
   }
 
-  /** Open widget in iframe modal (for PC) */
-  private openIframeModal(url: string): void {
-    this.log('Opening iframe modal:', url);
+  /** Open widget in new window popup (for PC; avoids iframe issues e.g. Trust Wallet) */
+  private openPopup(url: string, failUrl: string): void {
+    this.log('Opening popup:', url);
+    this.closePopup();
+    this.pendingFailUrl = failUrl;
 
-    // Close existing modal if any
-    this.closeIframe();
+    const width = 624;
+    const height = 700;
+    const left = Math.round((window.screen.width - width) / 2);
+    const top = Math.round(Math.max(0, (window.screen.height - height) / 2 - 40));
+    const features = `width=${width},height=${height},left=${left},top=${top},toolbar=no,menubar=no,scrollbars=yes,resizable=yes`;
 
-    // Lock body scroll
-    this.unlockScroll = lockBodyScroll();
+    this.popupWindow = window.open(url, 'solopay-widget', features);
+    if (!this.popupWindow) {
+      this.pendingFailUrl = null;
+      this.log('Popup blocked; falling back to redirect');
+      this.openRedirect(url);
+      return;
+    }
+    this.popupWindow.focus();
 
-    // Create modal overlay
-    this.modalOverlay = document.createElement('div');
-    this.modalOverlay.id = 'solopay-modal-overlay';
-    this.modalOverlay.style.cssText = `
-      position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background-color: rgba(0, 0, 0, 0.5);
-      z-index: 99999;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      opacity: 0;
-      transition: opacity 0.2s ease;
-    `;
+    const widgetOrigin = new URL(this.widgetUrl).origin;
+    const handleMessage = (event: MessageEvent) => {
+      if (event.source !== this.popupWindow) return;
+      if (event.origin !== widgetOrigin) return;
+      const data = event.data;
+      if (!data || typeof data !== 'object' || (data.type !== 'payment_complete' && data.type !== 'wallet_connected')) return;
 
-    // Create modal container
-    const modalContainer = document.createElement('div');
-    modalContainer.style.cssText = `
-      background: white;
-      border-radius: 16px;
-      width: 100%;
-      max-width: 624px;
-      height: 90vh;
-      max-height: 700px;
-      position: relative;
-      overflow: hidden;
-      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
-      transform: scale(0.95);
-      transition: transform 0.2s ease;
-    `;
-
-    // Create close button
-    const closeButton = document.createElement('button');
-    closeButton.innerHTML = '&times;';
-    closeButton.style.cssText = `
-      position: absolute;
-      top: 12px;
-      right: 12px;
-      width: 32px;
-      height: 32px;
-      border: none;
-      background: rgba(0, 0, 0, 0.1);
-      border-radius: 50%;
-      font-size: 20px;
-      cursor: pointer;
-      z-index: 10;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: #666;
-      transition: background 0.2s;
-    `;
-    closeButton.onmouseenter = () => {
-      closeButton.style.background = 'rgba(0, 0, 0, 0.2)';
-    };
-    closeButton.onmouseleave = () => {
-      closeButton.style.background = 'rgba(0, 0, 0, 0.1)';
-    };
-    closeButton.onclick = () => {
-      this.closeIframe();
+      this.log('Widget message:', data.type, data.status ?? '');
+      window.removeEventListener('message', handleMessage);
+      this.pendingFailUrl = null;
+      this.clearPopupCheck();
+      if (this.popupWindow && !this.popupWindow.closed) {
+        this.popupWindow.close();
+      }
+      this.popupWindow = null;
       this.handleClose();
-    };
 
-    // Create iframe
-    this.iframeElement = document.createElement('iframe');
-    this.iframeElement.src = url;
-    this.iframeElement.id = 'solopay-widget-iframe';
-    this.iframeElement.style.cssText = `
-      width: 100%;
-      height: 100%;
-      border: none;
-    `;
-
-    // Assemble modal
-    modalContainer.appendChild(closeButton);
-    modalContainer.appendChild(this.iframeElement);
-    this.modalOverlay.appendChild(modalContainer);
-    document.body.appendChild(this.modalOverlay);
-
-    // Handle escape key
-    const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        this.closeIframe();
-        this.handleClose();
-        document.removeEventListener('keydown', handleEscape);
+      // Redirect opener to success/fail URL so merchant page shows result
+      if (data.type === 'payment_complete') {
+        if (data.status === 'success' && typeof data.successUrl === 'string') {
+          window.location.href = data.successUrl;
+        } else if (data.status === 'fail' && typeof data.failUrl === 'string') {
+          window.location.href = data.failUrl;
+        }
+      } else if (data.type === 'wallet_connected' && typeof data.successUrl === 'string') {
+        window.location.href = data.successUrl;
       }
     };
-    document.addEventListener('keydown', handleEscape);
+    window.addEventListener('message', handleMessage);
 
-    // Animate in
-    requestAnimationFrame(() => {
-      if (this.modalOverlay) {
-        this.modalOverlay.style.opacity = '1';
-        const container = this.modalOverlay.firstChild as HTMLElement;
-        if (container) {
-          container.style.transform = 'scale(1)';
+    this.popupCheckInterval = setInterval(() => {
+      if (this.popupWindow?.closed) {
+        window.removeEventListener('message', handleMessage);
+        const failUrl = this.pendingFailUrl;
+        this.clearPopupCheck();
+        this.pendingFailUrl = null;
+        this.handleClose();
+        // Manual close: redirect to fail URL so merchant can show result
+        if (failUrl) {
+          window.location.href = failUrl;
         }
       }
-    });
+    }, 300);
   }
 
-  /** Open widget in iframe inside a container */
-  private openIframeInContainer(url: string, container: HTMLElement): void {
-    this.log('Opening iframe in container:', url);
+  /** Stop polling and clear popup reference. Callers must clear pendingFailUrl if needed. */
+  private clearPopupCheck(): void {
+    if (this.popupCheckInterval !== null) {
+      clearInterval(this.popupCheckInterval);
+      this.popupCheckInterval = null;
+    }
+    this.popupWindow = null;
+  }
 
-    // Remove existing iframe if any
-    this.closeIframe();
-
-    this.iframeElement = document.createElement('iframe');
-    this.iframeElement.src = url;
-    this.iframeElement.id = 'solopay-widget-iframe';
-    this.iframeElement.style.cssText = `
-      width: 100%;
-      height: 100%;
-      min-height: 600px;
-      border: none;
-      border-radius: 12px;
-    `;
-
-    container.appendChild(this.iframeElement);
+  private closePopup(): void {
+    if (this.popupWindow && !this.popupWindow.closed) {
+      this.popupWindow.close();
+    }
+    this.pendingFailUrl = null;
+    this.clearPopupCheck();
   }
 
   /** Handle widget close */
@@ -241,34 +178,8 @@ export class WidgetLauncher {
     this.onClose = undefined;
   }
 
-  /** Close iframe/modal */
-  closeIframe(): void {
-    // Animate out
-    if (this.modalOverlay) {
-      this.modalOverlay.style.opacity = '0';
-      const container = this.modalOverlay.firstChild as HTMLElement;
-      if (container) {
-        container.style.transform = 'scale(0.95)';
-      }
-
-      setTimeout(() => {
-        this.modalOverlay?.remove();
-        this.modalOverlay = null;
-      }, 200);
-    }
-
-    if (this.iframeElement) {
-      this.iframeElement.remove();
-      this.iframeElement = null;
-    }
-
-    // Unlock scroll
-    this.unlockScroll?.();
-    this.unlockScroll = null;
-  }
-
-  /** Close all open widgets */
+  /** Close the popup window if open. */
   closeAll(): void {
-    this.closeIframe();
+    this.closePopup();
   }
 }

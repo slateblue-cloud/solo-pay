@@ -70,12 +70,16 @@
       <div class="form-row">
         <div class="form-group">
           <label for="publicKey">Public Key</label>
-          <input type="text" id="publicKey" value="pk_live_YzYW8hmWtjmR29x21dCKhzrsDKnrqr0D">
+          <input type="text" id="publicKey" value="pk_live_xqKZ6PpVdfUaaVBJhS6qI8RbUbZUbvSq">
         </div>
         <div class="form-group">
           <label for="widgetUrl">Widget URL</label>
           <input type="text" id="widgetUrl" value="http://localhost:3000">
         </div>
+      </div>
+      <div class="form-group">
+        <label for="wcProjectId">WalletConnect Project ID (optional — enables AppKit connect)</label>
+        <input type="text" id="wcProjectId" placeholder="From cloud.walletconnect.com" value="781226ee94327ba670a6dcf2c30d004a">
       </div>
       <div class="form-row">
         <div class="form-group">
@@ -118,11 +122,11 @@
       <div class="form-row">
         <div class="form-group">
           <label for="successUrl">Success URL</label>
-          <input type="text" id="successUrl" placeholder="Current page">
+          <input type="text" id="successUrl" placeholder="Leave empty = return here with result">
         </div>
         <div class="form-group">
           <label for="failUrl">Fail URL</label>
-          <input type="text" id="failUrl" placeholder="Current page">
+          <input type="text" id="failUrl" placeholder="Leave empty = return here with result">
         </div>
       </div>
     </div>
@@ -154,11 +158,17 @@
       document.getElementById('logContainer').innerHTML = '<p class="log-entry info">Log cleared</p>';
     }
 
+    function getBaseUrl() {
+      return window.location.origin + window.location.pathname;
+    }
+
     function initSDK() {
       if (soloPay) { soloPay.destroy(); log('SDK destroyed', 'info'); }
+      const wcProjectId = document.getElementById('wcProjectId').value.trim() || undefined;
       const config = {
         publicKey: document.getElementById('publicKey').value,
         widgetUrl: document.getElementById('widgetUrl').value,
+        wcProjectId,
         redirectMode: document.getElementById('redirectMode').value,
         debug: document.getElementById('debug').value === 'true',
       };
@@ -168,6 +178,9 @@
 
     function pay() {
       if (!soloPay) { log('SDK not initialized!', 'error'); return; }
+      const base = getBaseUrl();
+      const successUrlInput = document.getElementById('successUrl').value.trim();
+      const failUrlInput = document.getElementById('failUrl').value.trim();
       const req = {
         orderId: document.getElementById('orderId').value || `order-${Date.now()}`,
         amount: document.getElementById('amount').value || '10',

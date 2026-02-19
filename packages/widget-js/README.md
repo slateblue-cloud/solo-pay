@@ -79,13 +79,12 @@ export default function CheckoutButton() {
 | `publicKey`    | `string`                           | required                      | Your SoloPay public key                                             |
 | `widgetUrl`    | `string`                           | `https://widget.solo-pay.com` | Widget base URL (no path). SDK uses `/` on mobile, `/pc` on desktop |
 | `debug`        | `boolean`                          | `false`                       | Enable debug logging                                                |
-| `redirectMode` | `'auto' \| 'iframe' \| 'redirect'` | `'auto'`                      | How to open widget                                                  |
+| `redirectMode` | `'auto' \| 'redirect' \| 'iframe'` | `'auto'`                      | On mobile only; PC always uses popup                                |
 
-**Redirect modes:**
+**Behaviour:**
 
-- `'auto'` - iframe modal on desktop, redirect on mobile (default)
-- `'iframe'` - Always open in iframe modal
-- `'redirect'` - Always redirect to widget page
+- **PC:** Always opens the widget in a popup window (no iframe).
+- **Mobile:** `'auto'` or `'redirect'` = redirect to widget; `'iframe'` is deprecated and treated as redirect.
 
 ### `soloPay.requestPayment(request, mode?, options?)`
 
@@ -109,10 +108,9 @@ Opens the payment widget.
 
 **Options:**
 
-| Option            | Type          | Description                          |
-| ----------------- | ------------- | ------------------------------------ |
-| `onClose`         | `() => void`  | Callback when widget is closed       |
-| `iframeContainer` | `HTMLElement` | Custom container for embedded iframe |
+| Option    | Type         | Description                                |
+| --------- | ------------ | ------------------------------------------ |
+| `onClose` | `() => void` | Callback when the widget/popup is closed   |
 
 ### `soloPay.getWidgetUrl(request)`
 
@@ -120,7 +118,7 @@ Returns the widget URL for custom implementations.
 
 ### `soloPay.closeWidget()`
 
-Closes any open widget (iframe or popup).
+Closes the payment popup if open.
 
 ### `soloPay.destroy()`
 

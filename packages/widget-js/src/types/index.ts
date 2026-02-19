@@ -4,16 +4,18 @@ export interface SoloPayConfig {
   publicKey: string;
   /** Widget base URL, no path (default: https://widget.solo-pay.com). SDK uses / on mobile, /pc on desktop. */
   widgetUrl?: string;
+  /** WalletConnect Cloud project ID. When set, widget uses AppKit (WalletConnect) for connect. */
+  wcProjectId?: string;
   /** Enable debug logging */
   debug?: boolean;
   /** Default redirect mode */
   redirectMode?: RedirectMode;
 }
 
-/** How to open the payment widget
- * - 'auto': iframe on PC, redirect on mobile (default)
- * - 'iframe': Always open in iframe modal
+/** How to open the payment widget (mobile only; PC always uses popup)
+ * - 'auto': redirect on mobile, popup on PC (default)
  * - 'redirect': Always redirect to widget page
+ * - 'iframe': Deprecated; treated as redirect on mobile
  */
 export type RedirectMode = 'auto' | 'redirect' | 'iframe';
 
