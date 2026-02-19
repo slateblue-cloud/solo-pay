@@ -275,12 +275,12 @@ export const GaslessPaymentRequestSchema = z.object({
 export type GaslessPaymentRequest = z.infer<typeof GaslessPaymentRequestSchema>;
 
 /**
- * Gasless Payment Response Schema
+ * Gasless Payment Response Schema (matches gateway POST /payments/:id/relay)
+ * Gateway returns { success, status, message }
  */
 export const GaslessPaymentResponseSchema = z.object({
   success: z.boolean(),
-  relayRequestId: z.string(),
-  status: z.enum(['submitted', 'pending', 'mined', 'confirmed', 'failed']),
+  status: z.string(),
   message: z.string().optional(),
 });
 
@@ -337,9 +337,20 @@ export async function submitGaslessPayment(
     }
 
     const data = await response.json();
+    const parsed = GaslessPaymentResponseSchema.safeParse(data);
+
+    if (!parsed.success) {
+      return {
+        success: false,
+        code: ApiErrorCode.SERVER_ERROR,
+        message: 'Received an invalid response from the server.',
+      };
+    }
+
     return {
-      success: true,
-      data: data as GaslessPaymentResponse,
+      success: parsed.data.success,
+      data: parsed.data,
+      ...(parsed.data.success === false && parsed.data.message && { message: parsed.data.message }),
     };
   } catch (err) {
     return {

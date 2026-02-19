@@ -1,5 +1,5 @@
 # SoloPay Monorepo - Multi-stage Dockerfile (pnpm deploy pattern)
-# Targets: hardhat, contracts, gateway, demo, simple-relayer, sample-merchant, guide, price-service
+# Targets: hardhat, contracts, gateway, demo, simple-relayer, sample-merchant, guide, price-service, widget
 
 # === Dependencies Stage (tools + deps + contracts) ===
 FROM node:20-alpine AS deps
@@ -19,6 +19,7 @@ COPY packages/guide/package.json ./packages/guide/
 COPY packages/demo/package.json ./packages/demo/
 COPY packages/sample-merchant/package.json ./packages/sample-merchant/
 COPY packages/price-service/package.json ./packages/price-service/
+COPY packages/widget/package.json ./packages/widget/
 COPY packages/database/package.json ./packages/database/
 
 RUN pnpm install --frozen-lockfile
@@ -62,14 +63,14 @@ WORKDIR /app/packages/contracts
 CMD ["npx", "hardhat", "run", "scripts/check-and-deploy.ts", "--network", "localhost"]
 
 # === Database Migration ===
-FROM deps AS db-migrate
+FROM deps AS database-sync
 
 RUN apk add --no-cache curl
 
 WORKDIR /app/packages/database
 ENV NODE_ENV=production
 
-CMD ["sh", "-c", "npx prisma db push --accept-data-loss"]
+CMD ["sh", "-c", "npx prisma db push && pnpm exec tsx prisma/seed.ts"]
 
 # === Webhook Manager Builder + Deploy ===
 FROM deps AS webhook-manager-builder
@@ -250,7 +251,7 @@ RUN pnpm build
 # Runs from full build stage (has all deps including prisma + generated client)
 FROM sample-merchant-builder AS sample-merchant-init
 WORKDIR /app/packages/sample-merchant
-CMD ["sh", "-c", "pnpm exec prisma db push --accept-data-loss && pnpm exec tsx prisma/seed.ts"]
+CMD ["sh", "-c", "pnpm exec prisma db push && pnpm exec tsx prisma/seed.ts"]
 
 # === Sample Merchant Runtime ===
 # Uses Next.js standalone output with outputFileTracingRoot set to monorepo root.
@@ -276,6 +277,34 @@ EXPOSE 3004
 HEALTHCHECK --interval=30s --timeout=3s --start-period=15s --retries=3 \
   CMD curl -sf http://localhost:3004 || exit 1
 CMD ["node", "server.js"]
+
+# === Widget Builder + Deploy ===
+FROM deps AS widget-builder
+
+WORKDIR /app
+COPY eslint.config.ts ./
+COPY packages/widget ./packages/widget
+WORKDIR /app/packages/widget
+RUN pnpm build
+
+WORKDIR /app
+RUN pnpm --filter @solo-pay/widget --prod deploy --legacy /deploy/widget
+RUN cp -r /app/packages/widget/.next /deploy/widget/.next
+RUN cp -r /app/packages/widget/next.config.js /deploy/widget/next.config.js
+RUN cp -r /app/packages/widget/public /deploy/widget/public 2>/dev/null || true
+
+# === Widget Runtime ===
+FROM node:20-alpine AS widget
+
+RUN apk add --no-cache curl
+WORKDIR /app
+COPY --from=widget-builder /deploy/widget .
+
+ENV NODE_ENV=production
+EXPOSE 3005
+HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
+  CMD curl -sf http://localhost:3005 || exit 1
+CMD ["node_modules/.bin/next", "start", "-p", "3005"]
 
 # === Guide Builder ===
 FROM deps AS guide-builder

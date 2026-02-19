@@ -28,8 +28,8 @@ jobs:
             echo "tag=${GITHUB_SHA:0:7}" >> $GITHUB_OUTPUT
             echo "overlay=dev" >> $GITHUB_OUTPUT
           fi
-          echo 'targets=["hardhat","contracts","gateway","demo","simple-relayer","guide"]' >> $GITHUB_OUTPUT
-          echo 'kustomize_targets=["gateway","demo","guide"]' >> $GITHUB_OUTPUT
+          echo 'targets=["hardhat","contracts","database-sync","gateway","demo","simple-relayer","guide","webhook-manager","sample-merchant","sample-merchant-init","price-service","widget"]' >> $GITHUB_OUTPUT
+          echo 'kustomize_targets=["gateway","demo","guide","webhook-manager","sample-merchant","sample-merchant-init","price-service","database-sync","widget"]' >> $GITHUB_OUTPUT
 
   build:
     name: Build ${{ matrix.target }} (${{ matrix.arch }})

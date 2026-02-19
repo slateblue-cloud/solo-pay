@@ -1,9 +1,11 @@
 # SPEC-RELAYER-002 인수 기준
 
 ---
+
 id: SPEC-RELAYER-002
 title: simple-relayer와 msq-relayer-service API 호환성 구현
 phase: acceptance-criteria
+
 ---
 
 ## 테스트 시나리오

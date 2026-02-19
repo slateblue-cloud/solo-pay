@@ -39,6 +39,7 @@ status: draft
 ### 2.2 구현 우선순위
 
 **우선순위 1 (Primary Goals)**: 핵심 API 엔드포인트 및 블록체인 통합
+
 - 결제 생성 API (POST /api/payments)
 - 결제 조회 API (GET /api/payments/:paymentId)
 - Gasless 결제 실행 API (POST /api/payments/:paymentId/execute)
@@ -46,11 +47,13 @@ status: draft
 - 블록체인 클라이언트 (viem)
 
 **우선순위 2 (Secondary Goals)**: 캐싱 및 목록 조회
+
 - Redis 캐싱 통합
 - 결제 목록 API (GET /api/payments)
 - 상점 통계 API (GET /api/stores/:storeAddress/stats)
 
 **우선순위 3 (Tertiary Goals)**: 보안 및 성능 최적화
+
 - Rate Limiting
 - CORS 설정
 - 성능 모니터링
@@ -141,6 +144,7 @@ packages/pay-server/
 #### Step 1.1: Fastify 서버 초기화
 
 **RED**:
+
 ```typescript
 // tests/server.test.ts
 describe('Fastify Server', () => {
@@ -154,6 +158,7 @@ describe('Fastify Server', () => {
 ```
 
 **GREEN**:
+
 ```typescript
 // src/server.ts
 import Fastify from 'fastify';
@@ -171,6 +176,7 @@ export async function createServer() {
 **목표**: Self-descriptive 에러 코드 시스템 구현
 
 **TypeScript 타입 정의 (src/types/error.types.ts)**:
+
 ```typescript
 // Error Type Enum (에러 타입 분류)
 export enum ErrorType {
@@ -181,7 +187,7 @@ export enum ErrorType {
   EXPIRED_ERROR = 'expired_error',
   RATE_LIMIT_ERROR = 'rate_limit_error',
   SERVICE_UNAVAILABLE_ERROR = 'service_unavailable_error',
-  INTERNAL_ERROR = 'internal_error'
+  INTERNAL_ERROR = 'internal_error',
 }
 
 // Error Code Enum (Self-descriptive 에러 코드)
@@ -215,7 +221,7 @@ export enum ErrorCode {
   GASLESS_LIMIT_EXCEEDED = 'GASLESS_LIMIT_EXCEEDED',
 
   // Internal Errors (500)
-  INTERNAL_SERVER_ERROR = 'INTERNAL_SERVER_ERROR'
+  INTERNAL_SERVER_ERROR = 'INTERNAL_SERVER_ERROR',
 }
 
 // Error Response Interface
@@ -252,8 +258,8 @@ export class ApiError extends Error {
         message: this.message,
         field: this.field,
         value: this.value,
-        docs_url: `https://docs.msqpay.io/errors/${this.code}`
-      }
+        docs_url: `https://docs.msqpay.io/errors/${this.code}`,
+      },
     };
   }
 }
@@ -280,15 +286,13 @@ export const createExpiredError = (code: ErrorCode, message: string): ApiError =
   return new ApiError(ErrorType.EXPIRED_ERROR, code, message, 410);
 };
 
-export const createServiceUnavailableError = (
-  code: ErrorCode,
-  message: string
-): ApiError => {
+export const createServiceUnavailableError = (code: ErrorCode, message: string): ApiError => {
   return new ApiError(ErrorType.SERVICE_UNAVAILABLE_ERROR, code, message, 503);
 };
 ```
 
 **Global Error Handler (src/middleware/error-handler.ts)**:
+
 ```typescript
 import { FastifyError, FastifyRequest, FastifyReply } from 'fastify';
 import { ApiError, ErrorType, ErrorCode } from '../types/error.types';
@@ -344,13 +348,14 @@ function getErrorCodeFromField(field: string): ErrorCode {
   const fieldMapping: Record<string, ErrorCode> = {
     storeAddress: ErrorCode.PAYMENT_STORE_INVALID_ADDRESS,
     tokenAddress: ErrorCode.PAYMENT_TOKEN_INVALID_ADDRESS,
-    amount: ErrorCode.PAYMENT_AMOUNT_INVALID_ZERO
+    amount: ErrorCode.PAYMENT_AMOUNT_INVALID_ZERO,
   };
   return fieldMapping[field] || ErrorCode.INTERNAL_SERVER_ERROR;
 }
 ```
 
 **환경 변수 설정 (.env.example)**:
+
 ```bash
 # Server Configuration
 PORT=3000
@@ -388,6 +393,7 @@ MAX_GASLESS_CONCURRENT=10
 #### Step 1.2: MySQL 연결 및 Migration
 
 **RED**:
+
 ```typescript
 // tests/services/database/payment-repository.test.ts
 describe('PaymentRepository', () => {
@@ -403,6 +409,7 @@ describe('PaymentRepository', () => {
 **GREEN**: MySQL 클라이언트 초기화 (mysql2 또는 Prisma)
 
 **Migration SQL (src/services/database/migrations/001_create_payment_intents.sql)**:
+
 ```sql
 -- Create payment_intents table
 CREATE TABLE IF NOT EXISTS payment_intents (
@@ -446,6 +453,7 @@ ALTER TABLE payment_intents MODIFY expires_at DATETIME(3) COMMENT '결제 만료
 #### Step 1.3: Redis 연결
 
 **RED**:
+
 ```typescript
 // tests/services/cache/redis-client.test.ts
 describe('RedisClient', () => {
@@ -465,6 +473,7 @@ describe('RedisClient', () => {
 #### Step 1.4: viem 블록체인 클라이언트
 
 **RED**:
+
 ```typescript
 // tests/services/blockchain/viem-client.test.ts
 describe('ViemClient', () => {
@@ -489,6 +498,7 @@ describe('ViemClient', () => {
 #### Step 2.1: 입력 검증 (Zod)
 
 **RED**:
+
 ```typescript
 // tests/middleware/validation.test.ts
 describe('Payment Creation Validation', () => {
@@ -505,6 +515,7 @@ describe('Payment Creation Validation', () => {
 ```
 
 **GREEN**:
+
 ```typescript
 // src/schemas/payment.schema.ts
 import { z } from 'zod';
@@ -514,7 +525,7 @@ export const createPaymentSchema = z.object({
   tokenAddress: z.string().regex(/^0x[a-fA-F0-9]{40}$/),
   amount: z.string().regex(/^\d+$/),
   customerEmail: z.string().email().optional(),
-  metadata: z.record(z.any()).optional()
+  metadata: z.record(z.any()).optional(),
 });
 ```
 
@@ -523,6 +534,7 @@ export const createPaymentSchema = z.object({
 #### Step 2.2: 결제 생성 로직
 
 **RED**:
+
 ```typescript
 // tests/routes/payments/create.test.ts
 describe('POST /api/payments', () => {
@@ -533,8 +545,8 @@ describe('POST /api/payments', () => {
       payload: {
         storeAddress: '0x123...',
         tokenAddress: '0x456...',
-        amount: '1000000000000000000'
-      }
+        amount: '1000000000000000000',
+      },
     });
 
     expect(response.statusCode).toBe(201);
@@ -545,6 +557,7 @@ describe('POST /api/payments', () => {
 ```
 
 **GREEN**:
+
 ```typescript
 // src/routes/payments/create.ts
 import { v4 as uuidv4 } from 'uuid';
@@ -560,7 +573,7 @@ export async function createPayment(fastify: FastifyInstance) {
       ...data,
       status: 'pending',
       expiresAt,
-      createdAt: Date.now()
+      createdAt: Date.now(),
     });
 
     return reply.code(201).send({ paymentId, ...data, status: 'pending', expiresAt });
@@ -579,16 +592,21 @@ export async function createPayment(fastify: FastifyInstance) {
 #### Step 3.1: Redis 캐싱 조회
 
 **RED**:
+
 ```typescript
 // tests/routes/payments/get.test.ts
 describe('GET /api/payments/:paymentId', () => {
   it('should return payment from cache', async () => {
     const paymentId = 'test-uuid';
-    await redisClient.set(`payment:${paymentId}`, JSON.stringify({ paymentId, status: 'pending' }), 60);
+    await redisClient.set(
+      `payment:${paymentId}`,
+      JSON.stringify({ paymentId, status: 'pending' }),
+      60
+    );
 
     const response = await server.inject({
       method: 'GET',
-      url: `/api/payments/${paymentId}`
+      url: `/api/payments/${paymentId}`,
     });
 
     expect(response.statusCode).toBe(200);
@@ -598,6 +616,7 @@ describe('GET /api/payments/:paymentId', () => {
 ```
 
 **GREEN**:
+
 ```typescript
 // src/routes/payments/get.ts
 export async function getPayment(fastify: FastifyInstance) {
@@ -634,19 +653,34 @@ export async function getPayment(fastify: FastifyInstance) {
 #### Step 4.1: EIP-712 서명 검증
 
 **RED**:
+
 ```typescript
 // tests/services/blockchain/signature-verifier.test.ts
 describe('SignatureVerifier', () => {
   it('should verify valid EIP-712 signature', async () => {
-    const message = { paymentId: 'test', storeAddress: '0x123', amount: '1000', customerAddress: '0x456' };
-    const signature = await wallet.signTypedData({ domain: EIP712_DOMAIN, types: PAYMENT_TYPE, message });
+    const message = {
+      paymentId: 'test',
+      storeAddress: '0x123',
+      amount: '1000',
+      customerAddress: '0x456',
+    };
+    const signature = await wallet.signTypedData({
+      domain: EIP712_DOMAIN,
+      types: PAYMENT_TYPE,
+      message,
+    });
 
     const isValid = await signatureVerifier.verify(message, signature, '0x456');
     expect(isValid).toBe(true);
   });
 
   it('should reject invalid signature', async () => {
-    const message = { paymentId: 'test', storeAddress: '0x123', amount: '1000', customerAddress: '0x456' };
+    const message = {
+      paymentId: 'test',
+      storeAddress: '0x123',
+      amount: '1000',
+      customerAddress: '0x456',
+    };
     const signature = 'invalid-signature';
 
     const isValid = await signatureVerifier.verify(message, signature, '0x456');
@@ -656,6 +690,7 @@ describe('SignatureVerifier', () => {
 ```
 
 **GREEN**:
+
 ```typescript
 // src/services/blockchain/signature-verifier.ts
 import { verifyTypedData } from 'viem';
@@ -666,7 +701,7 @@ export class SignatureVerifier {
       domain: EIP712_DOMAIN,
       types: PAYMENT_TYPE,
       message,
-      signature
+      signature,
     });
     return recoveredAddress.toLowerCase() === customerAddress.toLowerCase();
   }
@@ -678,11 +713,18 @@ export class SignatureVerifier {
 #### Step 4.2: OpenZeppelin Defender Relayer 통합
 
 **RED**:
+
 ```typescript
 // tests/services/blockchain/gasless-executor.test.ts
 describe('GaslessExecutor', () => {
   it('should execute gasless transaction via OZ Defender', async () => {
-    const payment = { paymentId: 'test', storeAddress: '0x123', tokenAddress: '0x456', amount: '1000', customerAddress: '0x789' };
+    const payment = {
+      paymentId: 'test',
+      storeAddress: '0x123',
+      tokenAddress: '0x456',
+      amount: '1000',
+      customerAddress: '0x789',
+    };
     const txHash = await gaslessExecutor.execute(payment);
 
     expect(txHash).toMatch(/^0x[a-fA-F0-9]{64}$/);
@@ -691,6 +733,7 @@ describe('GaslessExecutor', () => {
 ```
 
 **GREEN**:
+
 ```typescript
 // src/services/blockchain/gasless-executor.ts
 import { Defender } from '@openzeppelin/defender-sdk';
@@ -699,7 +742,10 @@ export class GaslessExecutor {
   private defender: Defender;
 
   constructor() {
-    this.defender = new Defender({ apiKey: process.env.DEFENDER_API_KEY, apiSecret: process.env.DEFENDER_API_SECRET });
+    this.defender = new Defender({
+      apiKey: process.env.DEFENDER_API_KEY,
+      apiSecret: process.env.DEFENDER_API_SECRET,
+    });
   }
 
   async execute(payment: Payment): Promise<string> {
@@ -708,8 +754,8 @@ export class GaslessExecutor {
       data: encodeFunctionData({
         abi: PAYMENT_PROCESSOR_ABI,
         functionName: 'executePayment',
-        args: [payment.storeAddress, payment.tokenAddress, payment.amount, payment.customerAddress]
-      })
+        args: [payment.storeAddress, payment.tokenAddress, payment.amount, payment.customerAddress],
+      }),
     });
     return tx.hash;
   }
@@ -721,6 +767,7 @@ export class GaslessExecutor {
 #### Step 4.3: 결제 실행 API 통합
 
 **RED**:
+
 ```typescript
 // tests/routes/payments/execute.test.ts
 describe('POST /api/payments/:paymentId/execute', () => {
@@ -767,13 +814,14 @@ describe('POST /api/payments/:paymentId/execute', () => {
 #### Step 5.1: 결제 목록 API (GET /api/payments)
 
 **RED**:
+
 ```typescript
 // tests/routes/payments/list.test.ts
 describe('GET /api/payments', () => {
   it('should return paginated payments', async () => {
     const response = await server.inject({
       method: 'GET',
-      url: '/api/payments?limit=10&offset=0'
+      url: '/api/payments?limit=10&offset=0',
     });
 
     expect(response.statusCode).toBe(200);
@@ -790,13 +838,14 @@ describe('GET /api/payments', () => {
 #### Step 5.2: 상점 통계 API (GET /api/stores/:storeAddress/stats)
 
 **RED**:
+
 ```typescript
 // tests/routes/stores/stats.test.ts
 describe('GET /api/stores/:storeAddress/stats', () => {
   it('should return store statistics', async () => {
     const response = await server.inject({
       method: 'GET',
-      url: '/api/stores/0x123.../stats'
+      url: '/api/stores/0x123.../stats',
     });
 
     expect(response.statusCode).toBe(200);
@@ -819,6 +868,7 @@ describe('GET /api/stores/:storeAddress/stats', () => {
 #### Step 6.1: Rate Limiting
 
 **RED**:
+
 ```typescript
 // tests/middleware/security.test.ts
 describe('Rate Limiting', () => {
@@ -840,16 +890,17 @@ describe('Rate Limiting', () => {
 #### Step 6.2: 성능 테스트
 
 **RED**:
+
 ```typescript
 // tests/performance/load.test.ts
 describe('Performance Test', () => {
   it('should handle 100 concurrent requests', async () => {
-    const requests = Array(100).fill(null).map(() =>
-      server.inject({ method: 'POST', url: '/api/payments', payload: validPayload })
-    );
+    const requests = Array(100)
+      .fill(null)
+      .map(() => server.inject({ method: 'POST', url: '/api/payments', payload: validPayload }));
 
     const responses = await Promise.all(requests);
-    const successRate = responses.filter(r => r.statusCode === 201).length / 100;
+    const successRate = responses.filter((r) => r.statusCode === 201).length / 100;
     expect(successRate).toBeGreaterThan(0.95);
   });
 });
@@ -865,20 +916,22 @@ describe('Performance Test', () => {
 
 ### 5.1 테스트 분류
 
-| 테스트 타입 | 비중 | 도구 | 커버리지 목표 |
-|------------|------|------|--------------|
-| **단위 테스트** (Unit) | 60% | Vitest | 95% |
-| **통합 테스트** (Integration) | 30% | Vitest + Testcontainers | 85% |
-| **E2E 테스트** (End-to-End) | 10% | Playwright | 핵심 플로우 100% |
+| 테스트 타입                   | 비중 | 도구                    | 커버리지 목표    |
+| ----------------------------- | ---- | ----------------------- | ---------------- |
+| **단위 테스트** (Unit)        | 60%  | Vitest                  | 95%              |
+| **통합 테스트** (Integration) | 30%  | Vitest + Testcontainers | 85%              |
+| **E2E 테스트** (End-to-End)   | 10%  | Playwright              | 핵심 플로우 100% |
 
 ### 5.2 테스트 환경
 
 **로컬 개발**:
+
 - PostgreSQL: Docker container (testcontainers)
 - Redis: Docker container (testcontainers)
 - Blockchain: Hardhat local node 또는 Polygon Amoy Testnet
 
 **CI/CD**:
+
 - GitHub Actions
 - 테스트 DB: Ephemeral containers
 - 블록체인: Fork된 Polygon Amoy
@@ -886,10 +939,12 @@ describe('Performance Test', () => {
 ### 5.3 Mocking 전략
 
 **Mock 사용**:
+
 - OpenZeppelin Defender API (단위 테스트)
 - viem RPC 호출 (단위 테스트)
 
 **실제 연동**:
+
 - PostgreSQL (통합 테스트)
 - Redis (통합 테스트)
 - 블록체인 (E2E 테스트 - Testnet)
@@ -900,16 +955,16 @@ describe('Performance Test', () => {
 
 ### 6.1 백엔드 프레임워크
 
-| 구분 | 라이브러리 | 버전 | 용도 |
-|------|-----------|------|------|
-| **Web Framework** | Fastify | ^4.26.0 | HTTP 서버 |
-| **Validation** | Zod | ^3.22.0 | 스키마 검증 |
-| **Blockchain** | viem | ^2.0.0 | Ethereum 클라이언트 |
-| **Gasless TX** | @openzeppelin/defender-sdk | ^1.12.0 | Relayer 통합 |
-| **Database** | mysql2 | ^3.9.0 | MySQL 드라이버 |
-| **Cache** | ioredis | ^5.3.0 | Redis 클라이언트 |
-| **Testing** | Vitest | ^1.3.0 | 테스트 프레임워크 |
-| **E2E Testing** | Playwright | ^1.42.0 | 브라우저 테스트 |
+| 구분              | 라이브러리                 | 버전    | 용도                |
+| ----------------- | -------------------------- | ------- | ------------------- |
+| **Web Framework** | Fastify                    | ^4.26.0 | HTTP 서버           |
+| **Validation**    | Zod                        | ^3.22.0 | 스키마 검증         |
+| **Blockchain**    | viem                       | ^2.0.0  | Ethereum 클라이언트 |
+| **Gasless TX**    | @openzeppelin/defender-sdk | ^1.12.0 | Relayer 통합        |
+| **Database**      | mysql2                     | ^3.9.0  | MySQL 드라이버      |
+| **Cache**         | ioredis                    | ^5.3.0  | Redis 클라이언트    |
+| **Testing**       | Vitest                     | ^1.3.0  | 테스트 프레임워크   |
+| **E2E Testing**   | Playwright                 | ^1.42.0 | 브라우저 테스트     |
 
 ### 6.2 개발 도구
 
@@ -923,26 +978,31 @@ describe('Performance Test', () => {
 ## 7. 마일스톤 (Milestones)
 
 ### 마일스톤 1: 인프라 설정 완료
+
 - Fastify 서버 초기화
 - MySQL 연결
 - Redis 연결
 - viem 클라이언트 초기화
 
 ### 마일스톤 2: 핵심 API 구현
+
 - 결제 생성 API
 - 결제 조회 API
 - Gasless 결제 실행 API
 
 ### 마일스톤 3: 추가 기능 구현
+
 - 결제 목록 API
 - 상점 통계 API
 
 ### 마일스톤 4: 보안 및 성능 최적화
+
 - Rate Limiting
 - CORS 설정
 - 성능 테스트 통과 (100 req/s)
 
 ### 마일스톤 5: 테스트 커버리지 달성
+
 - 단위 테스트 커버리지 95%
 - 통합 테스트 커버리지 85%
 - E2E 테스트 핵심 플로우 100%
@@ -956,6 +1016,7 @@ describe('Performance Test', () => {
 **영향**: 높은 트래픽 시 Gasless 트랜잭션 대기 발생
 
 **대응**:
+
 - 큐 시스템 도입 (Bull Queue)
 - 우선순위 기반 처리
 - Direct Payment 우회 옵션 제공
@@ -965,6 +1026,7 @@ describe('Performance Test', () => {
 **영향**: 결제 상태 업데이트 지연
 
 **대응**:
+
 - 트랜잭션 모니터링 (viem watchTransaction)
 - 상태 업데이트 Webhook
 - 사용자에게 예상 확인 시간 표시
@@ -974,6 +1036,7 @@ describe('Performance Test', () => {
 **영향**: API 응답 시간 증가
 
 **대응**:
+
 - Redis 캐싱 강화
 - PostgreSQL 인덱스 최적화
 - 읽기 전용 복제본 활용

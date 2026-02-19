@@ -1,16 +1,31 @@
 import { PrismaClient } from '../src/generated/prisma/client';
 import { PrismaMariaDb } from '@prisma/adapter-mariadb';
+import {
+  ChainModel,
+  CurrencyModel,
+  TokenModel,
+  MerchantModel,
+  MerchantUpdateInput,
+  MerchantCreateInput,
+  TokenUpdateInput,
+  TokenCreateInput,
+  MerchantPaymentMethodModel,
+} from '../src/generated/prisma/internal/prismaNamespace';
 
+/** Prisma MariaDB adapter expects scheme mariadb:// (not mysql://) */
 function getDatabaseUrl(): string {
+  let url: string;
   if (process.env.DATABASE_URL) {
-    return process.env.DATABASE_URL;
+    url = process.env.DATABASE_URL;
+  } else {
+    const host = process.env.MYSQL_HOST || 'localhost';
+    const port = process.env.MYSQL_PORT || '3306';
+    const user = process.env.MYSQL_USER || 'solopay';
+    const password = process.env.MYSQL_PASSWORD || '';
+    const database = process.env.MYSQL_DATABASE || 'solopay';
+    url = `mysql://${user}:${password}@${host}:${port}/${database}`;
   }
-  const host = process.env.MYSQL_HOST || 'localhost';
-  const port = process.env.MYSQL_PORT || '3306';
-  const user = process.env.MYSQL_USER || 'solopay';
-  const password = process.env.MYSQL_PASSWORD || '';
-  const database = process.env.MYSQL_DATABASE || 'solopay';
-  return `mysql://${user}:${password}@${host}:${port}/${database}`;
+  return url.replace(/^mysql:\/\//i, 'mariadb://');
 }
 
 const adapter = new PrismaMariaDb(getDatabaseUrl());
@@ -24,7 +39,7 @@ const prisma = new PrismaClient({ adapter });
 // id=5: Polygon (Mainnet) - with deployed contracts
 // id=6: Ethereum (Mainnet) - no contracts yet
 // id=7: BNB Chain (Mainnet) - no contracts yet
-const chains = [
+const chains: ChainModel[] = [
   {
     id: 1,
     network_id: 31337,
@@ -33,6 +48,11 @@ const chains = [
     gateway_address: '0xCf7Ed3AccA5a467e9e704C703E8D87F634fB0Fc9',
     forwarder_address: '0x5FbDB2315678afecb367f032d93F642f64180aa3',
     is_testnet: true,
+    is_enabled: true,
+    is_deleted: false,
+    deleted_at: null,
+    created_at: new Date(),
+    updated_at: new Date(),
   },
   {
     id: 2,
@@ -42,6 +62,11 @@ const chains = [
     gateway_address: null,
     forwarder_address: null,
     is_testnet: true,
+    is_enabled: true,
+    is_deleted: false,
+    deleted_at: null,
+    created_at: new Date(),
+    updated_at: new Date(),
   },
   {
     id: 3,
@@ -51,6 +76,11 @@ const chains = [
     gateway_address: '0x2024b6669A2BE5fF9624792cB1BB657d20C4b24B',
     forwarder_address: '0xE8a3C8e530dddd14e02DA1C81Df6a15f41ad78DE',
     is_testnet: true,
+    is_enabled: true,
+    is_deleted: false,
+    deleted_at: null,
+    created_at: new Date(),
+    updated_at: new Date(),
   },
   {
     id: 4,
@@ -60,6 +90,11 @@ const chains = [
     gateway_address: null,
     forwarder_address: null,
     is_testnet: true,
+    is_enabled: true,
+    is_deleted: false,
+    deleted_at: null,
+    created_at: new Date(),
+    updated_at: new Date(),
   },
   {
     id: 5,
@@ -69,6 +104,11 @@ const chains = [
     gateway_address: '0x4F81a1481fc3d6479E2e6d56052fC60539F707ec',
     forwarder_address: '0xec63c3E7BD0c51AA6DC08f587A2B147a671cf888',
     is_testnet: false,
+    is_enabled: true,
+    is_deleted: false,
+    deleted_at: null,
+    created_at: new Date(),
+    updated_at: new Date(),
   },
   {
     id: 6,
@@ -78,6 +118,11 @@ const chains = [
     gateway_address: null,
     forwarder_address: null,
     is_testnet: false,
+    is_enabled: true,
+    is_deleted: false,
+    deleted_at: null,
+    created_at: new Date(),
+    updated_at: new Date(),
   },
   {
     id: 7,
@@ -87,6 +132,11 @@ const chains = [
     gateway_address: null,
     forwarder_address: null,
     is_testnet: false,
+    is_enabled: true,
+    is_deleted: false,
+    deleted_at: null,
+    created_at: new Date(),
+    updated_at: new Date(),
   },
 ];
 
@@ -96,14 +146,20 @@ const chains = [
 // id=3: MSQ on Polygon (chain_id=5) - permit enabled
 // id=4: SUT on Amoy (chain_id=3) - permit enabled
 // id=5: MSQ on Amoy (chain_id=3) - permit enabled
-const tokens = [
+const tokens: TokenModel[] = [
   {
     id: 1,
     chain_id: 1,
     address: '0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512',
     symbol: 'TEST',
     decimals: 18,
+    cmc_slug: 'msquare-global', // for testing
     permit_enabled: false,
+    is_enabled: true,
+    is_deleted: false,
+    deleted_at: null,
+    created_at: new Date(),
+    updated_at: new Date(),
   },
   {
     id: 2,
@@ -111,7 +167,13 @@ const tokens = [
     address: '0x98965474EcBeC2F532F1f780ee37b0b05F77Ca55',
     symbol: 'SUT',
     decimals: 18,
+    cmc_slug: 'supertrust',
     permit_enabled: true,
+    is_enabled: true,
+    is_deleted: false,
+    deleted_at: null,
+    created_at: new Date(),
+    updated_at: new Date(),
   },
   {
     id: 3,
@@ -119,7 +181,27 @@ const tokens = [
     address: '0x6A8Ec2d9BfBDD20A7F5A4E89D640F7E7cebA4499',
     symbol: 'MSQ',
     decimals: 18,
+    cmc_slug: 'msquare-global',
     permit_enabled: true,
+    is_enabled: true,
+    is_deleted: false,
+    deleted_at: null,
+    created_at: new Date(),
+    updated_at: new Date(),
+  },
+  {
+    id: 3,
+    chain_id: 5,
+    address: '0x82DbF4227a981211d84f59092889eAdbb9C2a4D2',
+    symbol: 'DST',
+    decimals: 18,
+    cmc_slug: 'daystarter',
+    permit_enabled: true,
+    is_enabled: true,
+    is_deleted: false,
+    deleted_at: null,
+    created_at: new Date(),
+    updated_at: new Date(),
   },
   {
     id: 4,
@@ -127,7 +209,13 @@ const tokens = [
     address: '0xE4C687167705Abf55d709395f92e254bdF5825a2',
     symbol: 'SUT',
     decimals: 18,
+    cmc_slug: null,
     permit_enabled: true,
+    is_enabled: true,
+    is_deleted: false,
+    deleted_at: null,
+    created_at: new Date(),
+    updated_at: new Date(),
   },
   {
     id: 5,
@@ -135,7 +223,13 @@ const tokens = [
     address: '0x7350C119cb048c2Ea6b2532bcE82c2F7c042ff6b',
     symbol: 'MSQ',
     decimals: 18,
+    cmc_slug: null,
     permit_enabled: true,
+    is_enabled: true,
+    is_deleted: false,
+    deleted_at: null,
+    created_at: new Date(),
+    updated_at: new Date(),
   },
 ];
 
@@ -143,7 +237,7 @@ const tokens = [
 // id=1: Demo Store (chain_id=1, Localhost) - API Key: 123
 // id=2: Metastar Global (chain_id=3, Amoy) - API Key: msq_sk_metastar_123
 // id=3: Sample Merchant (chain_id=1, Localhost) - API Key: sample_api_key_001
-const merchants = [
+const merchants: MerchantModel[] = [
   {
     id: 1,
     merchant_key: 'merchant_demo_001',
@@ -156,6 +250,11 @@ const merchants = [
     webhook_url: 'http://demo:3000/api/webhook',
     fee_bps: 0,
     recipient_address: '0x70997970C51812dc3A010C7d01b50e0d17dc79C8',
+    is_enabled: true,
+    is_deleted: false,
+    deleted_at: null,
+    created_at: new Date(),
+    updated_at: new Date(),
   },
   {
     id: 2,
@@ -165,10 +264,15 @@ const merchants = [
     api_key_hash: '0136f3e97619f4aa51dffe177e9b7d6bf495ffd6b09547f5463ef483d1db705a',
     public_key: null,
     public_key_hash: null,
-    allowed_domains: null,
+    allowed_domains: [],
     webhook_url: null,
     fee_bps: 0,
     recipient_address: '0x7bE4CfF95eb3c3d2162410abCd5506f691C624Ed',
+    is_enabled: true,
+    is_deleted: false,
+    deleted_at: null,
+    created_at: new Date(),
+    updated_at: new Date(),
   },
   {
     id: 3,
@@ -182,29 +286,124 @@ const merchants = [
     webhook_url: 'http://sample-merchant:3004/api/webhook',
     fee_bps: 0,
     recipient_address: '0x976EA74026E726554dB657fA54763abd0C3a0aa9',
+    is_enabled: true,
+    is_deleted: false,
+    deleted_at: null,
+    created_at: new Date(),
+    updated_at: new Date(),
   },
 ];
 
 // Payment Methods (merchant_id + token_id pairs)
 // Must use tokens from the merchant's chain
-const paymentMethods = [
-  { merchant_id: 1, token_id: 1 },
-  { merchant_id: 2, token_id: 5 },
-  { merchant_id: 3, token_id: 1 },
+const paymentMethods: MerchantPaymentMethodModel[] = [
+  {
+    id: 1,
+    merchant_id: 1,
+    token_id: 1,
+    is_enabled: true,
+    is_deleted: false,
+    deleted_at: null,
+    created_at: new Date(),
+    updated_at: new Date(),
+  },
+  {
+    id: 2,
+    merchant_id: 2,
+    token_id: 5,
+    is_enabled: true,
+    is_deleted: false,
+    deleted_at: null,
+    created_at: new Date(),
+    updated_at: new Date(),
+  },
+  {
+    id: 3,
+    merchant_id: 3,
+    token_id: 1,
+    is_enabled: true,
+    is_deleted: false,
+    deleted_at: null,
+    created_at: new Date(),
+    updated_at: new Date(),
+  },
 ];
 
 // Currencies (10 fiat currencies supported by CoinMarketCap)
-const currencies = [
-  { id: 1, code: 'USD', name: 'US Dollar', symbol: '$' },
-  { id: 2, code: 'KRW', name: 'Korean Won', symbol: '₩' },
-  { id: 3, code: 'EUR', name: 'Euro', symbol: '€' },
-  { id: 4, code: 'JPY', name: 'Japanese Yen', symbol: '¥' },
-  { id: 5, code: 'GBP', name: 'British Pound', symbol: '£' },
-  { id: 6, code: 'CNY', name: 'Chinese Yuan', symbol: '¥' },
-  { id: 7, code: 'SGD', name: 'Singapore Dollar', symbol: 'S$' },
-  { id: 8, code: 'HKD', name: 'Hong Kong Dollar', symbol: 'HK$' },
-  { id: 9, code: 'AUD', name: 'Australian Dollar', symbol: 'A$' },
-  { id: 10, code: 'CAD', name: 'Canadian Dollar', symbol: 'C$' },
+const currencies: CurrencyModel[] = [
+  {
+    id: 1,
+    code: 'USD',
+    name: 'US Dollar',
+    symbol: '$',
+    created_at: new Date(),
+    updated_at: new Date(),
+  },
+  {
+    id: 2,
+    code: 'KRW',
+    name: 'Korean Won',
+    symbol: '₩',
+    created_at: new Date(),
+    updated_at: new Date(),
+  },
+  { id: 3, code: 'EUR', name: 'Euro', symbol: '€', created_at: new Date(), updated_at: new Date() },
+  {
+    id: 4,
+    code: 'JPY',
+    name: 'Japanese Yen',
+    symbol: '¥',
+    created_at: new Date(),
+    updated_at: new Date(),
+  },
+  {
+    id: 5,
+    code: 'GBP',
+    name: 'British Pound',
+    symbol: '£',
+    created_at: new Date(),
+    updated_at: new Date(),
+  },
+  {
+    id: 6,
+    code: 'CNY',
+    name: 'Chinese Yuan',
+    symbol: '¥',
+    created_at: new Date(),
+    updated_at: new Date(),
+  },
+  {
+    id: 7,
+    code: 'SGD',
+    name: 'Singapore Dollar',
+    symbol: 'S$',
+    created_at: new Date(),
+    updated_at: new Date(),
+  },
+  {
+    id: 8,
+    code: 'HKD',
+    name: 'Hong Kong Dollar',
+    symbol: 'HK$',
+    created_at: new Date(),
+    updated_at: new Date(),
+  },
+  {
+    id: 9,
+    code: 'AUD',
+    name: 'Australian Dollar',
+    symbol: 'A$',
+    created_at: new Date(),
+    updated_at: new Date(),
+  },
+  {
+    id: 10,
+    code: 'CAD',
+    name: 'Canadian Dollar',
+    symbol: 'C$',
+    created_at: new Date(),
+    updated_at: new Date(),
+  },
 ];
 
 async function main() {
@@ -219,21 +418,19 @@ async function main() {
   console.log(`Seeded ${chains.length} chains`);
 
   for (const token of tokens) {
-    const { id, chain_id, address, ...data } = token;
     await prisma.token.upsert({
-      where: { chain_id_address: { chain_id, address } },
-      update: data,
-      create: { id, chain_id, address, ...data },
+      where: { id: token.id },
+      update: token as TokenUpdateInput,
+      create: token as TokenCreateInput,
     });
   }
   console.log(`Seeded ${tokens.length} tokens`);
 
   for (const merchant of merchants) {
-    const { id, merchant_key, ...data } = merchant;
     await prisma.merchant.upsert({
-      where: { merchant_key },
-      update: data,
-      create: { id, merchant_key, ...data },
+      where: { id: merchant.id },
+      update: merchant as MerchantUpdateInput,
+      create: merchant as MerchantCreateInput,
     });
   }
   console.log(`Seeded ${merchants.length} merchants`);

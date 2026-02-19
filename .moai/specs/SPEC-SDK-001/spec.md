@@ -61,16 +61,19 @@ acceptance_criteria:
 SDK는 Node.js 18+ 환경에서 실행되어야 한다 (native fetch 지원).
 
 **E2. 기술 스택**
+
 - TypeScript 5.x (타입 안전성)
 - Native fetch (HTTP 클라이언트)
 - Vitest (테스트 프레임워크)
 
 **E3. 패키지 정보**
+
 - 패키지명: `@globalmsq/msqpay`
 - 버전: `0.1.0`
 - 라이선스: MIT
 
 **E4. 아키텍처 제약**
+
 - **의존성 최소화**: 외부 HTTP 라이브러리 사용 금지 (axios, got 등)
 - **타입 안전성**: 서버 스키마와 1:1 매칭
 - **환경별 URL 관리**: development, staging, production, custom
@@ -87,6 +90,7 @@ SDK는 Node.js 18+ 환경에서 실행되어야 한다 (native fetch 지원).
 상점별 API Key가 사전에 발급되어 있다고 가정한다.
 
 **A3. 네트워크 환경**
+
 - Development: `http://localhost:3001`
 - Staging: `https://pay-api.staging.msq.com`
 - Production: `https://pay-api.msq.com`
@@ -101,22 +105,25 @@ Production 환경에서는 HTTPS 통신이 보장된다고 가정한다.
 ### Functional Requirements (기능 요구사항)
 
 #### FR1. 결제 생성 (createPayment)
+
 **Event**: 상점서버가 결제를 생성할 때
 **System**: SDK가 결제서버 API를 호출하여 paymentId를 반환해야 한다.
 
 **Input**:
+
 ```typescript
 interface CreatePaymentParams {
   userId: string;
   amount: number;
   currency?: 'USD' | 'EUR' | 'KRW';
-  tokenAddress: string;      // 0x + 40 hex
-  recipientAddress: string;  // 0x + 40 hex
+  tokenAddress: string; // 0x + 40 hex
+  recipientAddress: string; // 0x + 40 hex
   description?: string;
 }
 ```
 
 **Output**:
+
 ```typescript
 interface CreatePaymentResponse {
   success: true;
@@ -127,12 +134,14 @@ interface CreatePaymentResponse {
 ```
 
 #### FR2. 결제 상태 조회 (getPaymentStatus)
+
 **Event**: 상점서버가 결제 상태를 조회할 때
 **System**: SDK가 결제서버 API를 호출하여 최신 상태를 반환해야 한다.
 
 **Input**: `paymentId: string`
 
 **Output**:
+
 ```typescript
 interface PaymentStatusResponse {
   success: true;
@@ -153,19 +162,22 @@ interface PaymentStatusResponse {
 ```
 
 #### FR3. Gasless 제출 (submitGasless)
+
 **Event**: 상점서버가 Gasless 서명을 제출할 때
 **System**: SDK가 결제서버 API를 호출하여 릴레이 결과를 반환해야 한다.
 
 **Input**:
+
 ```typescript
 interface GaslessParams {
   paymentId: string;
-  forwarderAddress: string;  // 0x + 40 hex
-  signature: string;         // 0x hex
+  forwarderAddress: string; // 0x + 40 hex
+  signature: string; // 0x hex
 }
 ```
 
 **Output**:
+
 ```typescript
 interface GaslessResponse {
   success: true;
@@ -176,19 +188,22 @@ interface GaslessResponse {
 ```
 
 #### FR4. Relay 실행 (executeRelay)
+
 **Event**: 상점서버가 릴레이를 실행할 때
 **System**: SDK가 결제서버 API를 호출하여 트랜잭션 결과를 반환해야 한다.
 
 **Input**:
+
 ```typescript
 interface RelayParams {
   paymentId: string;
-  transactionData: string;  // 0x hex
+  transactionData: string; // 0x hex
   gasEstimate: number;
 }
 ```
 
 **Output**:
+
 ```typescript
 interface RelayResponse {
   success: true;
@@ -202,21 +217,25 @@ interface RelayResponse {
 ### Non-Functional Requirements (비기능 요구사항)
 
 #### NFR1. 의존성 최소화
+
 - 외부 HTTP 클라이언트 라이브러리 사용 금지 (axios, got 등)
 - Node 18+ native fetch 사용
 - 런타임 의존성 0개
 
 #### NFR2. 타입 안전성
+
 - 모든 API 응답에 대해 TypeScript 타입 제공
 - 서버 Zod 스키마와 1:1 매칭
 - strict mode 활성화
 
 #### NFR3. 에러 처리
+
 - 모든 API 에러를 MSQPayError로 래핑
 - 에러 코드, HTTP 상태 코드, 상세 정보 포함
 - 서버 에러 코드와 일치
 
 #### NFR4. 테스트
+
 - 테스트 커버리지 ≥ 90%
 - 단위 테스트: fetch mock 사용
 - 에러 케이스 전수 테스트
@@ -256,6 +275,7 @@ class MSQPayClient {
 ```
 
 **request() 메서드 인증**:
+
 ```typescript
 private async request<T>(method: string, path: string, body?: unknown): Promise<T> {
   const headers = {
@@ -282,7 +302,7 @@ const API_URLS: Record<Environment, string> = {
   development: 'http://localhost:3001',
   staging: 'https://pay-api.staging.msq.com',
   production: 'https://pay-api.msq.com',
-  custom: ''  // Must be set via config.apiUrl
+  custom: '', // Must be set via config.apiUrl
 };
 ```
 
@@ -305,18 +325,18 @@ const ERROR_CODES = {
   INVALID_GAS_ESTIMATE: 400,
   INVALID_SIGNATURE: 400,
   NOT_FOUND: 404,
-  INTERNAL_ERROR: 500
+  INTERNAL_ERROR: 500,
 };
 ```
 
 ### API 엔드포인트 매핑
 
-| SDK 메서드 | HTTP 메서드 | 엔드포인트 |
-|-----------|------------|------------|
-| createPayment() | POST | /payments/create |
-| getPaymentStatus() | GET | /payments/:id/status |
-| submitGasless() | POST | /payments/:id/gasless |
-| executeRelay() | POST | /payments/:id/relay |
+| SDK 메서드         | HTTP 메서드 | 엔드포인트            |
+| ------------------ | ----------- | --------------------- |
+| createPayment()    | POST        | /payments/create      |
+| getPaymentStatus() | GET         | /payments/:id/status  |
+| submitGasless()    | POST        | /payments/:id/gasless |
+| executeRelay()     | POST        | /payments/:id/relay   |
 
 ---
 
@@ -324,26 +344,27 @@ const ERROR_CODES = {
 
 ### Requirements → Implementation
 
-| Requirement | Implementation | Test |
-|-------------|----------------|------|
-| REQ-SDK-001 | `MSQPayClient.createPayment()` | `createPayment.test.ts` |
+| Requirement | Implementation                    | Test                       |
+| ----------- | --------------------------------- | -------------------------- |
+| REQ-SDK-001 | `MSQPayClient.createPayment()`    | `createPayment.test.ts`    |
 | REQ-SDK-002 | `MSQPayClient.getPaymentStatus()` | `getPaymentStatus.test.ts` |
-| REQ-SDK-003 | `MSQPayClient.submitGasless()` | `submitGasless.test.ts` |
-| REQ-SDK-004 | `MSQPayClient.executeRelay()` | `executeRelay.test.ts` |
+| REQ-SDK-003 | `MSQPayClient.submitGasless()`    | `submitGasless.test.ts`    |
+| REQ-SDK-004 | `MSQPayClient.executeRelay()`     | `executeRelay.test.ts`     |
 
 ### Design Decisions
 
-| Decision | Rationale | Alternative Considered |
-|----------|-----------|------------------------|
-| Native fetch | 의존성 최소화, Node 18+ 표준 | axios (외부 의존성) |
-| 클래스 기반 | 상태 관리 용이, API Key 캡슐화 | 함수 기반 (상태 관리 어려움) |
-| Environment enum | 타입 안전성, 자동완성 지원 | string literal (오타 가능성) |
+| Decision         | Rationale                      | Alternative Considered       |
+| ---------------- | ------------------------------ | ---------------------------- |
+| Native fetch     | 의존성 최소화, Node 18+ 표준   | axios (외부 의존성)          |
+| 클래스 기반      | 상태 관리 용이, API Key 캡슐화 | 함수 기반 (상태 관리 어려움) |
+| Environment enum | 타입 안전성, 자동완성 지원     | string literal (오타 가능성) |
 
 ---
 
 ## Dependencies
 
 ### Runtime Dependencies
+
 ```json
 {
   "dependencies": {}
@@ -351,6 +372,7 @@ const ERROR_CODES = {
 ```
 
 ### Dev Dependencies
+
 ```json
 {
   "devDependencies": {
@@ -361,17 +383,18 @@ const ERROR_CODES = {
 ```
 
 ### Server Dependencies
+
 - SPEC-SERVER-002: Payment API Server
 
 ---
 
 ## Risks and Mitigation
 
-| Risk | Impact | Mitigation |
-|------|--------|------------|
-| fetch 미지원 환경 | High | Node 18+ 요구사항 명시 |
-| 서버 API 변경 | Medium | 버전 관리, 호환성 테스트 |
-| 네트워크 오류 | Medium | 에러 처리, 재시도 로직 (optional) |
+| Risk              | Impact | Mitigation                        |
+| ----------------- | ------ | --------------------------------- |
+| fetch 미지원 환경 | High   | Node 18+ 요구사항 명시            |
+| 서버 API 변경     | Medium | 버전 관리, 호환성 테스트          |
+| 네트워크 오류     | Medium | 에러 처리, 재시도 로직 (optional) |
 
 ---
 
@@ -388,15 +411,16 @@ const ERROR_CODES = {
 
 ## Version History
 
-| Version | Date | Changes |
-|---------|------|---------|
-| 1.0.0 | 2025-11-29 | 초기 SPEC 생성 |
+| Version | Date       | Changes        |
+| ------- | ---------- | -------------- |
+| 1.0.0   | 2025-11-29 | 초기 SPEC 생성 |
 
 ---
 
 **Generated by**: workflow-spec (MoAI-ADK)
 **SPEC Status**: Completed ✅
 **Implementation Status**:
+
 - ✅ Phase 1 (Cleanup): 기존 SDK 삭제
 - ✅ Phase 2 (Package Setup): 5개 소스 파일 + 설정 파일 생성
 - ✅ Phase 3 (Core Implementation): MSQPayClient & 타입 정의 완료
@@ -405,6 +429,7 @@ const ERROR_CODES = {
 - ✅ Phase 6 (Git Operations): feature/SPEC-SDK-001 브랜치 & 커밋 완료
 
 **Quality Metrics**:
+
 - Test Coverage: 100%
 - TypeScript Errors: 0
 - External Dependencies: 0

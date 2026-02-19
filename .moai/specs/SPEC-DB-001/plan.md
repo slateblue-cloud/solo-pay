@@ -230,10 +230,10 @@ DatabaseService 구현 및 라우트 수정
 
 **Task 4.1: 마스터 데이터 서비스 단위 테스트**
 
-- 파일: packages/pay-server/src/services/__tests__/chain.service.test.ts
-- 파일: packages/pay-server/src/services/__tests__/token.service.test.ts
-- 파일: packages/pay-server/src/services/__tests__/merchant.service.test.ts
-- 파일: packages/pay-server/src/services/__tests__/payment-method.service.test.ts
+- 파일: packages/pay-server/src/services/**tests**/chain.service.test.ts
+- 파일: packages/pay-server/src/services/**tests**/token.service.test.ts
+- 파일: packages/pay-server/src/services/**tests**/merchant.service.test.ts
+- 파일: packages/pay-server/src/services/**tests**/payment-method.service.test.ts
 - 테스트 케이스
   - CRUD 정상 동작
   - Soft Delete 동작
@@ -242,7 +242,7 @@ DatabaseService 구현 및 라우트 수정
 
 **Task 4.2: PaymentService 단위 테스트**
 
-- 파일: packages/pay-server/src/services/__tests__/payment.service.test.ts
+- 파일: packages/pay-server/src/services/**tests**/payment.service.test.ts
 - 테스트 케이스
   - createPayment 성공/실패
   - getPaymentByHash 캐시 히트/미스
@@ -252,7 +252,7 @@ DatabaseService 구현 및 라우트 수정
 
 **Task 4.3: RelayService 단위 테스트**
 
-- 파일: packages/pay-server/src/services/__tests__/relay.service.test.ts
+- 파일: packages/pay-server/src/services/**tests**/relay.service.test.ts
 - 테스트 케이스
   - createRelayRequest 성공
   - updateTxHash 성공
@@ -260,9 +260,9 @@ DatabaseService 구현 및 라우트 수정
 
 **Task 4.4: 라우트 통합 테스트**
 
-- 파일: packages/pay-server/src/routes/payments/__tests__/create.test.ts
-- 파일: packages/pay-server/src/routes/payments/__tests__/status.test.ts
-- 파일: packages/pay-server/src/routes/payments/__tests__/gasless.test.ts
+- 파일: packages/pay-server/src/routes/payments/**tests**/create.test.ts
+- 파일: packages/pay-server/src/routes/payments/**tests**/status.test.ts
+- 파일: packages/pay-server/src/routes/payments/**tests**/gasless.test.ts
 - 테스트 케이스
   - 결제 생성 → DB 저장 확인
   - 결제 상태 조회 → chainId 동적 반환
