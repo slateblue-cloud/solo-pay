@@ -22,7 +22,7 @@ const roastBgMap: Record<string, string> = {
   'Dark Roast': 'bg-roast-dark',
 };
 
-export default function ProductCard({ product, index = 0 }: { product: Product; index?: number }) {
+export default function ProductCard({ product, index = 0, widgetUrl, publicKey }: { product: Product; index?: number; widgetUrl: string; publicKey: string }) {
   const [isWidgetOpen, setIsWidgetOpen] = useState(false);
   const [paymentId, setPaymentId] = useState<string | null>(null);
   const [tokenAddress, setTokenAddress] = useState<string | null>(null);
@@ -107,6 +107,8 @@ export default function ProductCard({ product, index = 0 }: { product: Product; 
           product={product}
           paymentId={paymentId}
           tokenAddress={tokenAddress}
+          widgetUrl={widgetUrl}
+          publicKey={publicKey}
           onClose={() => setIsWidgetOpen(false)}
         />
       )}
