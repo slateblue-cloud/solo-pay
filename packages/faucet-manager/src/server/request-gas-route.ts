@@ -33,7 +33,7 @@ export async function registerRequestGasRoute(
         tags: ['Payments'],
         summary: 'Request one-time gas grant (faucet)',
         description:
-          'Sends native token to wallet for approve gas. Requires x-public-key and Origin. Conditions: payment exists, token balance >= amount, native balance < approve cost, no prior grant for (wallet, chain).',
+          'Sends native token to wallet for approve gas via the relayer API (oz-relayer funds). Requires x-public-key and Origin. Conditions: payment exists, token balance >= amount, native balance < approve cost, no prior grant for (wallet, chain).',
         headers: {
           type: 'object',
           required: ['x-public-key', 'origin'],

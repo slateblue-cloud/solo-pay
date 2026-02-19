@@ -5,7 +5,8 @@ import swagger from '@fastify/swagger';
 import swaggerUi from '@fastify/swagger-ui';
 import { getPrismaClient, disconnectPrisma } from './db/client';
 import { createPublicAuthMiddleware } from './server/auth';
-import { createBlockchainService, createSendNative } from './server/blockchain';
+import { createBlockchainService } from './server/blockchain';
+import { createSendNativeViaRelayer } from './server/relayer-client';
 import { registerRequestGasRoute } from './server/request-gas-route';
 import { swaggerConfig, swaggerUiConfig } from './server/swagger.config';
 
@@ -15,13 +16,14 @@ async function start(): Promise<void> {
   const blockchainService = createBlockchainService(prisma);
   await blockchainService.loadChains();
 
-  const faucetPrivateKey = process.env.FAUCET_PRIVATE_KEY as `0x${string}` | undefined;
-  if (!faucetPrivateKey) {
-    console.error('FAUCET_PRIVATE_KEY is required');
+  const relayApiUrl = process.env.RELAY_API_URL;
+  if (!relayApiUrl) {
+    console.error('RELAY_API_URL is required');
     process.exit(1);
   }
 
-  const sendNative = createSendNative(prisma, faucetPrivateKey);
+  const relayApiKey = process.env.RELAY_API_KEY;
+  const sendNative = createSendNativeViaRelayer(relayApiUrl, relayApiKey);
 
   const app = Fastify({ logger: true });
   await app.register(cors, { origin: true });

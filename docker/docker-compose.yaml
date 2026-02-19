@@ -150,7 +150,7 @@ services:
     networks:
       - solo-pay-network
 
-  # Faucet Manager (one-time gas grant per wallet per chain)
+  # Faucet Manager (one-time gas grant per wallet per chain; uses relayer's funds)
   faucet-manager:
     build:
       context: ..
@@ -166,8 +166,9 @@ services:
       PORT: 3002
       HOST: 0.0.0.0
       DATABASE_URL: mysql://solopay:pass@mysql:3306/solopay
-      # Same dev account as relayer for local testing (faucet wallet)
-      FAUCET_PRIVATE_KEY: '0x5de4111afa1a4b94908f83103eb1f1706367c2e68ca870fc3fb9a804cdab365a'
+      # Relayer API: faucet sends gas via relayer (simple-relayer in dev, solo-relayer-service in prod)
+      RELAY_API_URL: http://simple-relayer:3001
+      # RELAY_API_KEY: optional; required for production relay-api
     depends_on:
       mysql:
         condition: service_healthy
