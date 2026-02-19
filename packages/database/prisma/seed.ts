@@ -429,7 +429,7 @@ async function main() {
 
   for (const token of tokens) {
     await prisma.token.upsert({
-      where: { id: token.id, chain_id_address: { chain_id: token.chain_id, address: token.address } },
+      where: { id: token.id },
       update: token as TokenUpdateInput,
       create: token as TokenCreateInput,
     });
@@ -447,7 +447,7 @@ async function main() {
 
   for (const pm of paymentMethods) {
     await prisma.merchantPaymentMethod.upsert({
-      where: { id: pm.id, merchant_id_token_id: { merchant_id: pm.merchant_id, token_id: pm.token_id } },
+      where: { id: pm.id },
       update: {},
       create: pm,
     });
