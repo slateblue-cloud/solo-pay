@@ -24,6 +24,8 @@ export interface WidgetUrlParams {
   failUrl: string;
   /** Fiat currency code (optional, e.g., USD, KRW) */
   currency?: string;
+  /** If true, only connect wallet — no gateway API or payment flow */
+  walletOnly?: boolean;
 }
 
 /**
