@@ -42,6 +42,7 @@ COPY packages/faucet-manager ./packages/faucet-manager
 
 # Sample merchant has its own independent schema (separate database)
 COPY packages/sample-merchant/prisma ./packages/sample-merchant/prisma
+COPY packages/sample-merchant/prisma.config.ts ./packages/sample-merchant/prisma.config.ts
 RUN cd /app/packages/sample-merchant && pnpm exec prisma generate
 
 # Helper script for copying .prisma/client to deploy targets
@@ -258,11 +259,17 @@ ENV NEXT_PUBLIC_WIDGET_URL=${NEXT_PUBLIC_WIDGET_URL}
 WORKDIR /app/packages/sample-merchant
 RUN pnpm build
 
-# === Sample Merchant DB Init (db push + seed) ===
-# Runs from full build stage (has all deps including prisma + generated client)
-FROM sample-merchant-builder AS sample-merchant-init
-WORKDIR /app/packages/sample-merchant
-CMD ["sh", "-c", "pnpm exec prisma db push && pnpm exec tsx prisma/seed.ts"]
+# === Sample Merchant DB Init (lightweight runtime) ===
+FROM node:20-alpine AS sample-merchant-init
+
+WORKDIR /app
+COPY --from=deps /app/packages/sample-merchant/prisma ./prisma
+COPY --from=deps /app/packages/sample-merchant/prisma.config.ts ./prisma.config.ts
+COPY --from=deps /app/packages/sample-merchant/app/generated ./app/generated
+RUN npm install prisma@7.4.0 @prisma/client@7.4.0 @prisma/adapter-mariadb@7.4.0 tsx@4
+
+ENV NODE_ENV=production
+CMD ["sh", "-c", "npx prisma db push && npx tsx prisma/seed.ts"]
 
 # === Sample Merchant Runtime ===
 # Uses Next.js standalone output with outputFileTracingRoot set to monorepo root.
