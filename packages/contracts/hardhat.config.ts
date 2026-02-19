@@ -11,10 +11,6 @@ const PRIVATE_KEY =
 // Etherscan API v2: Single API key for all 60+ supported chains
 const ETHERSCAN_API_KEY = process.env.ETHERSCAN_API_KEY || '';
 
-// Dynamic network configuration
-const RPC_URL = process.env.RPC_URL;
-const CHAIN_ID = process.env.CHAIN_ID ? parseInt(process.env.CHAIN_ID) : undefined;
-
 const config: HardhatUserConfig = {
   solidity: {
     version: '0.8.24',
@@ -37,23 +33,36 @@ const config: HardhatUserConfig = {
     localhost: {
       url: process.env.RPC_URL || 'http://127.0.0.1:8545',
     },
-    // Default network: Configure via RPC_URL and CHAIN_ID environment variables
-    // Supported chains (set CHAIN_ID):
-    //   - Polygon Amoy: 80002 (Testnet)
-    //   - Polygon: 137 (Mainnet)
-    //   - Ethereum Sepolia: 11155111 (Testnet)
-    //   - Ethereum: 1 (Mainnet)
-    //   - BNB Testnet: 97 (Testnet)
-    //   - BNB: 56 (Mainnet)
-    ...(RPC_URL && CHAIN_ID
-      ? {
-          default: {
-            url: RPC_URL,
-            chainId: CHAIN_ID,
-            accounts: [PRIVATE_KEY],
-          },
-        }
-      : {}),
+    polygonAmoy: {
+      url: 'https://polygon-amoy-bor-rpc.publicnode.com',
+      chainId: 80002,
+      accounts: [PRIVATE_KEY],
+    },
+    polygon: {
+      url: 'https://polygon-bor-rpc.publicnode.com',
+      chainId: 137,
+      accounts: [PRIVATE_KEY],
+    },
+    ethereumSepolia: {
+      url: 'https://rpc.sepolia.org',
+      chainId: 11155111,
+      accounts: [PRIVATE_KEY],
+    },
+    ethereum: {
+      url: 'https://cloudflare-eth.com',
+      chainId: 1,
+      accounts: [PRIVATE_KEY],
+    },
+    bnbTestnet: {
+      url: 'https://data-seed-prebsc-1-s1.binance.org:8545',
+      chainId: 97,
+      accounts: [PRIVATE_KEY],
+    },
+    bnb: {
+      url: 'https://bsc-dataseed.binance.org',
+      chainId: 56,
+      accounts: [PRIVATE_KEY],
+    },
   },
   etherscan: {
     apiKey: ETHERSCAN_API_KEY,
