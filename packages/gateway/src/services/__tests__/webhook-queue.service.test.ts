@@ -36,7 +36,6 @@ describe('webhook-queue.service', () => {
     api_key_hash: 'hash',
     public_key: null,
     public_key_hash: null,
-    allowed_domains: null,
     is_enabled: true,
     is_deleted: false,
     webhook_url: 'https://merchant.example/webhook',

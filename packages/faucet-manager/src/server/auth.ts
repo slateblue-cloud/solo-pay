@@ -9,7 +9,6 @@ export interface Merchant {
   chain_id: number;
   public_key: string | null;
   public_key_hash: string | null;
-  allowed_domains: unknown;
   is_enabled: boolean;
   is_deleted: boolean;
 }
@@ -19,6 +18,8 @@ declare module 'fastify' {
     merchant?: Merchant;
   }
 }
+
+const ALLOWED_WIDGET_ORIGIN = (process.env.ALLOWED_WIDGET_ORIGIN || '').trim();
 
 function hashPublicKey(publicKey: string): string {
   return crypto.createHash('sha256').update(publicKey).digest('hex');
@@ -55,20 +56,14 @@ export function createPublicAuthMiddleware(prisma: PrismaClient) {
         });
       }
 
-      const allowedDomains = (merchant.allowed_domains as string[] | null) ?? [];
-      if (allowedDomains.length === 0) {
-        return reply.code(403).send({
-          code: 'FORBIDDEN',
-          message: 'No allowed domains configured for this public key',
-        });
-      }
-
-      const origin = request.headers['origin'] as string | undefined;
-      if (!origin || !allowedDomains.includes(origin)) {
-        return reply.code(403).send({
-          code: 'FORBIDDEN',
-          message: 'Origin not allowed for this public key',
-        });
+      if (ALLOWED_WIDGET_ORIGIN) {
+        const origin = (request.headers['origin'] as string | undefined)?.trim() || '';
+        if (!origin || origin !== ALLOWED_WIDGET_ORIGIN) {
+          return reply.code(403).send({
+            code: 'FORBIDDEN',
+            message: 'Origin not allowed',
+          });
+        }
       }
 
       (request as FastifyRequest & { merchant: Merchant }).merchant = merchant as Merchant;

@@ -77,7 +77,6 @@ describe('GET /payments/:id', () => {
       findByPublicKey: vi.fn().mockResolvedValue({
         id: 1,
         webhook_url: 'https://merchant.example/webhook',
-        allowed_domains: [TEST_ORIGIN],
       }),
     };
 
@@ -106,15 +105,13 @@ describe('GET /payments/:id', () => {
       expect(response.statusCode).toBeLessThan(500);
     });
 
-    it('허용되지 않은 origin으로 요청하면 403을 반환해야 함', async () => {
+    it('ALLOWED_WIDGET_ORIGIN 미설정 시 origin 무관하게 통과해야 함', async () => {
       const response = await app.inject({
         method: 'GET',
         url: `${API_V1_BASE_PATH}/payments/payment-123`,
-        headers: { 'x-public-key': TEST_PUBLIC_KEY, origin: 'https://not-allowed.example.com' },
+        headers: { 'x-public-key': TEST_PUBLIC_KEY, origin: 'https://any-origin.example.com' },
       });
-      expect(response.statusCode).toBe(403);
-      const body = JSON.parse(response.body);
-      expect(body.code).toBe('FORBIDDEN');
+      expect(response.statusCode).not.toBe(403);
     });
   });
 

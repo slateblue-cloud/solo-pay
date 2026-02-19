@@ -191,16 +191,6 @@ export class MerchantService {
     });
   }
 
-  /**
-   * Updates the list of domains allowed for public key usage (client-side integration).
-   */
-  async updateAllowedDomains(merchantId: number, domains: string[]): Promise<Merchant> {
-    return this.prisma.merchant.update({
-      where: { id: merchantId },
-      data: { allowed_domains: domains },
-    });
-  }
-
   async softDelete(id: number): Promise<Merchant> {
     return this.prisma.merchant.update({
       where: { id },

@@ -47,11 +47,11 @@ export async function createPaymentRoute(
         tags: ['Payment'],
         summary: 'Create payment (public key + Origin)',
         description: `
-Creates a payment. Single endpoint for both widget and backend. Uses Public Key auth and Origin validation.
+Creates a payment. Single endpoint for both widget and backend. Uses Public Key auth.
 
-**Headers (required):** \`x-public-key\` = public key (pk_live_xxx or pk_test_xxx). \`Origin\` = request origin; must **exactly** match one of merchant \`allowed_domains\` (no trailing slash). In a browser the browser sets Origin automatically; in server-to-server or Swagger/curl set it manually to one of your allowed domains.
+**Headers (required):** \`x-public-key\` = public key (pk_live_xxx or pk_test_xxx). \`Origin\` is verified against ALLOWED_WIDGET_ORIGIN when configured.
 
-**Flow:** Public Key + Origin -> merchant -> token from request body (must be whitelisted and enabled for merchant) -> amount to wei -> payment_hash -> Payment record -> server signature.
+**Flow:** Public Key -> merchant -> token from request body (must be whitelisted and enabled for merchant) -> amount to wei -> payment_hash -> Payment record -> server signature.
 
 **Currency conversion:** When \`currency\` is provided (e.g., USD, KRW), \`amount\` is treated as fiat amount and converted to token amount using price-service. Without \`currency\`, \`amount\` is the token amount (existing behavior).
 
@@ -67,7 +67,7 @@ Creates a payment. Single endpoint for both widget and backend. Uses Public Key 
             origin: {
               type: 'string',
               description:
-                'Request origin. Must exactly match one of merchant allowed_domains (e.g. http://localhost:3000). In browser this is set automatically; in server-to-server/Swagger set it to the same value as one of your allowed_domains.',
+                'Request origin. Verified against ALLOWED_WIDGET_ORIGIN when configured. In browser this is set automatically.',
             },
           },
         },
@@ -242,21 +242,8 @@ Creates a payment. Single endpoint for both widget and backend. Uses Public Key 
           });
         }
 
-        let tokenDecimals = token.decimals;
-        let tokenSymbol = token.symbol;
-        try {
-          tokenDecimals = await blockchainService.getDecimals(chainId, tokenAddress);
-        } catch (err) {
-          app.log.warn({ err, chainId, tokenAddress }, 'getDecimals failed, using DB value');
-        }
-        try {
-          tokenSymbol = await blockchainService.getTokenSymbolOnChain(chainId, tokenAddress);
-        } catch (err) {
-          app.log.warn(
-            { err, chainId, tokenAddress },
-            'getTokenSymbolOnChain failed, using DB value'
-          );
-        }
+        const tokenDecimals = token.decimals;
+        const tokenSymbol = token.symbol;
 
         // Currency conversion: when currency is provided, convert fiat amount to token amount
         let tokenAmount = validated.amount;
