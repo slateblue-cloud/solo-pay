@@ -62,15 +62,26 @@ FROM deps AS contracts
 WORKDIR /app/packages/contracts
 CMD ["npx", "hardhat", "run", "scripts/check-and-deploy.ts", "--network", "localhost"]
 
-# === Database Migration ===
-FROM deps AS database-sync
+# === Database Sync Builder ===
+FROM deps AS database-sync-builder
+
+WORKDIR /app
+RUN pnpm --filter @solo-pay/database deploy --legacy /deploy/database
+RUN cp -r /app/packages/database/dist /deploy/database/dist
+RUN cp -r /app/packages/database/prisma /deploy/database/prisma
+RUN cp -r /app/packages/database/prisma.config.ts /deploy/database/prisma.config.ts
+RUN cp -r /app/packages/database/src/generated /deploy/database/src/generated
+
+# === Database Migration (lightweight runtime) ===
+FROM node:20-alpine AS database-sync
 
 RUN apk add --no-cache curl
+WORKDIR /app
+COPY --from=database-sync-builder /deploy/database .
 
-WORKDIR /app/packages/database
 ENV NODE_ENV=production
 
-CMD ["sh", "-c", "npx prisma db push && pnpm exec tsx prisma/seed.ts"]
+CMD ["sh", "-c", "npx prisma db push"]
 
 # === Webhook Manager Builder + Deploy ===
 FROM deps AS webhook-manager-builder

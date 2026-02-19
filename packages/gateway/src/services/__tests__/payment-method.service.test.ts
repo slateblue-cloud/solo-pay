@@ -314,6 +314,7 @@ describe('PaymentMethodService', () => {
           rpc_url: 'http://localhost:8545',
           gateway_address: '0xGateway',
           forwarder_address: '0xForwarder',
+          relayer_url: null,
           created_at: new Date(),
           updated_at: new Date(),
           deleted_at: null,

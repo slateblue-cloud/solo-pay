@@ -25,7 +25,7 @@ export interface SubmitGaslessRequest {
 
 export async function submitGaslessRoute(
   app: FastifyInstance,
-  relayerService: RelayerService,
+  relayerServices: Map<number, RelayerService>,
   relayService: RelayService,
   paymentService: PaymentService,
   merchantService: MerchantService
@@ -152,6 +152,15 @@ Submits a gasless (meta-transaction) payment using ERC-2771 forwarder.
           return reply.code(400).send({
             code: 'PAYMENT_EXPIRED',
             message: '결제가 만료되었습니다',
+          });
+        }
+
+        // Resolve relayer for this payment's chain
+        const relayerService = relayerServices.get(payment.network_id);
+        if (!relayerService) {
+          return reply.code(400).send({
+            code: 'RELAYER_NOT_CONFIGURED',
+            message: `No relayer configured for chain ${payment.network_id}`,
           });
         }
 

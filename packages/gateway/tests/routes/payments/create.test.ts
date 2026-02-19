@@ -22,6 +22,7 @@ const mockChainTokens = [
     rpc_url: 'https://rpc-amoy.polygon.technology',
     gateway_address: '0x0000000000000000000000000000000000000000',
     forwarder_address: '0x0000000000000000000000000000000000000000',
+    relayer_url: null,
     is_testnet: true,
     is_enabled: true,
     is_deleted: false,
@@ -51,6 +52,7 @@ const mockChainTokens = [
     rpc_url: 'http://127.0.0.1:8545',
     gateway_address: '0xCf7Ed3AccA5a467e9e704C703E8D87F634fB0Fc9',
     forwarder_address: '0x5FbDB2315678afecb367f032d93F642f64180aa3',
+    relayer_url: null,
     is_testnet: true,
     is_enabled: true,
     is_deleted: false,
@@ -90,6 +92,7 @@ const mockChain = {
   network_id: 80002,
   gateway_address: '0x0000000000000000000000000000000000000000',
   forwarder_address: '0x0000000000000000000000000000000000000000',
+  relayer_url: null,
 };
 
 const mockChain31337 = {
@@ -97,6 +100,7 @@ const mockChain31337 = {
   network_id: 31337,
   gateway_address: '0xCf7Ed3AccA5a467e9e704C703E8D87F634fB0Fc9',
   forwarder_address: '0x5FbDB2315678afecb367f032d93F642f64180aa3',
+  relayer_url: null,
 };
 
 const mockToken = {

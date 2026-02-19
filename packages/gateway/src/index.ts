@@ -57,12 +57,8 @@ let blockchainService: BlockchainService;
 // Server signing services (one per chain)
 let signingServices: Map<number, ServerSigningService>;
 
-// Initialize Relayer service for gasless transactions
-// Production: msq-relayer-service API
-// Local: http://simple-relayer:3001
-const relayerApiUrl = process.env.RELAY_API_URL || 'http://localhost:3001';
-const relayerApiKey = process.env.RELAY_API_KEY || '';
-const relayerService = new RelayerService(relayerApiUrl, relayerApiKey);
+// Relayer services (one per chain, initialized from DB)
+let relayerServices: Map<number, RelayerService>;
 
 // Initialize other database services
 const paymentService = new PaymentService(prisma);
@@ -156,7 +152,7 @@ const registerRoutes = async () => {
       await getPaymentStatusRoute(scope, blockchainService, paymentService, merchantService);
       await submitGaslessRoute(
         scope,
-        relayerService,
+        relayerServices,
         relayService,
         paymentService,
         merchantService
@@ -164,7 +160,7 @@ const registerRoutes = async () => {
       await getPaymentRelayStatusRoute(
         scope,
         relayService,
-        relayerService,
+        relayerServices,
         paymentService,
         merchantService
       );
@@ -274,6 +270,20 @@ const start = async () => {
       }
     } else {
       logger.warn('⚠️  SIGNER_PRIVATE_KEY not set - server signatures will not be generated');
+    }
+
+    // Initialize relayer services for each chain with relayer_url
+    relayerServices = new Map();
+    for (const chain of chainsWithTokens) {
+      if (chain.relayer_url) {
+        const apiKey = process.env[`RELAY_API_KEY_${chain.network_id}`] || '';
+        const service = new RelayerService(chain.relayer_url, apiKey);
+        relayerServices.set(chain.network_id, service);
+        logger.info(`🔄 Relayer service initialized for chain ${chain.network_id} (${chain.name})`);
+      }
+    }
+    if (relayerServices.size === 0) {
+      logger.warn('⚠️  No chains with relayer_url found - gasless transactions will not work');
     }
 
     // Register all routes
