@@ -27,7 +27,7 @@ function mapRelayerStatusToDb(
 export async function getRelayStatusRoute(
   app: FastifyInstance,
   relayService: RelayService,
-  relayerService: RelayerService,
+  relayerServices: Map<number, RelayerService>,
   paymentService: PaymentService,
   merchantService: MerchantService
 ) {
@@ -140,7 +140,8 @@ Returns the latest relay transaction status for a payment.
 
         // Sync status from relayer when still in progress (sync-on-read).
         // relay = our DB record; relayer = external service. latest.relay_ref = relayer's transactionId.
-        if (latest.status === 'QUEUED' || latest.status === 'SUBMITTED') {
+        const relayerService = relayerServices.get(payment.network_id);
+        if (relayerService && (latest.status === 'QUEUED' || latest.status === 'SUBMITTED')) {
           try {
             const relayerStatus = await relayerService.getRelayStatus(latest.relay_ref);
             const newStatus = mapRelayerStatusToDb(relayerStatus.status);

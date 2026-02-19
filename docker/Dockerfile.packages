@@ -70,7 +70,7 @@ RUN apk add --no-cache curl
 WORKDIR /app/packages/database
 ENV NODE_ENV=production
 
-CMD ["sh", "-c", "npx prisma db push && pnpm exec tsx prisma/seed.ts"]
+CMD ["sh", "-c", "npx prisma db push"]
 
 # === Webhook Manager Builder + Deploy ===
 FROM deps AS webhook-manager-builder

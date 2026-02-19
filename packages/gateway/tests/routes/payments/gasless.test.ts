@@ -88,7 +88,7 @@ const mockPaymentData = {
   merchant_id: 1,
   status: 'CREATED',
   amount: '1000000000000000000', // 1 token in wei (18 decimals)
-  chain_id: 80002,
+  network_id: 80002,
   token_address: '0xE4C687167705Abf55d709395f92e254bdF5825a2',
   recipient_address: '0x70997970C51812dc3A010C7d01b50e0d17dc79C8',
 };
@@ -96,6 +96,7 @@ const mockPaymentData = {
 describe('POST /payments/:id/relay', () => {
   let app: FastifyInstance;
   let relayerService: Partial<RelayerService>;
+  let relayerServices: Map<number, RelayerService>;
   let relayService: Partial<RelayService>;
   let paymentService: Partial<PaymentService>;
   let merchantService: Partial<MerchantService>;
@@ -136,11 +137,14 @@ describe('POST /payments/:id/relay', () => {
       findByPublicKey: vi.fn().mockResolvedValue(mockMerchant),
     };
 
+    relayerServices = new Map();
+    relayerServices.set(80002, relayerService as RelayerService);
+
     await app.register(
       async (scope) => {
         await submitGaslessRoute(
           scope,
-          relayerService as RelayerService,
+          relayerServices,
           relayService as RelayService,
           paymentService as PaymentService,
           merchantService as MerchantService

@@ -52,6 +52,7 @@ model Chain {
   rpc_url           String    @db.VarChar(500)
   gateway_address   String?   @db.VarChar(42) // PaymentGateway proxy address
   forwarder_address String?   @db.VarChar(42) // ERC2771Forwarder address
+  relayer_url       String?   @db.VarChar(500) // Relayer API endpoint for this chain
   is_testnet        Boolean   @default(false)
   is_enabled        Boolean   @default(true)
   is_deleted        Boolean   @default(false)
