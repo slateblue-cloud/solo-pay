@@ -16,8 +16,6 @@ export function AppKitConnectProvider({
   children: ReactNode;
 }) {
   return (
-    <AppKitConnectContext.Provider value={useAppKit}>
-      {children}
-    </AppKitConnectContext.Provider>
+    <AppKitConnectContext.Provider value={useAppKit}>{children}</AppKitConnectContext.Provider>
   );
 }

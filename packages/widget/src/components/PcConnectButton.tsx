@@ -78,8 +78,6 @@ export function PcConnectButton({ className }: { className?: string }) {
   };
 
   return (
-    <div className={['w-full', className].filter(Boolean).join(' ')}>
-      {renderWalletButtons()}
-    </div>
+    <div className={['w-full', className].filter(Boolean).join(' ')}>{renderWalletButtons()}</div>
   );
 }

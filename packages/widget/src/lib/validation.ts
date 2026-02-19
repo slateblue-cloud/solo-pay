@@ -32,8 +32,7 @@ export function validateWidgetUrlParams(
   const failUrl = searchParams.get('failUrl');
   const currency = searchParams.get('currency');
   const walletOnlyRaw = searchParams.get('walletOnly');
-  const walletOnly =
-    walletOnlyRaw === '1' || walletOnlyRaw === 'true' || walletOnlyRaw === 'yes';
+  const walletOnly = walletOnlyRaw === '1' || walletOnlyRaw === 'true' || walletOnlyRaw === 'yes';
 
   // Validate required fields
   if (!pk || pk.trim() === '') {

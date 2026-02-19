@@ -56,11 +56,7 @@ export function ConnectWalletButton({ className }: { className?: string }) {
       </div>
 
       <div className="flex justify-center w-full">
-        {isAppKit ? (
-          <MobileConnectButton />
-        ) : (
-          <PcConnectButton className={className} />
-        )}
+        {isAppKit ? <MobileConnectButton /> : <PcConnectButton className={className} />}
       </div>
     </div>
   );
