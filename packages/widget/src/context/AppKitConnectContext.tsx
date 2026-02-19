@@ -1,8 +1,8 @@
 'use client';
 
-import { createContext, useContext, type ReactNode } from 'react';
+import { createContext, createElement, useContext, type ReactNode } from 'react';
 
-const AppKitConnectContext = createContext(false);
+const AppKitConnectContext = createContext<boolean>(false);
 
 export function useAppKitConnect(): boolean {
   return useContext(AppKitConnectContext);
@@ -13,9 +13,7 @@ export function AppKitConnectProvider({
   children,
 }: {
   useAppKit: boolean;
-  children: ReactNode;
-}) {
-  return (
-    <AppKitConnectContext.Provider value={useAppKit}>{children}</AppKitConnectContext.Provider>
-  );
+  children?: ReactNode;
+}): ReactNode {
+  return createElement(AppKitConnectContext.Provider, { value: useAppKit }, children);
 }

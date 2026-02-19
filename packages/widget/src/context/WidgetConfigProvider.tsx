@@ -5,13 +5,13 @@
  * Analytics/telemetry disabled (features.analytics, enableCoinbase: false). Blocked third-party requests (e.g. pulse) are harmless.
  */
 import { useRouter } from 'next/router';
-import { useMemo, useEffect, useRef, type ReactNode } from 'react';
+import { createElement, useMemo, useEffect, useRef, type ReactNode } from 'react';
 import { WagmiProvider } from 'wagmi';
 import { createAppKit } from '@reown/appkit/react';
 import { mainnet } from '@reown/appkit/networks';
 import { createAppKitConfig, fallbackConfig, appkitNetworks } from '../appkit-wagmi';
 import { getMetadata, APPKIT_WALLET_IDS } from '../appkit-config';
-import { AppKitConnectProvider } from './AppKitConnectContext';
+import { AppKitConnectProvider as AppKitConnectProviderComponent } from './AppKitConnectContext';
 
 type CreateAppKitOptions = Parameters<typeof createAppKit>[0];
 
@@ -70,9 +70,9 @@ export default function WidgetConfigProvider({ children }: { children: ReactNode
   }, [adapter, projectId]);
 
   const useAppKit = adapter !== null;
-  return (
-    <AppKitConnectProvider useAppKit={useAppKit}>
-      <WagmiProvider config={config}>{children}</WagmiProvider>
-    </AppKitConnectProvider>
-  );
+  return createElement(
+    AppKitConnectProviderComponent,
+    { useAppKit },
+    createElement(WagmiProvider, { config }, children)
+  ) as any;
 }
