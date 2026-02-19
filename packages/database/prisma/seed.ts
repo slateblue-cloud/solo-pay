@@ -350,7 +350,14 @@ const currencies: CurrencyModel[] = [
     created_at: new Date(),
     updated_at: new Date(),
   },
-  { id: 3, code: 'EUR', name: 'Euro', symbol: '€', created_at: new Date(), updated_at: new Date() },
+  {
+    id: 3,
+    code: 'EUR',
+    name: 'Euro',
+    symbol: '€',
+    created_at: new Date(),
+    updated_at: new Date(),
+  },
   {
     id: 4,
     code: 'JPY',
