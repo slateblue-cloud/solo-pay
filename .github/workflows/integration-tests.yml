@@ -111,9 +111,9 @@ jobs:
           cd packages/contracts
           pnpm exec hardhat run scripts/check-and-deploy.ts --network localhost
 
-      - name: Update database with localhost RPC
+      - name: Update database with localhost URLs
         run: |
-          mysql -h 127.0.0.1 -u root -ppass solopay -e "UPDATE chains SET rpc_url = '$BLOCKCHAIN_RPC_URL' WHERE network_id = $CHAIN_ID;"
+          mysql -h 127.0.0.1 -u root -ppass solopay -e "UPDATE chains SET rpc_url = '$BLOCKCHAIN_RPC_URL', relayer_url = '$RELAY_API_URL' WHERE network_id = $CHAIN_ID;"
 
       - name: Start gateway
         env:
