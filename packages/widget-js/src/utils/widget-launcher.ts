@@ -119,11 +119,10 @@ export class WidgetLauncher {
       this.log('Widget message:', data.type, data.status ?? '');
       window.removeEventListener('message', handleMessage);
       this.pendingFailUrl = null;
-      this.clearPopupCheck();
       if (this.popupWindow && !this.popupWindow.closed) {
         this.popupWindow.close();
       }
-      this.popupWindow = null;
+      this.clearPopupCheck();
       this.handleClose();
 
       // Redirect opener to success/fail URL so merchant page shows result
