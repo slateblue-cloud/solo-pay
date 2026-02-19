@@ -271,6 +271,7 @@ services:
       - '3005:3005'
     environment:
       NODE_ENV: production
+      GATEWAY_PUBLIC_URL: http://localhost:3001
     depends_on:
       gateway:
         condition: service_healthy
@@ -310,7 +311,7 @@ services:
       SOLO_PAY_MERCHANT_KEY: merchant_sample_001
       SOLO_PAY_API_KEY: sample_api_key_001
       SOLO_PAY_PUBLIC_KEY: ${SOLO_PAY_PUBLIC_KEY:-pk_live_xqKZ6PpVdfUaaVBJhS6qI8RbUbZUbvSq}
-      WIDGET_URL: ${WIDGET_URL:-http://widget:3005}
+      WIDGET_PUBLIC_URL: ${WIDGET_PUBLIC_URL:-http://localhost:3005}
       GATEWAY_API_URL: http://gateway:3001
     depends_on:
       mysql:
