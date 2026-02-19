@@ -108,9 +108,9 @@ Opens the payment widget.
 
 **Options:**
 
-| Option    | Type         | Description                                |
-| --------- | ------------ | ------------------------------------------ |
-| `onClose` | `() => void` | Callback when the widget/popup is closed   |
+| Option    | Type         | Description                              |
+| --------- | ------------ | ---------------------------------------- |
+| `onClose` | `() => void` | Callback when the widget/popup is closed |
 
 ### `soloPay.getWidgetUrl(request)`
 

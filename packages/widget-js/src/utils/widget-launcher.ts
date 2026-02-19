@@ -114,7 +114,12 @@ export class WidgetLauncher {
       if (event.source !== this.popupWindow) return;
       if (event.origin !== widgetOrigin) return;
       const data = event.data;
-      if (!data || typeof data !== 'object' || (data.type !== 'payment_complete' && data.type !== 'wallet_connected')) return;
+      if (
+        !data ||
+        typeof data !== 'object' ||
+        (data.type !== 'payment_complete' && data.type !== 'wallet_connected')
+      )
+        return;
 
       this.log('Widget message:', data.type, data.status ?? '');
       window.removeEventListener('message', handleMessage);
