@@ -411,7 +411,7 @@ const currencies: CurrencyModel[] = [
 
 async function main() {
   for (const chain of chains) {
-    const { id, ...data } = chain
+    const { id, ...data } = chain;
     await prisma.chain.upsert({
       where: { id },
       update: data,
@@ -421,7 +421,7 @@ async function main() {
   console.log(`Seeded ${chains.length} chains`);
 
   for (const token of tokens) {
-    const { id, ...data } = token
+    const { id, ...data } = token;
     await prisma.token.upsert({
       where: { id },
       update: data,
@@ -431,8 +431,8 @@ async function main() {
   console.log(`Seeded ${tokens.length} tokens`);
 
   for (const merchant of merchants) {
-    const { id, allowed_domains, ...data } = merchant
-    const domains = allowed_domains ?? []
+    const { id, allowed_domains, ...data } = merchant;
+    const domains = allowed_domains ?? [];
     await prisma.merchant.upsert({
       where: { id },
       update: { allowed_domains: domains, ...data },
@@ -442,7 +442,7 @@ async function main() {
   console.log(`Seeded ${merchants.length} merchants`);
 
   for (const pm of paymentMethods) {
-    const { id, ...data } = pm
+    const { id, ...data } = pm;
     await prisma.merchantPaymentMethod.upsert({
       where: { id },
       update: data,
@@ -452,7 +452,7 @@ async function main() {
   console.log(`Seeded ${paymentMethods.length} payment methods`);
 
   for (const currency of currencies) {
-    const { id, ...data } = currency
+    const { id, ...data } = currency;
     await prisma.currency.upsert({
       where: { id },
       update: data,
