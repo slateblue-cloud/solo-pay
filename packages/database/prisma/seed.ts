@@ -5,10 +5,6 @@ import {
   CurrencyModel,
   TokenModel,
   MerchantModel,
-  MerchantUpdateInput,
-  MerchantCreateInput,
-  TokenUpdateInput,
-  TokenCreateInput,
   MerchantPaymentMethodModel,
 } from '../src/generated/prisma/internal/prismaNamespace';
 
@@ -415,48 +411,52 @@ const currencies: CurrencyModel[] = [
 
 async function main() {
   for (const chain of chains) {
-    const { id, network_id, ...data } = chain;
+    const { id, ...data } = chain;
     await prisma.chain.upsert({
-      where: { network_id },
+      where: { id },
       update: data,
-      create: { id, network_id, ...data },
+      create: chain,
     });
   }
   console.log(`Seeded ${chains.length} chains`);
 
   for (const token of tokens) {
+    const { id, ...data } = token;
     await prisma.token.upsert({
-      where: { id: token.id },
-      update: token as TokenUpdateInput,
-      create: token as TokenCreateInput,
+      where: { id },
+      update: data,
+      create: token,
     });
   }
   console.log(`Seeded ${tokens.length} tokens`);
 
   for (const merchant of merchants) {
+    const { id, allowed_domains, ...data } = merchant;
+    const domains = allowed_domains ?? [];
     await prisma.merchant.upsert({
-      where: { id: merchant.id },
-      update: merchant as MerchantUpdateInput,
-      create: merchant as MerchantCreateInput,
+      where: { id },
+      update: { allowed_domains: domains, ...data },
+      create: { id, allowed_domains: domains, ...data },
     });
   }
   console.log(`Seeded ${merchants.length} merchants`);
 
   for (const pm of paymentMethods) {
+    const { id, ...data } = pm;
     await prisma.merchantPaymentMethod.upsert({
-      where: { merchant_id_token_id: { merchant_id: pm.merchant_id, token_id: pm.token_id } },
-      update: {},
+      where: { id },
+      update: data,
       create: pm,
     });
   }
   console.log(`Seeded ${paymentMethods.length} payment methods`);
 
   for (const currency of currencies) {
-    const { id, code, ...data } = currency;
+    const { id, ...data } = currency;
     await prisma.currency.upsert({
-      where: { code },
+      where: { id },
       update: data,
-      create: { id, code, ...data },
+      create: currency,
     });
   }
   console.log(`Seeded ${currencies.length} currencies`);
