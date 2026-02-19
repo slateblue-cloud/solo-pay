@@ -1,3 +1,4 @@
+import getConfig from 'next/config';
 import type { WidgetUrlParams, PaymentDetails } from '../types';
 
 // ============================================================================
@@ -7,25 +8,15 @@ import type { WidgetUrlParams, PaymentDetails } from '../types';
 /** Base path for gateway API v1 (must match gateway mount). */
 const API_V1_BASE_PATH = '/api/v1';
 
-/**
- * Get gateway base URL (host only, no path).
- * NOTE: In Next.js, client-side code can only access env vars with NEXT_PUBLIC_ prefix.
- */
-function getApiUrl(): string {
-  return process.env.NEXT_PUBLIC_GATEWAY_API_URL || 'http://localhost:3001';
-}
-
-/** Full gateway API base URL for v1 endpoints (create, status, gasless, etc.). */
 function getGatewayApiBase(): string {
-  return `${getApiUrl()}${API_V1_BASE_PATH}`;
+  const { publicRuntimeConfig } = getConfig() || {};
+  const url = (publicRuntimeConfig?.gatewayApiUrl || 'http://localhost:3001').replace(/\/$/, '');
+  return `${url}${API_V1_BASE_PATH}`;
 }
 
-/**
- * Get Faucet (request-gas) API URL. Faucet-manager runs as a separate service.
- * Default: Docker host 3003; for local run set NEXT_PUBLIC_FAUCET_API_URL=http://localhost:3002.
- */
 function getFaucetApiUrl(): string {
-  return process.env.NEXT_PUBLIC_FAUCET_API_URL || 'http://localhost:3003';
+  const { publicRuntimeConfig } = getConfig() || {};
+  return (publicRuntimeConfig?.faucetApiUrl || 'http://localhost:3003').replace(/\/$/, '');
 }
 
 // ============================================================================

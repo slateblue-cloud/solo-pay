@@ -271,6 +271,7 @@ services:
       - '3005:3005'
     environment:
       NODE_ENV: production
+      GATEWAY_API_URL: http://localhost:3001
     depends_on:
       gateway:
         condition: service_healthy
