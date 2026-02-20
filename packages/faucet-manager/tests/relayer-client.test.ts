@@ -3,8 +3,12 @@ import { createSendNativeViaRelayer } from '../src/server/relayer-client';
 
 const BASE_URL = 'http://relayer:3001';
 
-const getConfigForChain = (baseUrl: string, apiKey?: string) => (chainId: number) =>
-  Promise.resolve({ baseUrl, apiKey } as { baseUrl: string; apiKey?: string });
+// Helper: returns same config for any chain (tests don't need per-chain config)
+const getConfigForChain =
+  (baseUrl: string, apiKey?: string) =>
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars -- signature requires chainId
+  (chainId: number) =>
+    Promise.resolve({ baseUrl, apiKey } as { baseUrl: string; apiKey?: string });
 
 describe('createSendNativeViaRelayer', () => {
   beforeEach(() => {
