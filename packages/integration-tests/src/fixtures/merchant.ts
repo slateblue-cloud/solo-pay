@@ -6,9 +6,9 @@ export interface MerchantFixture {
   chainId: number; // DB chain_id (logical reference to chains.id)
   networkId: number; // EIP-155 chain ID for blockchain
   webhookUrl?: string;
-  /** For POST /payments (public key auth). Must match DB public_key and allowed_domains. */
+  /** For POST /payments (public key auth). */
   publicKey?: string;
-  /** Origin for createPayment; must be in merchant allowed_domains. */
+  /** Origin for createPayment; verified against ALLOWED_WIDGET_ORIGIN on gateway. */
   origin?: string;
 }
 

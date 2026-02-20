@@ -833,7 +833,7 @@ describe('SoloPayClient', () => {
     });
   });
 
-  describe('createPayment without publicKey/origin', () => {
+  describe('createPayment without publicKey', () => {
     it('should throw error when publicKey is missing', async () => {
       const clientNoPublicKey = new SoloPayClient({
         environment: 'development',
@@ -848,11 +848,11 @@ describe('SoloPayClient', () => {
       };
 
       await expect(clientNoPublicKey.createPayment(params)).rejects.toThrow(
-        'requestWithPublicKey requires publicKey and origin in SoloPayConfig'
+        'requestWithPublicKey requires publicKey in SoloPayConfig'
       );
     });
 
-    it('should throw error when origin is missing', async () => {
+    it('should succeed when origin is not provided (origin is optional)', async () => {
       const clientNoOrigin = new SoloPayClient({
         environment: 'development',
         apiKey: 'test-api-key',
@@ -866,9 +866,13 @@ describe('SoloPayClient', () => {
         failUrl: 'https://example.com/fail',
       };
 
-      await expect(clientNoOrigin.createPayment(params)).rejects.toThrow(
-        'requestWithPublicKey requires publicKey and origin in SoloPayConfig'
-      );
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({ success: true, paymentId: '0x123' }),
+      });
+      const result = await clientNoOrigin.createPayment(params);
+      expect(result.paymentId).toBe('0x123');
     });
   });
 

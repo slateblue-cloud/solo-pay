@@ -36,12 +36,13 @@ export async function registerRequestGasRoute(
           'Sends native token to wallet for approve gas. Requires x-public-key and Origin. Conditions: payment exists, token balance >= amount, native balance < approve cost, no prior grant for (wallet, chain).',
         headers: {
           type: 'object',
-          required: ['x-public-key', 'origin'],
+          required: ['x-public-key'],
           properties: {
             'x-public-key': { type: 'string', description: 'Merchant public key (pk_live_xxx)' },
             origin: {
               type: 'string',
-              description: 'Request origin (must be in merchant allowed_domains)',
+              description:
+                'Request origin (verified against ALLOWED_WIDGET_ORIGIN when configured)',
             },
           },
         },
