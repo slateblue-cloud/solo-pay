@@ -21,6 +21,8 @@ interface GatewayPaymentResponse {
   tokenDecimals: number;
   txHash?: string;
   confirmedAt?: string;
+  currencyCode?: string;
+  fiatAmount?: string;
 }
 
 /**
@@ -92,14 +94,22 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Product not found' }, { status: 404 });
     }
 
-    const expectedWei = toWei(product.price, gatewayPayment.tokenDecimals);
-    const gatewayAmountWei = gatewayPayment.amount;
-
-    if (expectedWei !== gatewayAmountWei) {
-      console.error(
-        `[webhook] Amount mismatch: product price=${product.price}, expected wei=${expectedWei}, gateway wei=${gatewayAmountWei}`
-      );
-      return NextResponse.json({ error: 'Amount mismatch' }, { status: 400 });
+    if (gatewayPayment.currencyCode && gatewayPayment.fiatAmount) {
+      const fiatAmount = parseFloat(gatewayPayment.fiatAmount);
+      if (Math.abs(fiatAmount - product.price) > 1e-6) {
+        console.error(
+          `[webhook] Fiat amount mismatch: product price=${product.price} ${gatewayPayment.currencyCode}, gateway fiatAmount=${fiatAmount}`
+        );
+        return NextResponse.json({ error: 'Amount mismatch' }, { status: 400 });
+      }
+    } else {
+      const expectedWei = toWei(product.price, gatewayPayment.tokenDecimals);
+      if (expectedWei !== gatewayPayment.amount) {
+        console.error(
+          `[webhook] Wei amount mismatch: product price=${product.price}, expected=${expectedWei}, gateway=${gatewayPayment.amount}`
+        );
+        return NextResponse.json({ error: 'Amount mismatch' }, { status: 400 });
+      }
     }
 
     // 5. All checks passed — update local DB
