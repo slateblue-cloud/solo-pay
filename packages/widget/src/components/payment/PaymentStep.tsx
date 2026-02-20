@@ -193,6 +193,9 @@ export default function PaymentStep({ urlParams }: PaymentStepProps) {
     }
 
     if (!isSwitchingChain) {
+      // Wait until permit check finishes before deciding the next step
+      if (isPermitSupported === undefined) return;
+
       if (isPermitSupported) {
         setCurrentStep('payment-confirm');
       } else {
@@ -477,6 +480,15 @@ export default function PaymentStep({ urlParams }: PaymentStepProps) {
     if (!paymentDetails) return null;
     switch (currentStep) {
       case 'wallet-connect':
+        // Wallet connected but waiting for chain switch or permit check
+        if (isConnected && paymentDetails) {
+          return (
+            <div className="text-center py-8">
+              <div className="animate-spin w-8 h-8 border-2 border-blue-600 border-t-transparent rounded-full mx-auto mb-4" />
+              <p className="text-sm text-gray-600">Loading payment...</p>
+            </div>
+          );
+        }
         return <ConnectWalletButton />;
 
       case 'token-approval':
