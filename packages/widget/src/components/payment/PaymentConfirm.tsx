@@ -25,8 +25,6 @@ export default function PaymentConfirm({
   onChangeWallet,
   onCancel,
 }: PaymentConfirmProps) {
-  const hasError = !!error;
-
   return (
     <div className="w-full px-4 pt-0 pb-4 sm:px-8 sm:pt-0 sm:pb-8">
       {/* Title */}
@@ -126,19 +124,16 @@ export default function PaymentConfirm({
         </div>
       )}
 
-      {/* Pay Button */}
-      <button
-        type="button"
-        className={`w-full py-3 sm:py-3.5 rounded-xl text-white text-sm font-semibold transition-colors ${
-          hasError
-            ? 'bg-gray-400 cursor-not-allowed'
-            : 'bg-blue-600 hover:bg-blue-500 active:bg-blue-700 cursor-pointer'
-        }`}
-        onClick={onPay}
-        disabled={hasError}
-      >
-        Pay Now
-      </button>
+      {/* Pay Button (hidden when error is present) */}
+      {!error && (
+        <button
+          type="button"
+          className="w-full py-3 sm:py-3.5 rounded-xl text-white text-sm font-semibold transition-colors bg-blue-600 hover:bg-blue-500 active:bg-blue-700 cursor-pointer"
+          onClick={onPay}
+        >
+          Pay Now
+        </button>
+      )}
 
       {/* Cancel Button */}
       {onCancel && (
