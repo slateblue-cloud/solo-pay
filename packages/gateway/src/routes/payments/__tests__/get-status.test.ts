@@ -19,9 +19,11 @@ const mockMerchantService = {
 };
 
 vi.mock('../../../middleware/public-auth.middleware', () => ({
-  createPublicAuthMiddleware: vi.fn(() => async (request: { merchant: unknown }, _reply: unknown) => {
-    request.merchant = { id: 1, merchant_key: 'merchant_demo_001' };
-  }),
+  createPublicAuthMiddleware: vi.fn(
+    () => async (request: { merchant: unknown }, _reply: unknown) => {
+      request.merchant = { id: 1, merchant_key: 'merchant_demo_001' };
+    }
+  ),
 }));
 
 describe('GET /payments/:id', () => {

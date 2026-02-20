@@ -109,9 +109,9 @@ describe('PriceClient', () => {
         json: vi.fn().mockResolvedValue({ message: 'Internal server error' }),
       });
 
-      await expect(
-        priceClient.getTokenPrice(1, '0xtoken', 'USD')
-      ).rejects.toThrow('Internal server error');
+      await expect(priceClient.getTokenPrice(1, '0xtoken', 'USD')).rejects.toThrow(
+        'Internal server error'
+      );
     });
 
     it('should throw error with default message when no error message provided', async () => {
@@ -121,9 +121,9 @@ describe('PriceClient', () => {
         json: vi.fn().mockResolvedValue({}),
       });
 
-      await expect(
-        priceClient.getTokenPrice(1, '0xtoken', 'USD')
-      ).rejects.toThrow('Price service HTTP 404');
+      await expect(priceClient.getTokenPrice(1, '0xtoken', 'USD')).rejects.toThrow(
+        'Price service HTTP 404'
+      );
     });
 
     it('should throw error when quote is missing', async () => {
@@ -140,9 +140,9 @@ describe('PriceClient', () => {
         json: vi.fn().mockResolvedValue(mockResponse),
       });
 
-      await expect(
-        priceClient.getTokenPrice(1, '0xtoken', 'USD')
-      ).rejects.toThrow('Invalid price data for USD');
+      await expect(priceClient.getTokenPrice(1, '0xtoken', 'USD')).rejects.toThrow(
+        'Invalid price data for USD'
+      );
     });
 
     it('should throw error when price is zero', async () => {
@@ -161,9 +161,9 @@ describe('PriceClient', () => {
         json: vi.fn().mockResolvedValue(mockResponse),
       });
 
-      await expect(
-        priceClient.getTokenPrice(1, '0xtoken', 'USD')
-      ).rejects.toThrow('Invalid price data for USD');
+      await expect(priceClient.getTokenPrice(1, '0xtoken', 'USD')).rejects.toThrow(
+        'Invalid price data for USD'
+      );
     });
 
     it('should throw error when price is negative', async () => {
@@ -182,9 +182,9 @@ describe('PriceClient', () => {
         json: vi.fn().mockResolvedValue(mockResponse),
       });
 
-      await expect(
-        priceClient.getTokenPrice(1, '0xtoken', 'USD')
-      ).rejects.toThrow('Invalid price data for USD');
+      await expect(priceClient.getTokenPrice(1, '0xtoken', 'USD')).rejects.toThrow(
+        'Invalid price data for USD'
+      );
     });
 
     it('should throw error when price is not a number', async () => {
@@ -203,9 +203,9 @@ describe('PriceClient', () => {
         json: vi.fn().mockResolvedValue(mockResponse),
       });
 
-      await expect(
-        priceClient.getTokenPrice(1, '0xtoken', 'USD')
-      ).rejects.toThrow('Invalid price data for USD');
+      await expect(priceClient.getTokenPrice(1, '0xtoken', 'USD')).rejects.toThrow(
+        'Invalid price data for USD'
+      );
     });
 
     it('should handle JSON parse error gracefully', async () => {
@@ -215,9 +215,9 @@ describe('PriceClient', () => {
         json: vi.fn().mockRejectedValue(new Error('Invalid JSON')),
       });
 
-      await expect(
-        priceClient.getTokenPrice(1, '0xtoken', 'USD')
-      ).rejects.toThrow('Price service HTTP 502');
+      await expect(priceClient.getTokenPrice(1, '0xtoken', 'USD')).rejects.toThrow(
+        'Price service HTTP 502'
+      );
     });
 
     it('should encode currency parameter in URL', async () => {

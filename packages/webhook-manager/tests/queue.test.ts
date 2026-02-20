@@ -1,5 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { createWebhookQueue, createWebhookWorker, WEBHOOK_QUEUE_NAME, JOB_NAME_PAYMENT_CONFIRMED } from '../src/queue';
+import {
+  createWebhookQueue,
+  createWebhookWorker,
+  WEBHOOK_QUEUE_NAME,
+  JOB_NAME_PAYMENT_CONFIRMED,
+} from '../src/queue';
 
 const mockAdd = vi.fn().mockResolvedValue(undefined);
 const mockClose = vi.fn().mockResolvedValue(undefined);
@@ -10,7 +15,12 @@ vi.mock('bullmq', () => ({
   Queue: vi.fn().mockImplementation(function Queue(this: unknown) {
     return { add: mockAdd, close: mockClose };
   }),
-  Worker: vi.fn().mockImplementation(function Worker(this: unknown, _name: string, _processor: unknown, _options: unknown) {
+  Worker: vi.fn().mockImplementation(function Worker(
+    this: unknown,
+    _name: string,
+    _processor: unknown,
+    _options: unknown
+  ) {
     return { on: mockWorkerOn, close: mockWorkerClose };
   }),
 }));
@@ -51,7 +61,7 @@ describe('createWebhookQueue', () => {
 
   it('should handle multiple webhook jobs', async () => {
     const queue = createWebhookQueue(mockRedis);
-    
+
     const jobs = [
       {
         url: 'https://merchant1.example/webhook',
@@ -189,11 +199,7 @@ describe('webhook job data validation', () => {
 
     await queue.addPaymentConfirmed(validData);
 
-    expect(mockAdd).toHaveBeenCalledWith(
-      JOB_NAME_PAYMENT_CONFIRMED,
-      validData,
-      expect.any(Object)
-    );
+    expect(mockAdd).toHaveBeenCalledWith(JOB_NAME_PAYMENT_CONFIRMED, validData, expect.any(Object));
   });
 
   it('should handle webhook data with special characters in orderId', async () => {

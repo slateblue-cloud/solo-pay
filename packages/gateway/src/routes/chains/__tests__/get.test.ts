@@ -134,9 +134,7 @@ describe('Chains Routes', () => {
     });
 
     it('should return chains with empty tokens array when no tokens', async () => {
-      const mockChains = [
-        { id: 1, network_id: 31337, name: 'Hardhat Local', is_testnet: true },
-      ];
+      const mockChains = [{ id: 1, network_id: 31337, name: 'Hardhat Local', is_testnet: true }];
 
       mockChainService.findAll.mockResolvedValue(mockChains);
       mockTokenService.findAllForChains.mockResolvedValue([]);
@@ -166,7 +164,9 @@ describe('Chains Routes', () => {
     });
 
     it('should return 500 on tokenService error', async () => {
-      mockChainService.findAll.mockResolvedValue([{ id: 1, network_id: 1, name: 'Eth', is_testnet: false }]);
+      mockChainService.findAll.mockResolvedValue([
+        { id: 1, network_id: 1, name: 'Eth', is_testnet: false },
+      ]);
       mockTokenService.findAllForChains.mockRejectedValue(new Error('Token service error'));
 
       const response = await app.inject({
