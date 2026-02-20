@@ -4,8 +4,6 @@ import { isMobile } from './dom';
 export interface WidgetLauncherConfig {
   publicKey: string;
   widgetUrl: string;
-  /** When set, appended to widget URL so connect step uses AppKit (WalletConnect). */
-  wcProjectId?: string;
   debug?: boolean;
 }
 
@@ -13,7 +11,6 @@ export interface WidgetLauncherConfig {
 export class WidgetLauncher {
   private publicKey: string;
   private widgetUrl: string;
-  private wcProjectId: string | undefined;
   private debug: boolean;
   private onClose?: () => void;
   private popupWindow: Window | null = null;
@@ -24,7 +21,6 @@ export class WidgetLauncher {
   constructor(config: WidgetLauncherConfig) {
     this.publicKey = config.publicKey;
     this.widgetUrl = config.widgetUrl.replace(/\/+$/, '');
-    this.wcProjectId = config.wcProjectId;
     this.debug = config.debug ?? false;
   }
 
@@ -53,9 +49,6 @@ export class WidgetLauncher {
     });
     if (request.currency) {
       params.set('currency', request.currency);
-    }
-    if (this.wcProjectId) {
-      params.set('wcProjectId', this.wcProjectId);
     }
 
     const url = `${baseUrl}?${params.toString()}`;

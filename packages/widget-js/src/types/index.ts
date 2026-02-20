@@ -4,8 +4,6 @@ export interface SoloPayConfig {
   publicKey: string;
   /** Widget base URL, no path (default: https://widget.solo-pay.com). SDK uses / on mobile, /pc on desktop. */
   widgetUrl?: string;
-  /** WalletConnect Cloud project ID. When set, widget uses AppKit (WalletConnect) for connect. */
-  wcProjectId?: string;
   /** Enable debug logging */
   debug?: boolean;
   /** Default redirect mode */

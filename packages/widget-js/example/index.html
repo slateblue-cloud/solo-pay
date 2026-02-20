@@ -77,10 +77,6 @@
           <input type="text" id="widgetUrl" value="http://localhost:3000">
         </div>
       </div>
-      <div class="form-group">
-        <label for="wcProjectId">WalletConnect Project ID (optional — enables AppKit connect)</label>
-        <input type="text" id="wcProjectId" placeholder="From cloud.walletconnect.com" value="">
-      </div>
       <div class="form-row">
         <div class="form-group">
           <label for="redirectMode">Redirect Mode</label>
@@ -164,11 +160,9 @@
 
     function initSDK() {
       if (soloPay) { soloPay.destroy(); log('SDK destroyed', 'info'); }
-      const wcProjectId = document.getElementById('wcProjectId').value.trim() || undefined;
       const config = {
         publicKey: document.getElementById('publicKey').value,
         widgetUrl: document.getElementById('widgetUrl').value,
-        wcProjectId,
         redirectMode: document.getElementById('redirectMode').value,
         debug: document.getElementById('debug').value === 'true',
       };

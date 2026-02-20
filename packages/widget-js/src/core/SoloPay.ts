@@ -11,7 +11,6 @@ export interface RequestPaymentOptions {
 interface SoloPayConfigInternal {
   publicKey: string;
   widgetUrl: string;
-  wcProjectId?: string;
   debug: boolean;
   redirectMode: RedirectMode;
 }
@@ -29,7 +28,6 @@ export class SoloPay {
     this.config = {
       publicKey: config.publicKey,
       widgetUrl: config.widgetUrl ?? 'https://widget.solo-pay.com',
-      wcProjectId: config.wcProjectId,
       debug: config.debug ?? false,
       redirectMode: config.redirectMode ?? 'auto',
     };
@@ -37,7 +35,6 @@ export class SoloPay {
     this.widgetLauncher = new WidgetLauncher({
       publicKey: this.config.publicKey,
       widgetUrl: this.config.widgetUrl,
-      wcProjectId: this.config.wcProjectId,
       debug: this.config.debug,
     });
 

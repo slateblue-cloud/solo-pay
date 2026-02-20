@@ -1,5 +1,5 @@
 /**
- * AppKit Wagmi adapter factory. Used by WidgetConfigProvider when projectId (from URL wcProjectId) is set.
+ * AppKit Wagmi adapter factory. Used by WidgetConfigProvider when projectId (from env NEXT_PUBLIC_WC_PROJECT_ID) is set.
  */
 import { WagmiAdapter } from '@reown/appkit-adapter-wagmi';
 import {
@@ -46,7 +46,7 @@ type WagmiAdapterConfig = ConstructorParameters<typeof WagmiAdapter>[0];
 
 /**
  * Create AppKit Wagmi adapter and config for the given projectId.
- * projectId is passed from WidgetConfigProvider (from URL query wcProjectId).
+ * projectId is passed from WidgetConfigProvider (from env NEXT_PUBLIC_WC_PROJECT_ID).
  */
 export function createAppKitConfig(projectId: string): AppKitConfigResult {
   const dynamicMetadata = getMetadata();

@@ -4,7 +4,7 @@ import { useAccount } from 'wagmi';
 import { useAppKit } from '@reown/appkit/react';
 import { WALLET_BUTTON_BASE, WALLET_STYLES } from './ConnectWalletButton';
 
-/** Custom button that opens AppKit connect modal (used when wcProjectId is set). */
+/** Custom button that opens AppKit connect modal (used when NEXT_PUBLIC_WC_PROJECT_ID is set). */
 export function MobileConnectButton() {
   const { open } = useAppKit();
   const { status } = useAccount();
