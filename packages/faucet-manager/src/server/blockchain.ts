@@ -1,13 +1,4 @@
-import {
-  createPublicClient,
-  createWalletClient,
-  http,
-  defineChain,
-  type Address,
-  type Chain,
-  type PublicClient,
-} from 'viem';
-import { privateKeyToAccount } from 'viem/accounts';
+import { createPublicClient, http, defineChain, type Address, type PublicClient } from 'viem';
 import type { PrismaClient } from '@solo-pay/database';
 
 const ERC20_ABI = [
@@ -124,51 +115,5 @@ export function createBlockchainService(prisma: PrismaClient) {
       const client = getClient(chainId);
       return client.getGasPrice();
     },
-  };
-}
-
-export function createSendNative(
-  prisma: PrismaClient,
-  faucetPrivateKey: `0x${string}`
-): (chainId: number, toAddress: string, amountWei: bigint) => Promise<string> {
-  const account = privateKeyToAccount(faucetPrivateKey);
-  const walletClients = new Map<number, ReturnType<typeof createWalletClient>>();
-  const chains = new Map<number, Chain>();
-
-  return async function sendNative(
-    chainId: number,
-    toAddress: string,
-    amountWei: bigint
-  ): Promise<string> {
-    const chain = await prisma.chain.findFirst({
-      where: { network_id: chainId, is_deleted: false, gateway_address: { not: null } },
-    });
-    if (!chain?.rpc_url) throw new Error(`Unsupported chain: ${chainId}`);
-
-    let client = walletClients.get(chainId);
-    let viemChain = chains.get(chainId);
-    if (!client || !viemChain) {
-      viemChain = defineChain({
-        id: chain.network_id,
-        name: chain.name,
-        nativeCurrency: { name: 'Native', symbol: 'ETH', decimals: 18 },
-        rpcUrls: { default: { http: [chain.rpc_url] } },
-      });
-      chains.set(chainId, viemChain);
-      client = createWalletClient({
-        account,
-        chain: viemChain,
-        transport: http(chain.rpc_url),
-      });
-      walletClients.set(chainId, client);
-    }
-
-    const hash = await client.sendTransaction({
-      account,
-      chain: viemChain,
-      to: toAddress as `0x${string}`,
-      value: amountWei,
-    });
-    return hash;
   };
 }

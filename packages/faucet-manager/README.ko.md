@@ -2,13 +2,18 @@
 
 [English](README.md) | [한국어](README.ko.md)
 
-지갑당 체인당 1회 한도로 가스(네이티브 토큰)를 지급하는 라이브러리 및 HTTP 서비스입니다. 위젯에서 **POST /payments/request-gas** 로 직접 호출합니다.
+지갑당 체인당 1회 한도로 가스(네이티브 토큰)를 지급하는 라이브러리 및 HTTP 서비스입니다. 위젯에서 **POST /payments/request-gas** 로 직접 호출합니다. **가스는 relayer API를 통해 전송**됩니다 (개발: simple-relayer, 프로덕션: solo-relayer-service). 별도 faucet 지갑 없음.
 
 ## 개요
 
 - **조건:** 결제 존재, 토큰 잔액 ≥ 결제 금액, 네이티브 잔액 < approve 비용, 해당 (지갑, 체인)에 대한 기 지급 이력 없음.
 - **지급량:** `48_000 * gasPrice` wei (approve 1회 분, transfer보다 작게 제한).
 - **Ports:** 본 서비스에서 구현 (getPaymentInfo, findWalletGasGrant, getTokenBalance, getNativeBalance, getGasPrice, sendNative, createWalletGasGrant). 인증: x-public-key 및 Origin(merchant allowed_domains).
+
+## 환경 변수
+
+- Relayer URL은 gateway와 동일하게 DB의 체인별 `chains.relayer_url`에서 읽습니다. `RELAY_API_URL` 환경 변수 없음.
+- **RELAY*API_KEY*&lt;chainId&gt;** (선택): 해당 체인 relayer API 키 (예: `RELAY_API_KEY_31337`, `RELAY_API_KEY_80002`). relayer API에서 키를 요구할 때 필요.
 
 ## 빌드 / 실행
 
