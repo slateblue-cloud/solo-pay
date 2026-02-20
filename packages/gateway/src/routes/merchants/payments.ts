@@ -51,6 +51,8 @@ function buildPaymentDetailResponse(payment: {
   token_decimals: number;
   tx_hash: string | null;
   payer_address: string | null;
+  currency_code: string | null;
+  fiat_amount: { toString: () => string } | null;
   created_at: Date;
   confirmed_at: Date | null;
   expires_at: Date;
@@ -64,6 +66,8 @@ function buildPaymentDetailResponse(payment: {
     tokenDecimals: payment.token_decimals,
     txHash: payment.tx_hash ?? undefined,
     payerAddress: payment.payer_address ?? undefined,
+    currencyCode: payment.currency_code ?? undefined,
+    fiatAmount: payment.fiat_amount?.toString() ?? undefined,
     createdAt: payment.created_at.toISOString(),
     confirmedAt: payment.confirmed_at?.toISOString() ?? undefined,
     expiresAt: payment.expires_at.toISOString(),
@@ -89,6 +93,8 @@ export async function merchantPaymentRoute(
       tokenDecimals: { type: 'integer' },
       txHash: { type: 'string' },
       payerAddress: { type: 'string' },
+      currencyCode: { type: 'string', description: 'Fiat currency code (e.g. USD)' },
+      fiatAmount: { type: 'string', description: 'Original fiat amount before conversion' },
       createdAt: { type: 'string', format: 'date-time' },
       confirmedAt: { type: 'string', format: 'date-time' },
       expiresAt: { type: 'string', format: 'date-time' },
