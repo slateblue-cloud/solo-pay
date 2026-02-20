@@ -307,13 +307,19 @@ export default function PaymentStep({ urlParams }: PaymentStepProps) {
     payGasless();
   }, [payGasless]);
 
+  // Popup = opened via window.open (PC). Else redirect (e.g. mobile).
+  const isPopup = typeof window !== 'undefined' && !!window.opener;
+
   // Confirm/redirect handler (success)
   const handleConfirm = useCallback(() => {
     if (paymentDetails?.successUrl) {
-      const isIframe = window.parent !== window;
-      if (isIframe) {
-        const targetOrigin = new URL(paymentDetails.successUrl).origin;
-        window.parent.postMessage({ type: 'payment_complete', status: 'success' }, targetOrigin);
+      const targetOrigin = new URL(paymentDetails.successUrl).origin;
+      if (isPopup && window.opener) {
+        window.opener.postMessage(
+          { type: 'payment_complete', status: 'success', successUrl: paymentDetails.successUrl },
+          targetOrigin
+        );
+        window.close();
       } else {
         window.location.href = paymentDetails.successUrl;
       }
@@ -325,10 +331,13 @@ export default function PaymentStep({ urlParams }: PaymentStepProps) {
   // Cancel/fail redirect handler
   const handleCancel = useCallback(() => {
     if (urlParams?.failUrl) {
-      const isIframe = window.parent !== window;
-      if (isIframe) {
-        const targetOrigin = new URL(urlParams.failUrl).origin;
-        window.parent.postMessage({ type: 'payment_complete', status: 'fail' }, targetOrigin);
+      const targetOrigin = new URL(urlParams.failUrl).origin;
+      if (isPopup && window.opener) {
+        window.opener.postMessage(
+          { type: 'payment_complete', status: 'fail', failUrl: urlParams.failUrl },
+          targetOrigin
+        );
+        window.close();
       } else {
         window.location.href = urlParams.failUrl;
       }
@@ -368,7 +377,18 @@ export default function PaymentStep({ urlParams }: PaymentStepProps) {
         <p className="text-sm text-gray-600 mb-4">{apiError}</p>
         {urlParams?.failUrl && (
           <button
-            onClick={() => (window.location.href = urlParams.failUrl)}
+            onClick={() => {
+              if (isPopup && window.opener) {
+                const targetOrigin = new URL(urlParams.failUrl!).origin;
+                window.opener.postMessage(
+                  { type: 'payment_complete', status: 'fail', failUrl: urlParams.failUrl },
+                  targetOrigin
+                );
+                window.close();
+              } else {
+                window.location.href = urlParams.failUrl!;
+              }
+            }}
             className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm hover:bg-gray-200"
           >
             Go Back
@@ -396,21 +416,34 @@ export default function PaymentStep({ urlParams }: PaymentStepProps) {
         </div>
       );
     }
-    const isIframe = typeof window !== 'undefined' && window.parent !== window;
     const handleWalletOnlyContinue = () => {
       const successUrl = urlParams.successUrl;
       try {
         const url = new URL(successUrl);
         url.searchParams.set('wallet', address);
-        if (isIframe) {
-          window.parent.postMessage(
+        if (isPopup && window.opener) {
+          window.opener.postMessage(
             { type: 'wallet_connected', address, successUrl: url.toString() },
             url.origin
           );
+          window.close();
+        } else {
+          window.location.href = url.toString();
         }
-        window.location.href = url.toString();
       } catch {
-        window.location.href = successUrl;
+        if (isPopup && window.opener) {
+          try {
+            window.opener.postMessage(
+              { type: 'wallet_connected', address, successUrl },
+              new URL(successUrl).origin
+            );
+          } catch {
+            // ignore
+          }
+          window.close();
+        } else {
+          window.location.href = successUrl;
+        }
       }
     };
     return (

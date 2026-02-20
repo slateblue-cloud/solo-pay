@@ -1,10 +1,9 @@
 'use client';
 
 /**
- * Wraps index (/) only. When wcProjectId in URL → AppKit (WalletConnect); else fallback wagmi (injected + MetaMask SDK).
+ * Wraps index (/) only. When NEXT_PUBLIC_WC_PROJECT_ID is set → AppKit (WalletConnect); else fallback wagmi (injected + MetaMask SDK).
  * Analytics/telemetry disabled (features.analytics, enableCoinbase: false). Blocked third-party requests (e.g. pulse) are harmless.
  */
-import { useRouter } from 'next/router';
 import { createElement, useMemo, useEffect, useRef, type ReactNode } from 'react';
 import { WagmiProvider } from 'wagmi';
 import { createAppKit } from '@reown/appkit/react';
@@ -15,18 +14,14 @@ import { AppKitConnectProvider as AppKitConnectProviderComponent } from './AppKi
 
 type CreateAppKitOptions = Parameters<typeof createAppKit>[0];
 
-function getWcProjectIdFromUrl(): string | undefined {
-  if (typeof window === 'undefined') return undefined;
-  const params = new URLSearchParams(window.location.search);
-  const id = params.get('wcProjectId');
-  return id && typeof id === 'string' ? id : undefined;
+/** WalletConnect project ID from env (NEXT_PUBLIC_WC_PROJECT_ID). Required for AppKit connect. */
+function getWcProjectIdFromEnv(): string | undefined {
+  const id = process.env.NEXT_PUBLIC_WC_PROJECT_ID;
+  return id && typeof id === 'string' && id.length > 0 ? id : undefined;
 }
 
 export default function WidgetConfigProvider({ children }: { children: ReactNode }) {
-  const router = useRouter();
-  const projectIdFromRouter =
-    typeof router.query.wcProjectId === 'string' ? router.query.wcProjectId : undefined;
-  const projectId = projectIdFromRouter ?? getWcProjectIdFromUrl();
+  const projectId = getWcProjectIdFromEnv();
   const appKitInitialized = useRef(false);
 
   const { config, adapter } = useMemo(() => {

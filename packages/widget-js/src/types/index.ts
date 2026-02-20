@@ -10,10 +10,10 @@ export interface SoloPayConfig {
   redirectMode?: RedirectMode;
 }
 
-/** How to open the payment widget
- * - 'auto': iframe on PC, redirect on mobile (default)
- * - 'iframe': Always open in iframe modal
+/** How to open the payment widget (mobile only; PC always uses popup)
+ * - 'auto': redirect on mobile, popup on PC (default)
  * - 'redirect': Always redirect to widget page
+ * - 'iframe': Deprecated; treated as redirect on mobile
  */
 export type RedirectMode = 'auto' | 'redirect' | 'iframe';
 

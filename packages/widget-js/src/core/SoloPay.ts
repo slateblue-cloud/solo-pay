@@ -4,9 +4,7 @@ import { validatePaymentRequest } from '../utils/validators';
 
 /** Options for requestPayment */
 export interface RequestPaymentOptions {
-  /** Container element for embedded iframe (optional) */
-  iframeContainer?: HTMLElement;
-  /** Callback when widget is closed */
+  /** Callback when widget is closed (e.g. when user closes the popup on PC) */
   onClose?: () => void;
 }
 
@@ -50,10 +48,10 @@ export class SoloPay {
   }
 
   /**
-   * Request a payment - opens widget in specified mode
+   * Open the payment widget. On PC opens a popup; on mobile redirects.
    * @param request Payment request parameters
-   * @param mode How to open the widget: 'auto' | 'redirect' | 'iframe'
-   * @param options Additional options (iframeContainer, onClose callback)
+   * @param mode Ignored on PC (always popup). On mobile: 'auto' | 'redirect' | 'iframe'
+   * @param options onClose callback when the widget/popup is closed
    */
   requestPayment(
     request: PaymentRequest,
@@ -72,7 +70,6 @@ export class SoloPay {
     const redirectMode = mode ?? this.config.redirectMode;
 
     this.widgetLauncher.open(request, redirectMode, {
-      iframeContainer: options?.iframeContainer,
       onClose: options?.onClose,
     });
   }
@@ -84,7 +81,7 @@ export class SoloPay {
     return this.widgetLauncher.buildWidgetUrl(request);
   }
 
-  /** Close any open popup/iframe */
+  /** Close the payment popup if open. */
   closeWidget(): void {
     this.widgetLauncher.closeAll();
   }
