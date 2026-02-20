@@ -30,7 +30,9 @@ export default function PaymentConfirm({
       {/* Title */}
       <div className="text-center mb-5 sm:mb-6">
         <h1 className="text-base sm:text-lg font-bold text-gray-900">Confirm Payment</h1>
-        <p className="text-xs sm:text-sm text-gray-500 mt-0.5">Please review your payment details</p>
+        <p className="text-xs sm:text-sm text-gray-500 mt-0.5">
+          Please review your payment details
+        </p>
       </div>
 
       {/* Payment Details */}
