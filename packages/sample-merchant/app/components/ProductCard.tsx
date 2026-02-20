@@ -139,7 +139,9 @@ export default function ProductCard({
         >
           <div className="rounded-2xl bg-white px-8 py-6 shadow-2xl text-center">
             <p className="text-text-primary font-medium">Opening payment window…</p>
-            <p className="text-text-muted text-sm mt-1">Complete payment in the popup or new tab.</p>
+            <p className="text-text-muted text-sm mt-1">
+              Complete payment in the popup or new tab.
+            </p>
           </div>
         </div>
       )}
