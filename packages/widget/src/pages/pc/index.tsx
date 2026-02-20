@@ -85,7 +85,7 @@ const Home: NextPage = () => {
       </Head>
 
       <main className="flex items-center justify-center min-h-screen bg-transparent">
-        <div className="w-full h-[700px] max-w-lg rounded-none sm:rounded-2xl shadow-none sm:shadow-xl border-0 sm:border border-gray-200 bg-white p-4 sm:p-8 flex flex-col overflow-hidden">
+        <div className="w-full h-[700px] max-w-lg rounded-none sm:rounded-2xl shadow-none sm:shadow-xl border-0 sm:border border-gray-200 bg-white p-4 sm:p-6 flex flex-col overflow-hidden">
           {/* Header */}
           <div className="shrink-0 pb-4 mb-4 border-b border-gray-200">
             <h1 className="text-base sm:text-lg font-bold text-gray-900">Solo Pay</h1>
