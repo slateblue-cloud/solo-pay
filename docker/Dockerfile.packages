@@ -20,6 +20,7 @@ COPY packages/demo/package.json ./packages/demo/
 COPY packages/sample-merchant/package.json ./packages/sample-merchant/
 COPY packages/price-service/package.json ./packages/price-service/
 COPY packages/widget/package.json ./packages/widget/
+COPY packages/widget-js/package.json ./packages/widget-js/
 COPY packages/database/package.json ./packages/database/
 
 RUN pnpm install --frozen-lockfile
@@ -249,6 +250,10 @@ CMD ["node_modules/.bin/next", "start"]
 FROM deps AS sample-merchant-builder
 
 WORKDIR /app
+# Build widget-js first (sample-merchant imports @solo-pay/widget-js)
+COPY packages/widget-js ./packages/widget-js
+RUN cd /app/packages/widget-js && pnpm build
+
 COPY eslint.config.ts ./
 COPY packages/sample-merchant ./packages/sample-merchant
 RUN cd /app/packages/sample-merchant && pnpm exec prisma generate
