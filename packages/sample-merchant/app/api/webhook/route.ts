@@ -95,8 +95,8 @@ export async function POST(request: NextRequest) {
     }
 
     if (gatewayPayment.currencyCode && gatewayPayment.fiatAmount) {
-      const fiatAmount = Number(gatewayPayment.fiatAmount);
-      if (fiatAmount !== product.price) {
+      const fiatAmount = parseFloat(gatewayPayment.fiatAmount);
+      if (Math.abs(fiatAmount - product.price) > 1e-6) {
         console.error(
           `[webhook] Fiat amount mismatch: product price=${product.price} ${gatewayPayment.currencyCode}, gateway fiatAmount=${fiatAmount}`
         );
