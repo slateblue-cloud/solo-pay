@@ -13,7 +13,7 @@
 ## 환경 변수
 
 - Relayer URL은 gateway와 동일하게 DB의 체인별 `chains.relayer_url`에서 읽습니다. `RELAY_API_URL` 환경 변수 없음.
-- **RELAY_API_KEY_&lt;chainId&gt;** (선택): 해당 체인 relayer API 키 (예: `RELAY_API_KEY_31337`, `RELAY_API_KEY_80002`). relayer API에서 키를 요구할 때 필요.
+- **RELAY*API_KEY*&lt;chainId&gt;** (선택): 해당 체인 relayer API 키 (예: `RELAY_API_KEY_31337`, `RELAY_API_KEY_80002`). relayer API에서 키를 요구할 때 필요.
 
 ## 빌드 / 실행
 

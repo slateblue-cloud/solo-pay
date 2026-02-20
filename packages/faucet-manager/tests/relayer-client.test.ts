@@ -3,9 +3,8 @@ import { createSendNativeViaRelayer } from '../src/server/relayer-client';
 
 const BASE_URL = 'http://relayer:3001';
 
-const getConfigForChain = (baseUrl: string, apiKey?: string) =>
-  (chainId: number) =>
-    Promise.resolve({ baseUrl, apiKey } as { baseUrl: string; apiKey?: string });
+const getConfigForChain = (baseUrl: string, apiKey?: string) => (chainId: number) =>
+  Promise.resolve({ baseUrl, apiKey } as { baseUrl: string; apiKey?: string });
 
 describe('createSendNativeViaRelayer', () => {
   beforeEach(() => {

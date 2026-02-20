@@ -6,10 +6,7 @@ import swaggerUi from '@fastify/swagger-ui';
 import { getPrismaClient, disconnectPrisma } from './db/client';
 import { createPublicAuthMiddleware } from './server/auth';
 import { createBlockchainService } from './server/blockchain';
-import {
-  createSendNativeViaRelayer,
-  type RelayerConfigForChain,
-} from './server/relayer-client';
+import { createSendNativeViaRelayer, type RelayerConfigForChain } from './server/relayer-client';
 import { registerRequestGasRoute } from './server/request-gas-route';
 import { swaggerConfig, swaggerUiConfig } from './server/swagger.config';
 
