@@ -166,9 +166,8 @@ services:
       PORT: 3002
       HOST: 0.0.0.0
       DATABASE_URL: mysql://solopay:pass@mysql:3306/solopay
-      # Relayer API: faucet sends gas via relayer (simple-relayer in dev, solo-relayer-service in prod)
-      RELAY_API_URL: http://simple-relayer:3001
-      # RELAY_API_KEY: optional; required for production relay-api
+      # Relayer URL per chain from DB (chains.relayer_url); API key optional: RELAY_API_KEY_<chainId>
+      ALLOWED_WIDGET_ORIGIN: http://localhost:3005
     depends_on:
       mysql:
         condition: service_healthy
@@ -210,6 +209,8 @@ services:
       SIGNER_PRIVATE_KEY: '0x47e179ec197488593b187f80a00eb0da91f1b9d0b13f8733639f19c30a34926a'
       # Price Service URL for currency conversion
       PRICE_SERVICE_URL: http://price-service:3003
+      # Allowed widget origins (comma-separated). Empty = skip origin check.
+      ALLOWED_WIDGET_ORIGIN: http://localhost:3005
     depends_on:
       mysql:
         condition: service_healthy

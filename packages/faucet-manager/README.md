@@ -12,8 +12,8 @@ Library and HTTP service for one-time gas (native token) grants per wallet per c
 
 ## Environment
 
-- **RELAY_API_URL** (required): Relayer API base URL (e.g. `http://simple-relayer:3001` in Docker, or production relay-api URL).
-- **RELAY_API_KEY** (optional): API key for relay-api; required in production.
+- Relayer URL is read from the database per chain (`chains.relayer_url`), same as the gateway. No `RELAY_API_URL` env.
+- **RELAY_API_KEY_&lt;chainId&gt;** (optional): API key for the relayer for that chain (e.g. `RELAY_API_KEY_31337`, `RELAY_API_KEY_80002`). Required when the relayer API expects an API key.
 
 ## Build and run
 

@@ -20,7 +20,6 @@ const mockMerchant = {
   name: 'Demo Store',
   api_key_hash: 'hashed',
   public_key_hash: 'hashed_public',
-  allowed_domains: [TEST_ORIGIN],
   webhook_url: null,
   is_enabled: true,
   is_deleted: false,

@@ -380,9 +380,14 @@ describe('SDK Integration', () => {
       await expect(client.getPaymentStatus(fakePaymentId)).rejects.toThrow();
     });
 
-    it('should reject createPayment when origin is not in allowed_domains', async () => {
+    it('should reject createPayment when origin is not in ALLOWED_WIDGET_ORIGIN', async () => {
       const serverRunning = await isGatewayRunning();
       if (!serverRunning) {
+        return;
+      }
+
+      // This test only works when ALLOWED_WIDGET_ORIGIN is set on gateway
+      if (!process.env.ALLOWED_WIDGET_ORIGIN) {
         return;
       }
 

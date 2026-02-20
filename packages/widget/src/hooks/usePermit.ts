@@ -1,5 +1,6 @@
 import { useCallback, useState } from 'react';
-import { useReadContract, useWalletClient } from 'wagmi';
+import { useReadContract, useWalletClient, usePublicClient } from 'wagmi';
+import { encodeAbiParameters, keccak256 } from 'viem';
 import { ERC20_ABI } from '../lib/contracts';
 
 // ============================================================================
@@ -47,34 +48,103 @@ export interface UsePermitReturn {
 }
 
 // ============================================================================
+// Helpers
+// ============================================================================
+
+const EIP712_DOMAIN_TYPEHASH = keccak256(
+  new TextEncoder().encode(
+    'EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)'
+  )
+);
+
+function computeDomainSeparator(
+  name: string,
+  version: string,
+  chainId: bigint,
+  verifyingContract: `0x${string}`
+): `0x${string}` {
+  return keccak256(
+    encodeAbiParameters(
+      [
+        { type: 'bytes32' },
+        { type: 'bytes32' },
+        { type: 'bytes32' },
+        { type: 'uint256' },
+        { type: 'address' },
+      ],
+      [
+        EIP712_DOMAIN_TYPEHASH,
+        keccak256(new TextEncoder().encode(name)),
+        keccak256(new TextEncoder().encode(version)),
+        chainId,
+        verifyingContract,
+      ]
+    )
+  );
+}
+
+/**
+ * Resolve the EIP-712 domain version for a token's permit.
+ *
+ * Priority:
+ * 1. eip712Domain() (EIP-5267 standard)
+ * 2. version() (USDC-style)
+ * 3. Brute-force '1', '2' against DOMAIN_SEPARATOR()
+ */
+async function resolvePermitVersion(
+  publicClient: ReturnType<typeof usePublicClient>,
+  tokenAddress: `0x${string}`,
+  tokenName: string,
+  chainId: number
+): Promise<string> {
+  if (!publicClient) throw new Error('No public client');
+
+  // 1. Try eip712Domain() (EIP-5267)
+  try {
+    const result = await publicClient.readContract({
+      address: tokenAddress,
+      abi: ERC20_ABI,
+      functionName: 'eip712Domain',
+    });
+    return result[2]; // version field
+  } catch {
+    // not supported
+  }
+
+  // 2. Try version()
+  try {
+    const ver = await publicClient.readContract({
+      address: tokenAddress,
+      abi: ERC20_ABI,
+      functionName: 'version',
+    });
+    return ver as string;
+  } catch {
+    // not supported
+  }
+
+  // 3. Brute-force against DOMAIN_SEPARATOR()
+  const actualSeparator = await publicClient.readContract({
+    address: tokenAddress,
+    abi: ERC20_ABI,
+    functionName: 'DOMAIN_SEPARATOR',
+  });
+
+  for (const candidate of ['1', '2', '3']) {
+    const computed = computeDomainSeparator(tokenName, candidate, BigInt(chainId), tokenAddress);
+    if (computed.toLowerCase() === (actualSeparator as string).toLowerCase()) {
+      return candidate;
+    }
+  }
+
+  // Default fallback
+  return '1';
+}
+
+// ============================================================================
 // Hook
 // ============================================================================
 
-/**
- * Hook for ERC20 Permit (EIP-2612) signing
- *
- * Checks if a token supports EIP-2612 permit by probing for `nonces` and
- * `DOMAIN_SEPARATOR` functions. If supported, signs a permit off-chain
- * using EIP-712 typed data.
- *
- * @example
- * ```tsx
- * const { isPermitSupported, signPermit } = usePermit({
- *   tokenAddress: '0x...',
- *   spenderAddress: '0x...',
- *   amount: parseEther('100'),
- *   chainId: 31337,
- * });
- *
- * // If supported, sign permit instead of approve
- * if (isPermitSupported) {
- *   const permit = await signPermit();
- *   // pass permit to pay() call
- * } else {
- *   // fallback to traditional approve
- * }
- * ```
- */
 export function usePermit({
   tokenAddress,
   spenderAddress,
@@ -85,6 +155,7 @@ export function usePermit({
   const [error, setError] = useState<Error | null>(null);
 
   const { data: walletClient } = useWalletClient();
+  const publicClient = usePublicClient({ chainId });
   const userAddress = walletClient?.account?.address;
 
   // Probe for EIP-2612 support: check nonces(address) function
@@ -152,12 +223,18 @@ export function usePermit({
       setIsSigning(true);
       setError(null);
 
-      // Deadline: 1 hour from now
+      const version = await resolvePermitVersion(
+        publicClient,
+        tokenAddress,
+        tokenName as string,
+        chainId
+      );
+
       const deadline = BigInt(Math.floor(Date.now() / 1000) + 3600);
 
       const domain = {
         name: tokenName as string,
-        version: '1',
+        version,
         chainId: BigInt(chainId),
         verifyingContract: tokenAddress,
       };
@@ -187,13 +264,9 @@ export function usePermit({
         message,
       });
 
-      // Parse signature into v, r, s
-      // Signature is 65 bytes: r (32) + s (32) + v (1)
       const r = `0x${signature.slice(2, 66)}` as `0x${string}`;
       const s = `0x${signature.slice(66, 130)}` as `0x${string}`;
       let v = parseInt(signature.slice(130, 132), 16);
-      // Normalize v to 27/28 for ecrecover compatibility
-      // Some wallets return v as 0/1 instead of 27/28
       if (v < 27) {
         v += 27;
       }
@@ -208,6 +281,7 @@ export function usePermit({
     }
   }, [
     walletClient,
+    publicClient,
     tokenAddress,
     spenderAddress,
     amount,

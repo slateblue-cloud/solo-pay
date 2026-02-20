@@ -4,12 +4,7 @@ on:
   pull_request:
     branches: ['main']
     paths:
-      - 'packages/database/**'
-      - 'packages/integration-tests/**'
-      - 'packages/gateway/**'
-      - 'packages/simple-relayer/**'
-      - 'packages/gateway-sdk/**'
-      - 'packages/contracts/**'
+      - 'packages/**'
       - 'docker/**'
       - '.github/workflows/integration-tests.yml'
   workflow_dispatch:

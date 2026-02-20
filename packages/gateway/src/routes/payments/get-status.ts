@@ -23,7 +23,7 @@ export async function getPaymentStatusRoute(
         tags: ['Payment'],
         summary: 'Get payment status',
         description: `
-Retrieves the current status of a payment by its payment hash. Requires x-public-key and Origin (must match merchant allowed_domains).
+Retrieves the current status of a payment by its payment hash. Requires x-public-key. Origin is verified against ALLOWED_WIDGET_ORIGIN when configured.
 
 **Status Values:**
 - \`CREATED\` - Payment created, awaiting on-chain transaction
@@ -43,7 +43,7 @@ Retrieves the current status of a payment by its payment hash. Requires x-public
             'x-origin': {
               type: 'string',
               description:
-                'Origin for this GET endpoint (proxy often strips Origin). Must match merchant allowed_domains.',
+                'Origin for this GET endpoint (proxy often strips Origin). Verified against ALLOWED_WIDGET_ORIGIN when configured.',
             },
           },
         },

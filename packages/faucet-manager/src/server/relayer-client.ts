@@ -41,18 +41,30 @@ function getHeaders(apiKey?: string): Record<string, string> {
   return headers;
 }
 
+export interface RelayerConfigForChain {
+  baseUrl: string;
+  apiKey?: string;
+}
+
 /**
  * Creates a SendNative implementation that uses the relayer API (direct transfer).
- * Handles both sync response (200 + transactionHash) and async (202 + transactionId with status poll).
+ * Config per chain is resolved via getConfigForChain (e.g. from DB chains.relayer_url, like gateway).
  */
-export function createSendNativeViaRelayer(relayApiUrl: string, relayApiKey?: string): SendNative {
-  const baseUrl = buildBaseUrl(relayApiUrl);
-
+export function createSendNativeViaRelayer(
+  getConfigForChain: (chainId: number) => Promise<RelayerConfigForChain>
+): SendNative {
   return async function sendNative(
-    _chainId: number,
+    chainId: number,
     toAddress: string,
     amountWei: bigint
   ): Promise<string> {
+    const config = await getConfigForChain(chainId);
+    if (!config?.baseUrl) {
+      throw new Error(`No relayer URL configured for chain ${chainId}`);
+    }
+    const baseUrl = buildBaseUrl(config.baseUrl);
+    const relayApiKey = config.apiKey;
+
     if (!ETH_ADDRESS_REGEX.test(toAddress)) {
       throw new Error('Invalid toAddress: must be 0x-prefixed 40 hex chars');
     }
@@ -101,7 +113,7 @@ export function createSendNativeViaRelayer(relayApiUrl: string, relayApiKey?: st
       const hash = await pollTransactionStatus(
         baseUrl,
         body.transactionId,
-        getHeaders(relayApiKey)
+        getHeaders(relayApiKey ?? undefined)
       );
       return hash;
     }
@@ -146,7 +158,7 @@ async function pollTransactionStatus(
       throw new Error(body.message ?? `Status check failed: ${res.status}`);
     }
 
-    const body = (await res.json()) as StatusResponse;
+    const body = (await res.json().catch(() => ({}))) as StatusResponse;
     if (body.status === 'failed') {
       throw new Error(`Relay transaction failed: ${transactionId}`);
     }

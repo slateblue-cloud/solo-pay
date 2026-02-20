@@ -3,6 +3,10 @@ import { createSendNativeViaRelayer } from '../src/server/relayer-client';
 
 const BASE_URL = 'http://relayer:3001';
 
+const getConfigForChain = (baseUrl: string, apiKey?: string) =>
+  (chainId: number) =>
+    Promise.resolve({ baseUrl, apiKey } as { baseUrl: string; apiKey?: string });
+
 describe('createSendNativeViaRelayer', () => {
   beforeEach(() => {
     vi.restoreAllMocks();
@@ -21,7 +25,7 @@ describe('createSendNativeViaRelayer', () => {
     });
     vi.stubGlobal('fetch', mockFetch);
 
-    const sendNative = createSendNativeViaRelayer(BASE_URL);
+    const sendNative = createSendNativeViaRelayer(getConfigForChain(BASE_URL));
     const hash = await sendNative(31337, '0x' + 'aa'.repeat(20), 48_000n);
 
     expect(hash).toBe('0xabc123');
@@ -64,7 +68,7 @@ describe('createSendNativeViaRelayer', () => {
 
     vi.stubGlobal('fetch', mockFetch);
 
-    const sendNative = createSendNativeViaRelayer(BASE_URL);
+    const sendNative = createSendNativeViaRelayer(getConfigForChain(BASE_URL));
     const hash = await sendNative(31337, '0x' + 'bb'.repeat(20), 100_000n);
 
     expect(hash).toBe('0xdef456');
@@ -93,7 +97,7 @@ describe('createSendNativeViaRelayer', () => {
     });
     vi.stubGlobal('fetch', mockFetch);
 
-    const sendNative = createSendNativeViaRelayer(BASE_URL, 'secret-key');
+    const sendNative = createSendNativeViaRelayer(getConfigForChain(BASE_URL, 'secret-key'));
     await sendNative(31337, '0x' + 'cc'.repeat(20), 1n);
 
     expect(mockFetch).toHaveBeenCalledWith(
@@ -114,19 +118,28 @@ describe('createSendNativeViaRelayer', () => {
     });
     vi.stubGlobal('fetch', mockFetch);
 
-    const sendNative = createSendNativeViaRelayer(BASE_URL);
+    const sendNative = createSendNativeViaRelayer(getConfigForChain(BASE_URL));
 
     await expect(sendNative(31337, '0x' + 'dd'.repeat(20), 1n)).rejects.toThrow('Internal error');
   });
 
+  it('throws when no relayer URL configured for chain', async () => {
+    const getConfig = () => Promise.resolve({ baseUrl: '' });
+    const sendNative = createSendNativeViaRelayer(getConfig);
+
+    await expect(sendNative(31337, '0x' + 'aa'.repeat(20), 1n)).rejects.toThrow(
+      'No relayer URL configured for chain 31337'
+    );
+  });
+
   it('throws when toAddress is invalid', async () => {
-    const sendNative = createSendNativeViaRelayer(BASE_URL);
+    const sendNative = createSendNativeViaRelayer(getConfigForChain(BASE_URL));
 
     await expect(sendNative(31337, 'invalid', 1n)).rejects.toThrow('Invalid toAddress');
   });
 
   it('throws when amountWei is zero or negative', async () => {
-    const sendNative = createSendNativeViaRelayer(BASE_URL);
+    const sendNative = createSendNativeViaRelayer(getConfigForChain(BASE_URL));
 
     await expect(sendNative(31337, '0x' + 'aa'.repeat(20), 0n)).rejects.toThrow(
       'amountWei must be positive'
@@ -149,7 +162,7 @@ describe('createSendNativeViaRelayer', () => {
     });
     vi.stubGlobal('fetch', mockFetch);
 
-    const sendNative = createSendNativeViaRelayer(BASE_URL + '/');
+    const sendNative = createSendNativeViaRelayer(getConfigForChain(BASE_URL + '/'));
     await sendNative(31337, '0x' + 'ee'.repeat(20), 1n);
 
     expect(mockFetch).toHaveBeenCalledWith(`${BASE_URL}/api/v1/relay/direct`, expect.any(Object));

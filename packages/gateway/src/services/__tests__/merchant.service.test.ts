@@ -43,7 +43,6 @@ describe('MerchantService', () => {
       api_key_hash: apiKeyHash,
       public_key: null,
       public_key_hash: null,
-      allowed_domains: null,
       is_enabled: true,
       is_deleted: false,
       webhook_url: null,
@@ -77,7 +76,7 @@ describe('MerchantService', () => {
       api_key_hash: 'somehash',
       public_key: null,
       public_key_hash: null,
-      allowed_domains: null,
+
       is_enabled: true,
       is_deleted: false,
       webhook_url: null,
@@ -107,7 +106,7 @@ describe('MerchantService', () => {
       api_key_hash: 'somehash',
       public_key: null,
       public_key_hash: null,
-      allowed_domains: null,
+
       is_enabled: true,
       is_deleted: false,
       webhook_url: null,
@@ -139,7 +138,7 @@ describe('MerchantService', () => {
       api_key_hash: apiKeyHash,
       public_key: null,
       public_key_hash: null,
-      allowed_domains: null,
+
       is_enabled: true,
       is_deleted: false,
       webhook_url: null,
@@ -171,7 +170,7 @@ describe('MerchantService', () => {
         api_key_hash: 'hash_a',
         public_key: null,
         public_key_hash: null,
-        allowed_domains: null,
+
         is_enabled: true,
         is_deleted: false,
         webhook_url: null,
@@ -189,7 +188,7 @@ describe('MerchantService', () => {
         api_key_hash: 'hash_b',
         public_key: null,
         public_key_hash: null,
-        allowed_domains: null,
+
         is_enabled: true,
         is_deleted: false,
         webhook_url: null,
@@ -218,7 +217,7 @@ describe('MerchantService', () => {
       api_key_hash: 'hash',
       public_key: null,
       public_key_hash: null,
-      allowed_domains: null,
+
       is_enabled: true,
       is_deleted: false,
       webhook_url: 'https://example.com/webhook',
@@ -250,7 +249,7 @@ describe('MerchantService', () => {
       api_key_hash: 'hash',
       public_key: null,
       public_key_hash: null,
-      allowed_domains: null,
+
       is_enabled: true,
       is_deleted: true,
       webhook_url: null,
@@ -291,7 +290,7 @@ describe('MerchantService', () => {
       api_key_hash: apiKeyHash,
       public_key: null,
       public_key_hash: null,
-      allowed_domains: null,
+
       is_enabled: true,
       is_deleted: false,
       webhook_url: null,
@@ -324,7 +323,7 @@ describe('MerchantService', () => {
       api_key_hash: 'hash',
       public_key: null,
       public_key_hash: null,
-      allowed_domains: null,
+
       is_enabled: true,
       is_deleted: false,
       webhook_url: null,
@@ -376,7 +375,7 @@ describe('MerchantService', () => {
       api_key_hash: crypto.createHash('sha256').update('duplicate_api_key').digest('hex'),
       public_key: null,
       public_key_hash: null,
-      allowed_domains: null,
+
       is_enabled: true,
       is_deleted: false,
       webhook_url: null,
@@ -427,7 +426,7 @@ describe('MerchantService', () => {
       api_key_hash: 'hash',
       public_key: null,
       public_key_hash: null,
-      allowed_domains: null,
+
       is_enabled: true,
       is_deleted: false,
       webhook_url: null,
@@ -471,7 +470,7 @@ describe('MerchantService', () => {
       api_key_hash: 'h',
       public_key: publicKey,
       public_key_hash: hash,
-      allowed_domains: ['https://example.com'],
+
       is_enabled: true,
       is_deleted: false,
       webhook_url: null,
@@ -501,36 +500,5 @@ describe('MerchantService', () => {
     const result = await merchantService.findByPublicKey('pk_live_unknown');
 
     expect(result).toBeNull();
-  });
-
-  it('should update allowed domains', async () => {
-    const domains = ['https://shop.example.com', 'https://checkout.example.com'];
-    const mockUpdated = {
-      id: 12,
-      merchant_key: `${TEST_PREFIX}domains`,
-      name: 'Domains Merchant',
-      chain_id: 1,
-      api_key_hash: 'h',
-      public_key: null,
-      public_key_hash: null,
-      allowed_domains: domains,
-      is_enabled: true,
-      is_deleted: false,
-      webhook_url: null,
-      fee_bps: 0,
-      recipient_address: null,
-      created_at: new Date(),
-      updated_at: new Date(),
-      deleted_at: null,
-    };
-    mockPrisma.merchant.update.mockResolvedValue(mockUpdated);
-
-    const result = await merchantService.updateAllowedDomains(12, domains);
-
-    expect(result.allowed_domains).toEqual(domains);
-    expect(mockPrisma.merchant.update).toHaveBeenCalledWith({
-      where: { id: 12 },
-      data: { allowed_domains: domains },
-    });
   });
 });
