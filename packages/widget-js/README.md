@@ -74,27 +74,22 @@ export default function CheckoutButton() {
 
 ### `new SoloPay(config)`
 
-| Option         | Type                               | Default                       | Description                                                         |
-| -------------- | ---------------------------------- | ----------------------------- | ------------------------------------------------------------------- |
-| `publicKey`    | `string`                           | required                      | Your SoloPay public key                                             |
-| `widgetUrl`    | `string`                           | `https://widget.solo-pay.com` | Widget base URL (no path). SDK uses `/` on mobile, `/pc` on desktop |
-| `debug`        | `boolean`                          | `false`                       | Enable debug logging                                                |
-| `redirectMode` | `'auto' \| 'redirect' \| 'iframe'` | `'auto'`                      | On mobile only; PC always uses popup                                |
+| Option      | Type                               | Default                       | Description                                                         |
+| ----------- | ---------------------------------- | ----------------------------- | ------------------------------------------------------------------- |
+| `publicKey` | `string`                           | required                      | Your SoloPay public key                                             |
+| `widgetUrl` | `string`                           | `https://widget.solo-pay.com` | Widget base URL (no path). SDK uses `/` on mobile, `/pc` on desktop |
+| `debug`     | `boolean`                          | `false`                       | Enable debug logging                                                |
 
-**Behaviour:**
+**Behaviour:** PC opens a popup window; mobile redirects to the widget page.
 
-- **PC:** Always opens the widget in a popup window (no iframe).
-- **Mobile:** `'auto'` or `'redirect'` = redirect to widget; `'iframe'` is deprecated and treated as redirect.
-
-### `soloPay.requestPayment(request, mode?, options?)`
+### `soloPay.requestPayment(request, options?)`
 
 Opens the payment widget.
 
 **Parameters:**
 
 - `request` - Payment request object (see below)
-- `mode` - Override redirect mode for this payment (optional)
-- `options` - Additional options (optional)
+- `options` - Optional: `{ onClose?: () => void }`
 
 **Request:**
 

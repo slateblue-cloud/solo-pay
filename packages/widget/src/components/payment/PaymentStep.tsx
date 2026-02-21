@@ -313,9 +313,25 @@ export default function PaymentStep({ urlParams }: PaymentStepProps) {
   // Popup = opened via window.open (PC). Else redirect (e.g. mobile).
   const isPopup = typeof window !== 'undefined' && !!window.opener;
 
+  // Allow closing without confirm when user clicks Confirm/Cancel/Go Back
+  const allowUnloadRef = useRef(false);
+
+  // Ask user to confirm when closing the window (popup) so we don't lose in-progress payment
+  useEffect(() => {
+    if (!isPopup || typeof window === 'undefined') return;
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (allowUnloadRef.current) return;
+      e.preventDefault();
+      e.returnValue = '';
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [isPopup]);
+
   // Confirm/redirect handler (success)
   const handleConfirm = useCallback(() => {
     if (paymentDetails?.successUrl) {
+      allowUnloadRef.current = true;
       const targetOrigin = new URL(paymentDetails.successUrl).origin;
       if (isPopup && window.opener) {
         window.opener.postMessage(
@@ -334,6 +350,7 @@ export default function PaymentStep({ urlParams }: PaymentStepProps) {
   // Cancel/fail redirect handler
   const handleCancel = useCallback(() => {
     if (urlParams?.failUrl) {
+      allowUnloadRef.current = true;
       const targetOrigin = new URL(urlParams.failUrl).origin;
       if (isPopup && window.opener) {
         window.opener.postMessage(
@@ -381,6 +398,7 @@ export default function PaymentStep({ urlParams }: PaymentStepProps) {
         {urlParams?.failUrl && (
           <button
             onClick={() => {
+              allowUnloadRef.current = true;
               if (isPopup && window.opener) {
                 const targetOrigin = new URL(urlParams.failUrl!).origin;
                 window.opener.postMessage(
@@ -420,6 +438,7 @@ export default function PaymentStep({ urlParams }: PaymentStepProps) {
       );
     }
     const handleWalletOnlyContinue = () => {
+      allowUnloadRef.current = true;
       const successUrl = urlParams.successUrl;
       try {
         const url = new URL(successUrl);

@@ -42,7 +42,6 @@ export type {
   SoloPayConfig,
   PaymentRequest,
   PaymentResult,
-  RedirectMode,
   TokenInfo,
 } from './types';
 
