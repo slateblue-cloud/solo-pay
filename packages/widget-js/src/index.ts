@@ -38,12 +38,7 @@ export { SoloPay };
 export type { RequestPaymentOptions } from './core/SoloPay';
 
 // Types
-export type {
-  SoloPayConfig,
-  PaymentRequest,
-  PaymentResult,
-  TokenInfo,
-} from './types';
+export type { SoloPayConfig, PaymentRequest, PaymentResult, TokenInfo } from './types';
 
 // Utilities (for advanced usage)
 export { formatAmount, validatePaymentRequest, truncateAddress } from './utils/validators';
