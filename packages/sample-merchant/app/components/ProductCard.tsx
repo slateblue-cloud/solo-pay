@@ -71,7 +71,6 @@ export default function ProductCard({
           successUrl: `${origin}/payments/success?paymentId=${data.paymentId}`,
           failUrl: `${origin}/`,
         },
-        undefined,
         { onClose: () => setIsOpening(false) }
       );
     } catch (err) {
