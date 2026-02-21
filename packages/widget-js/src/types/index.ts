@@ -6,16 +6,7 @@ export interface SoloPayConfig {
   widgetUrl?: string;
   /** Enable debug logging */
   debug?: boolean;
-  /** Default redirect mode */
-  redirectMode?: RedirectMode;
 }
-
-/** How to open the payment widget (mobile only; PC always uses popup)
- * - 'auto': redirect on mobile, popup on PC (default)
- * - 'redirect': Always redirect to widget page
- * - 'iframe': Deprecated; treated as redirect on mobile
- */
-export type RedirectMode = 'auto' | 'redirect' | 'iframe';
 
 /** Payment request options - matches widget URL parameters */
 export interface PaymentRequest {

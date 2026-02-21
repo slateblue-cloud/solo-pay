@@ -1,4 +1,4 @@
-import type { PaymentRequest, RedirectMode } from '../types';
+import type { PaymentRequest } from '../types';
 import { isMobile } from './dom';
 
 export interface WidgetLauncherConfig {
@@ -57,11 +57,7 @@ export class WidgetLauncher {
   }
 
   /** Open widget. PC → popup window, mobile → redirect. */
-  open(
-    request: PaymentRequest,
-    _mode: RedirectMode = 'auto',
-    options?: { onClose?: () => void }
-  ): void {
+  open(request: PaymentRequest, options?: { onClose?: () => void }): void {
     const mobile = isMobile();
     const url = this.buildWidgetUrl(request, mobile);
 

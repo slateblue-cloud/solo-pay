@@ -77,22 +77,12 @@
           <input type="text" id="widgetUrl" value="http://localhost:3000">
         </div>
       </div>
-      <div class="form-row">
-        <div class="form-group">
-          <label for="redirectMode">Redirect Mode</label>
-          <select id="redirectMode">
-            <option value="auto" selected>auto</option>
-            <option value="iframe">iframe</option>
-            <option value="redirect">redirect</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label for="debug">Debug</label>
-          <select id="debug">
-            <option value="true" selected>Enabled</option>
-            <option value="false">Disabled</option>
-          </select>
-        </div>
+      <div class="form-group">
+        <label for="debug">Debug</label>
+        <select id="debug">
+          <option value="true" selected>Enabled</option>
+          <option value="false">Disabled</option>
+        </select>
       </div>
     </div>
     <button class="btn btn-secondary" onclick="initSDK()">Re-initialize</button>
@@ -163,7 +153,6 @@
       const config = {
         publicKey: document.getElementById('publicKey').value,
         widgetUrl: document.getElementById('widgetUrl').value,
-        redirectMode: document.getElementById('redirectMode').value,
         debug: document.getElementById('debug').value === 'true',
       };
       soloPay = new SoloPay(config);
@@ -184,7 +173,7 @@
       };
       log(`Payment: ${JSON.stringify(req)}`, 'info');
       try {
-        soloPay.requestPayment(req, undefined, {
+        soloPay.requestPayment(req, {
           onClose: () => log('Widget closed', 'info')
         });
       } catch (e) { log(`Error: ${e.message}`, 'error'); }

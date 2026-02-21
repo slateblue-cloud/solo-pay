@@ -1,4 +1,4 @@
-import type { SoloPayConfig, PaymentRequest, RedirectMode } from '../types';
+import type { SoloPayConfig, PaymentRequest } from '../types';
 import { WidgetLauncher } from '../utils/widget-launcher';
 import { validatePaymentRequest } from '../utils/validators';
 
@@ -12,7 +12,6 @@ interface SoloPayConfigInternal {
   publicKey: string;
   widgetUrl: string;
   debug: boolean;
-  redirectMode: RedirectMode;
 }
 
 /** Main SoloPay class */
@@ -29,7 +28,6 @@ export class SoloPay {
       publicKey: config.publicKey,
       widgetUrl: config.widgetUrl ?? 'https://widget.solo-pay.com',
       debug: config.debug ?? false,
-      redirectMode: config.redirectMode ?? 'auto',
     };
 
     this.widgetLauncher = new WidgetLauncher({
@@ -50,15 +48,9 @@ export class SoloPay {
   /**
    * Open the payment widget. On PC opens a popup; on mobile redirects.
    * @param request Payment request parameters
-   * @param mode Ignored on PC (always popup). On mobile: 'auto' | 'redirect' | 'iframe'
    * @param options onClose callback when the widget/popup is closed
    */
-  requestPayment(
-    request: PaymentRequest,
-    mode?: RedirectMode,
-    options?: RequestPaymentOptions
-  ): void {
-    // Validate request
+  requestPayment(request: PaymentRequest, options?: RequestPaymentOptions): void {
     const validation = validatePaymentRequest(request);
     if (!validation.valid) {
       const errorMessages = Object.values(validation.errors).join(', ');
@@ -66,12 +58,7 @@ export class SoloPay {
     }
 
     this.log('Requesting payment:', request);
-
-    const redirectMode = mode ?? this.config.redirectMode;
-
-    this.widgetLauncher.open(request, redirectMode, {
-      onClose: options?.onClose,
-    });
+    this.widgetLauncher.open(request, { onClose: options?.onClose });
   }
 
   /**
