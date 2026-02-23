@@ -16,11 +16,7 @@ export function PcConnectButton({ className }: { className?: string }) {
 
   const isMetaMaskPending =
     isPending && (pendingConnectorId === 'metaMask' || pendingConnectorId === 'metaMaskSDK');
-  const isTrustWalletPending =
-    isPending &&
-    (pendingConnectorId === 'injected' ||
-      pendingConnectorId === 'trust' ||
-      pendingConnectorId === 'trustWallet');
+  const isTrustWalletPending = isPending && pendingConnectorId === 'trustWallet';
 
   const renderWalletButtons = () => {
     // Inside Trust Wallet browser (mobile/tablet) - show single connect button
