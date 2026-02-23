@@ -1,0 +1,44 @@
+{
+  "name": "@solo-pay/widget-react",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "React hook wrapper for SoloPay payment widget",
+  "main": "dist/index.js",
+  "module": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "clean": "rm -rf dist",
+    "typecheck": "tsc --noEmit"
+  },
+  "peerDependencies": {
+    "react": ">=17.0.0"
+  },
+  "dependencies": {
+    "@solo-pay/widget-js": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/react": "^18.0.0 || ^19.0.0",
+    "react": "^18.0.0 || ^19.0.0",
+    "typescript": "^5.3.0"
+  },
+  "sideEffects": false,
+  "keywords": [
+    "solo-pay",
+    "widget",
+    "react",
+    "payment"
+  ],
+  "author": "MSQ Team",
+  "license": "MIT"
+}
