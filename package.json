@@ -10,8 +10,8 @@
     "lint": "pnpm -r lint",
     "typecheck": "pnpm -r typecheck",
     "clean": "pnpm -r clean",
-    "format": "prettier --check \"**/*.{ts,tsx,js,json,md,yaml}\"",
-    "format:fix": "prettier --write \"**/*.{ts,tsx,js,json,md,yaml}\""
+    "format": "prettier --check \"**/*.{ts,tsx,js,scss,css,json,md,yaml}\"",
+    "format:fix": "prettier --write \"**/*.{ts,tsx,js,scss,css,json,md,yaml}\""
   },
   "keywords": [
     "blockchain",
