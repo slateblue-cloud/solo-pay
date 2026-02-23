@@ -2,6 +2,7 @@ import { http, fallback, createConfig } from 'wagmi';
 import { injected, metaMask } from 'wagmi/connectors';
 import { arbitrum, base, mainnet, optimism, polygon, polygonAmoy, sepolia } from 'wagmi/chains';
 import { defineChain } from 'viem';
+import { getTrustWalletProvider } from './lib/wallet-providers';
 
 // Localhost (Hardhat/Anvil) for local dev - so widget can read balance on same chain as payment
 const localhost = defineChain({
@@ -28,8 +29,21 @@ const chains = [
 
 export const config = createConfig({
   connectors: [
-    // Injected connector for wallet browsers (Trust Wallet, MetaMask mobile, etc.)
+    // Injected connector for wallet browsers (MetaMask mobile, etc.)
     injected(),
+    // Trust Wallet: explicit target + wait for late injection (e.g. production popup)
+    injected({
+      target() {
+        const provider = getTrustWalletProvider();
+        if (!provider) return undefined;
+        return { id: 'trustWallet', name: 'Trust Wallet', provider } as {
+          id: string;
+          name: string;
+          provider: import('viem').EIP1193Provider;
+        };
+      },
+      unstable_shimAsyncInject: 2_000,
+    }),
     // MetaMask SDK for desktop extension + mobile deeplink (analytics off to avoid ERR_BLOCKED_BY_CLIENT from ad blockers)
     metaMask({ enableAnalytics: false }),
   ],
