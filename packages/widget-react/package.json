@@ -14,12 +14,15 @@
     }
   },
   "files": [
-    "dist"
+    "dist",
+    "README.md"
   ],
   "scripts": {
     "build": "tsc",
     "clean": "rm -rf dist",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "prepublishOnly": "pnpm run clean && pnpm run build",
+    "publish:npm": "pnpm publish --access public"
   },
   "peerDependencies": {
     "react": ">=17.0.0"
@@ -40,5 +43,20 @@
     "payment"
   ],
   "author": "MSQ Team",
-  "license": "MIT"
+  "license": "MIT",
+  "engines": {
+    "node": ">=16.0.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/globalmsq/solo-pay",
+    "directory": "packages/widget-react"
+  },
+  "homepage": "",
+  "bugs": {
+    "url": "https://github.com/globalmsq/solo-pay/issues"
+  }
 }
