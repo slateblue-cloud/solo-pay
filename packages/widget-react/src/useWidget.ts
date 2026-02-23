@@ -2,7 +2,10 @@ import { useEffect, useRef, useCallback } from 'react';
 import SoloPay from '@solo-pay/widget-js';
 import type { PaymentRequest } from '@solo-pay/widget-js';
 
-/** Success response from payment flow (e.g. server callback or redirect) */
+/**
+ * Shape of success data when the user is redirected to your successUrl.
+ * Use this type when handling the success page or webhook payloads (the widget does not fire a client-side success callback).
+ */
 export interface WidgetSuccessResponse {
   orderId: string;
   paymentId?: string;
@@ -21,8 +24,6 @@ export interface WidgetError {
 export interface UseWidgetConfig {
   /** Merchant client/public key (e.g. test_client_key_123 or pk_live_xxx) */
   clientId: string;
-  /** Called when payment succeeds (e.g. server confirmation or redirect) */
-  onSuccess?: (response: WidgetSuccessResponse) => void;
   /** Called on payment or popup error */
   onError?: (error: WidgetError) => void;
   /** Called when user closes the popup without completing */
@@ -57,12 +58,12 @@ export interface UseWidgetReturn {
  * @example
  * const { openWidget } = useWidget({
  *   clientId: 'test_client_key_123',
- *   onSuccess: (res) => console.log(res),
  *   onError: (err) => console.error(err),
  *   onClose: () => console.log('closed'),
  *   defaultPaymentRequest: { tokenAddress: '0x...', successUrl: '/success', failUrl: '/fail' }
  * });
  * openWidget({ orderId: 'ORDER_001', amount: 50000 });
+ * // Success is handled via redirect to successUrl; handle it on that page or via webhook.
  */
 export function useWidget(config: UseWidgetConfig): UseWidgetReturn {
   const instanceRef = useRef<SoloPay | null>(null);
