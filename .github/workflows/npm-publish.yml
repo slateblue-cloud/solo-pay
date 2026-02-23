@@ -1,6 +1,5 @@
-# Trusted Publishing (OIDC) — no long-lived tokens. One-time setup on npmjs.com:
-# For each package (@solo-pay/widget-js, @solo-pay/widget-react): Package → Settings →
-# Trusted publishing → GitHub Actions → Workflow filename: npm-publish.yml
+# Trusted Publishing (OIDC) — no long-lived tokens.
+# One-time npm setup: each package → Settings → Trusted publishing → Workflow: npm-publish.yml
 name: NPM Publish
 
 on:
@@ -8,34 +7,41 @@ on:
     types: [published]
   workflow_dispatch:
 
+concurrency:
+  group: npm-publish
+  cancel-in-progress: false
+
 jobs:
   publish:
     name: Publish to npm
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      id-token: write  # Required for OIDC Trusted Publishing
+      id-token: write
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v4
         with:
           version: 10
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
-          node-version: "22"  # OIDC requires Node 22.14+
+          node-version: "22"
           cache: "pnpm"
           registry-url: "https://registry.npmjs.org"
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Publish @solo-pay/widget-js
-        run: pnpm --filter @solo-pay/widget-js exec -- npm publish --no-git-checks --access public
-
-      - name: Publish @solo-pay/widget-react
-        run: pnpm --filter @solo-pay/widget-react exec -- npm publish --no-git-checks --access public
+      - name: Publish packages
+        run: |
+          set -e
+          for pkg in @solo-pay/widget-js @solo-pay/widget-react; do
+            version=$(pnpm --filter "$pkg" exec -- node -p "require('./package.json').version")
+            if npm view "$pkg@$version" version 2>/dev/null; then
+              echo "::notice::$pkg@$version already published, skipping"
+            else
+              pnpm --filter "$pkg" exec -- npm publish --no-git-checks --access public
+            fi
+          done
