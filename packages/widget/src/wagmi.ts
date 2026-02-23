@@ -36,7 +36,11 @@ export const config = createConfig({
       target() {
         const provider = getTrustWalletProvider();
         if (!provider) return undefined;
-        return { id: 'trustWallet', name: 'Trust Wallet', provider } as { id: string; name: string; provider: import('viem').EIP1193Provider };
+        return { id: 'trustWallet', name: 'Trust Wallet', provider } as {
+          id: string;
+          name: string;
+          provider: import('viem').EIP1193Provider;
+        };
       },
       unstable_shimAsyncInject: 2_000,
     }),

@@ -22,7 +22,9 @@ const eip6963Providers: Record<string, { info: { rdns: string }; provider: Ether
 
 function initEIP6963(): void {
   if (typeof window === 'undefined') return;
-  window.addEventListener('eip6963:announceProvider', ((event: CustomEvent<{ info: { rdns: string }; provider: EthereumProvider }>) => {
+  window.addEventListener('eip6963:announceProvider', ((
+    event: CustomEvent<{ info: { rdns: string }; provider: EthereumProvider }>
+  ) => {
     const { info, provider } = event.detail;
     if (info?.rdns) eip6963Providers[info.rdns] = { info, provider };
   }) as EventListener);
@@ -62,9 +64,16 @@ export function getMetaMaskProvider(): EthereumProvider | null {
   if (ethereum) {
     const providers = ethereum.providers || [];
     for (const p of providers) {
-      if (p.isMetaMask && !p.isTrust && !p.isTrustWallet && !p.isRainbow && !p.isCoinbaseWallet) return p;
+      if (p.isMetaMask && !p.isTrust && !p.isTrustWallet && !p.isRainbow && !p.isCoinbaseWallet)
+        return p;
     }
-    if (providers.length === 0 && ethereum.isMetaMask && !ethereum.isTrust && !ethereum.isTrustWallet) return ethereum;
+    if (
+      providers.length === 0 &&
+      ethereum.isMetaMask &&
+      !ethereum.isTrust &&
+      !ethereum.isTrustWallet
+    )
+      return ethereum;
   }
   const eip = eip6963Providers[EIP6963_METAMASK_RDNS];
   return eip ? eip.provider : null;
