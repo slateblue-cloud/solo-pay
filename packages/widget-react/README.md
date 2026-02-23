@@ -18,9 +18,9 @@ import { useWidget } from '@solo-pay/widget-react';
 export default function CheckoutPage() {
   const { openWidget } = useWidget({
     clientId: 'test_client_key_123',
-    onSuccess: (response) => console.log('서버 처리 성공:', response),
-    onError: (error) => console.error('팝업 또는 서버 에러:', error),
-    onClose: () => console.log('사용자가 팝업을 닫았습니다.'),
+    onSuccess: (response) => console.log('Payment successful:', response),
+    onError: (error) => console.error('Popup or server error:', error),
+    onClose: () => console.log('User closed the popup.'),
     // Optional: set defaults so you can call openWidget({ orderId, amount }) only
     defaultPaymentRequest: {
       tokenAddress: '0x...',
