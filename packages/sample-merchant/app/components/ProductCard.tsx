@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState } from 'react';
 import Image from 'next/image';
-import { SoloPay } from '@solo-pay/widget-js';
+import { useWidget } from '@solo-pay/widget-react';
 
 interface Product {
   id: number;
@@ -34,23 +34,19 @@ export default function ProductCard({
   publicKey: string;
 }) {
   const [isOpening, setIsOpening] = useState(false);
-  const soloPayRef = useRef<SoloPay | null>(null);
-
-  useEffect(() => {
-    if (!publicKey || !widgetUrl) return;
-    soloPayRef.current = new SoloPay({
-      publicKey,
-      widgetUrl,
-      debug: process.env.NODE_ENV === 'development',
-    });
-    return () => {
-      soloPayRef.current?.destroy();
-      soloPayRef.current = null;
-    };
-  }, [publicKey, widgetUrl]);
+  const { openWidget } = useWidget({
+    clientId: publicKey,
+    widgetUrl,
+    debug: process.env.NODE_ENV === 'development',
+    onClose: () => setIsOpening(false),
+    onError: (err) => {
+      console.error('[ProductCard] Payment error:', err);
+      setIsOpening(false);
+    },
+  });
 
   const handleClickPayNow = async () => {
-    if (!soloPayRef.current) return;
+    if (!publicKey) return;
     setIsOpening(true);
     try {
       const res = await fetch('/api/payments', {
@@ -62,17 +58,14 @@ export default function ProductCard({
       if (!res.ok) throw new Error(data.error ?? 'Failed to create payment');
 
       const origin = window.location.origin;
-      soloPayRef.current.requestPayment(
-        {
-          orderId: String(data.paymentId),
-          amount: String(product.price),
-          tokenAddress: data.tokenAddress,
-          currency: 'USD',
-          successUrl: `${origin}/payments/success?paymentId=${data.paymentId}`,
-          failUrl: `${origin}/`,
-        },
-        { onClose: () => setIsOpening(false) }
-      );
+      openWidget({
+        orderId: String(data.paymentId),
+        amount: String(product.price),
+        tokenAddress: data.tokenAddress,
+        currency: 'USD',
+        successUrl: `${origin}/payments/success?paymentId=${data.paymentId}`,
+        failUrl: `${origin}/`,
+      });
     } catch (err) {
       console.error('[ProductCard] Payment error:', err);
       setIsOpening(false);
