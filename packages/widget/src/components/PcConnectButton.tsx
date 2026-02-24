@@ -29,7 +29,7 @@ export function PcConnectButton({ className }: { className?: string }) {
           type="button"
           className={`${WALLET_BUTTON_BASE} ${WALLET_STYLES.trustWallet}`}
         >
-          {isTrustWalletPending ? t('Connecting...') : t('Connect Wallet')}
+          {isTrustWalletPending ? t('connect.connecting') : t('connect.title')}
         </button>
       );
     }
@@ -42,7 +42,7 @@ export function PcConnectButton({ className }: { className?: string }) {
           type="button"
           className={`${WALLET_BUTTON_BASE} ${WALLET_STYLES.metaMask}`}
         >
-          {isMetaMaskPending ? t('Connecting...') : t('Connect Wallet')}
+          {isMetaMaskPending ? t('connect.connecting') : t('connect.title')}
         </button>
       );
     }
@@ -55,7 +55,7 @@ export function PcConnectButton({ className }: { className?: string }) {
           type="button"
           className={`${WALLET_BUTTON_BASE} ${WALLET_STYLES.metaMask}`}
         >
-          {isMetaMaskPending ? t('Connecting...') : t('MetaMask')}
+          {isMetaMaskPending ? t('connect.connecting') : t('connect.metaMask')}
         </button>
 
         <button
@@ -64,7 +64,7 @@ export function PcConnectButton({ className }: { className?: string }) {
           type="button"
           className={`${WALLET_BUTTON_BASE} ${WALLET_STYLES.trustWallet}`}
         >
-          {isTrustWalletPending ? t('Connecting...') : t('Trust Wallet')}
+          {isTrustWalletPending ? t('connect.connecting') : t('connect.trustWallet')}
         </button>
       </div>
     );

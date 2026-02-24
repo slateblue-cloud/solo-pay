@@ -63,21 +63,21 @@ function parseErrorMessage(
   if (!error) return undefined;
 
   if (error.includes('User rejected') || error.includes('User denied')) {
-    return t('Transaction was cancelled by user');
+    return t('error.transactionCancelled');
   }
   if (error.includes('insufficient funds')) {
-    return t('Insufficient funds for gas fee');
+    return t('error.insufficientFundsGas');
   }
   if (error.includes('exceeds the configured cap')) {
-    return t('Transaction failed. Please check you are on the correct network');
+    return t('error.wrongNetwork');
   }
   if (error.includes('reverted') || error.includes('revert')) {
     const match = error.match(/reason:\s*([^,\n]+)/i);
     if (match) return match[1].trim();
-    return t('Transaction failed. Please try again');
+    return t('error.transactionFailedRetry');
   }
   if (error.includes('network') || error.includes('connection')) {
-    return t('Network error. Please check your connection');
+    return t('error.networkError');
   }
   if (error.length > 100) {
     return error.substring(0, 100) + '...';
@@ -294,14 +294,14 @@ export default function PaymentStep({ urlParams }: PaymentStepProps) {
     // Validate required payment details before proceeding
     if (!paymentDetails?.serverSignature) {
       setConfigError(
-        t('Payment configuration error: Missing server signature. Please contact support.')
+        t('error.configMissingSignature')
       );
       console.error('Missing server signature - check SIGNER_PRIVATE_KEY configuration');
       return;
     }
     if (!paymentDetails?.recipientAddress || !paymentDetails?.merchantId) {
       setConfigError(
-        t('Payment configuration error: Missing recipient details. Please contact support.')
+        t('error.configMissingRecipient')
       );
       console.error('Missing payment details:', {
         recipientAddress: paymentDetails?.recipientAddress,
@@ -311,7 +311,7 @@ export default function PaymentStep({ urlParams }: PaymentStepProps) {
     }
     if (!isGaslessSupported) {
       setConfigError(
-        t('Gasless payment is not configured for this network. Please contact support.')
+        t('error.gaslessNotConfigured')
       );
       console.error('Missing forwarderAddress - gasless not supported');
       return;
@@ -386,7 +386,7 @@ export default function PaymentStep({ urlParams }: PaymentStepProps) {
     return (
       <div className="text-center py-8">
         <div className="animate-spin w-8 h-8 border-2 border-blue-600 border-t-transparent rounded-full mx-auto mb-4" />
-        <p className="text-sm text-gray-600">{t('Loading payment...')}</p>
+        <p className="text-sm text-gray-600">{t('error.loadingPayment')}</p>
       </div>
     );
   }
@@ -409,7 +409,7 @@ export default function PaymentStep({ urlParams }: PaymentStepProps) {
               d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
             />
           </svg>
-          <p className="font-medium">{t('Payment Error')}</p>
+          <p className="font-medium">{t('error.paymentError')}</p>
         </div>
         <p className="text-sm text-gray-600 mb-4">{apiError}</p>
         {urlParams?.failUrl && (
@@ -429,7 +429,7 @@ export default function PaymentStep({ urlParams }: PaymentStepProps) {
             }}
             className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm hover:bg-gray-200"
           >
-            {t('Go Back')}
+            {t('common.goBack')}
           </button>
         )}
       </div>
@@ -440,7 +440,7 @@ export default function PaymentStep({ urlParams }: PaymentStepProps) {
   if (!urlParams?.walletOnly && !paymentDetails) {
     return (
       <div className="text-center py-8">
-        <p className="text-sm text-gray-600">{t('Initializing payment...')}</p>
+        <p className="text-sm text-gray-600">{t('error.initializingPayment')}</p>
       </div>
     );
   }
@@ -492,21 +492,21 @@ export default function PaymentStep({ urlParams }: PaymentStepProps) {
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
           </svg>
         </div>
-        <p className="font-medium text-gray-900 mb-1">{t('Wallet connected')}</p>
+        <p className="font-medium text-gray-900 mb-1">{t('walletOnly.connected')}</p>
         <p className="text-sm text-gray-500 mb-4">{formatAddress(address)}</p>
         <button
           type="button"
           onClick={handleWalletOnlyContinue}
           className="w-full px-4 py-3 bg-blue-600 text-white rounded-xl font-medium hover:bg-blue-700 active:bg-blue-800"
         >
-          {t('Continue')}
+          {t('common.continue')}
         </button>
         <button
           type="button"
           onClick={handleDisconnect}
           className="mt-3 text-sm text-gray-500 hover:text-gray-700"
         >
-          {t('Disconnect')}
+          {t('common.disconnect')}
         </button>
       </div>
     );
@@ -521,7 +521,7 @@ export default function PaymentStep({ urlParams }: PaymentStepProps) {
             <div className="text-center py-8">
               <div className="animate-spin w-8 h-8 border-2 border-blue-600 border-t-transparent rounded-full mx-auto mb-4" />
               <p className="text-sm text-gray-600">
-                {isCheckingPermit ? t('Checking token support...') : t('Loading payment...')}
+                {isCheckingPermit ? t('error.checkingTokenSupport') : t('error.loadingPayment')}
               </p>
             </div>
           );
@@ -541,7 +541,7 @@ export default function PaymentStep({ urlParams }: PaymentStepProps) {
             needsApproval={needsApproval}
             error={
               !hasSufficientBalance
-                ? t('Insufficient balance. You need {amount} {token}', {
+                ? t('error.insufficientBalance', {
                     amount: displayAmount,
                     token: paymentDetails.tokenSymbol,
                   })
@@ -563,7 +563,7 @@ export default function PaymentStep({ urlParams }: PaymentStepProps) {
             error={
               configError ??
               (!hasSufficientBalance
-                ? t('Insufficient balance. You need {amount} {token}', {
+                ? t('error.insufficientBalance', {
                     amount: displayAmount,
                     token: paymentDetails.tokenSymbol,
                   })

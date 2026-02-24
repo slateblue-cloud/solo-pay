@@ -22,7 +22,7 @@ function LoadingSpinner() {
   return (
     <div className="text-center py-8">
       <div className="animate-spin w-8 h-8 border-2 border-blue-600 border-t-transparent rounded-full mx-auto mb-4" />
-      <p className="text-sm text-gray-600">{t('Loading...')}</p>
+      <p className="text-sm text-gray-600">{t('common.loading')}</p>
     </div>
   );
 }
@@ -70,7 +70,7 @@ function PaymentContent() {
               d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
             />
           </svg>
-          <p className="font-medium">{t('Invalid Parameters')}</p>
+          <p className="font-medium">{t('error.invalidParams')}</p>
         </div>
         <ul className="text-sm text-gray-600 space-y-1">
           {validationResult.errors?.map((error, index) => (
@@ -113,8 +113,8 @@ function WidgetLayout() {
     <>
       <div className="shrink-0 pb-4 mb-4 border-b border-gray-200 flex items-start justify-between gap-2">
         <div>
-          <h1 className="text-base sm:text-lg font-bold text-gray-900">{t('Solo Pay')}</h1>
-          <p className="text-xs sm:text-sm text-gray-500 mt-1">{t('Secure Blockchain Payment')}</p>
+          <h1 className="text-base sm:text-lg font-bold text-gray-900">{t('app.title')}</h1>
+          <p className="text-xs sm:text-sm text-gray-500 mt-1">{t('app.tagline')}</p>
         </div>
         <LanguageSwitcher />
       </div>
@@ -122,7 +122,7 @@ function WidgetLayout() {
         <PaymentContent />
       </div>
       <p className="shrink-0 text-center text-xs pt-4 sm:pt-6 text-gray-400">
-        {t('Powered by Solo Pay')}
+        {t('app.poweredBy')}
       </p>
     </>
   );

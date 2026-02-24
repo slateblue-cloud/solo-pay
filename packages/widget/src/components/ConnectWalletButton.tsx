@@ -45,13 +45,13 @@ export function ConnectWalletButton({ className }: { className?: string }) {
 
       {/* Title */}
       <div className="text-center mb-5">
-        <h1 className="text-base sm:text-lg font-bold text-gray-900">{t('Connect Wallet')}</h1>
+        <h1 className="text-base sm:text-lg font-bold text-gray-900">{t('connect.title')}</h1>
       </div>
 
       {/* Description */}
       <div className="text-center mb-10 sm:mb-12">
         <p className="text-xs sm:text-sm text-gray-500 leading-relaxed">
-          {t('Please connect your wallet to proceed.\nSupports MetaMask and Trust Wallet.')
+          {t('connect.description')
             .split('\n')
             .map((line, i) => (
               <span key={i}>

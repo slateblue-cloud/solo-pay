@@ -46,12 +46,12 @@ export default function TokenApproval({
       {/* Title */}
       <div className="text-center mb-5 sm:mb-6">
         <h1 className="text-base sm:text-lg font-bold text-gray-900">
-          {needsApproval ? t('Token Approval') : t('Already Approved')}
+          {needsApproval ? t('approval.title') : t('approval.alreadyApproved')}
         </h1>
         <p className="text-xs sm:text-sm text-gray-500 mt-1">
           {needsApproval
-            ? t('Please approve token spending permission to proceed')
-            : t('Token is already approved. Continue to payment.')}
+            ? t('approval.description')
+            : t('approval.descriptionAlready')}
         </p>
       </div>
 
@@ -59,7 +59,7 @@ export default function TokenApproval({
       <div className="rounded-xl bg-gray-50 border border-gray-100 p-4 sm:p-5 mb-4 sm:mb-5">
         <div className="flex items-center justify-between mb-3 sm:mb-4">
           <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">
-            {t('Connected Wallet')}
+            {t('approval.connectedWallet')}
           </span>
           {onDisconnect && (
             <button
@@ -80,7 +80,7 @@ export default function TokenApproval({
                   d="M15.75 9V5.25A2.25 2.25 0 0 0 13.5 3h-6a2.25 2.25 0 0 0-2.25 2.25v13.5A2.25 2.25 0 0 0 7.5 21h6a2.25 2.25 0 0 0 2.25-2.25V15m3 0 3-3m0 0-3-3m3 3H9"
                 />
               </svg>
-              <span className="hidden sm:inline">{t('Disconnect')}</span>
+              <span className="hidden sm:inline">{t('common.disconnect')}</span>
             </button>
           )}
         </div>
@@ -92,7 +92,7 @@ export default function TokenApproval({
 
         {/* Balance */}
         <div className="flex items-center justify-between pt-3 border-t border-gray-200">
-          <span className="text-xs sm:text-sm text-gray-500">{t('Balance')}</span>
+          <span className="text-xs sm:text-sm text-gray-500">{t('approval.balance')}</span>
           <span className="text-xs sm:text-sm font-semibold text-gray-900">
             {balance} {token}
           </span>
@@ -120,11 +120,9 @@ export default function TokenApproval({
                 </svg>
               </div>
               <div>
-                <p className="text-sm font-semibold text-green-800">{t('Gas received')}</p>
+                <p className="text-sm font-semibold text-green-800">{t('approval.gasReceived')}</p>
                 <p className="text-xs text-green-700 mt-0.5">
-                  {t(
-                    'Native token has been sent to your wallet. You can now approve the token below.'
-                  )}
+                  {t('approval.gasReceivedDescription')}
                 </p>
               </div>
             </div>
@@ -147,9 +145,7 @@ export default function TokenApproval({
                   </svg>
                 </div>
                 <p className="text-xs text-blue-700 leading-relaxed">
-                  {t(
-                    'We provide free gas for token approval once per account. If you do not have enough gas, click the button below to receive it.'
-                  )}
+                  {t('approval.getGasInfo')}
                 </p>
               </div>
               <button
@@ -161,10 +157,10 @@ export default function TokenApproval({
                 {isRequestingGas ? (
                   <span className="flex items-center justify-center gap-2">
                     <span className="w-3.5 h-3.5 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
-                    {t('Requesting gas...')}
+                    {t('approval.requestingGas')}
                   </span>
                 ) : (
-                  t('GET GAS')
+                  t('approval.getGas')
                 )}
               </button>
               {gasRequestError && <p className="mt-2 text-xs text-red-600">{gasRequestError}</p>}
@@ -199,14 +195,14 @@ export default function TokenApproval({
           {isApproving ? (
             <span className="flex items-center justify-center gap-2">
               <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-              {t('Approving...')}
+              {t('approval.approving')}
             </span>
           ) : error ? (
-            t('Try Again')
+            t('common.tryAgain')
           ) : needsApproval ? (
-            t('Approve Token')
+            t('approval.approveToken')
           ) : (
-            t('Continue to Payment')
+            t('approval.continueToPayment')
           )}
         </button>
       )}
@@ -218,7 +214,7 @@ export default function TokenApproval({
           className="w-full mt-3 py-3 sm:py-3.5 rounded-xl bg-red-600 text-white text-sm font-semibold hover:bg-red-500 transition-colors cursor-pointer"
           onClick={onCancel}
         >
-          {t('Cancel Payment')}
+          {t('approval.cancelPayment')}
         </button>
       )}
     </div>

@@ -95,8 +95,8 @@ export default function PaymentProcessing({
     <div className="w-full p-4 sm:p-8">
       {/* Title */}
       <div className="text-center mb-6 sm:mb-8">
-        <h1 className="text-base sm:text-lg font-bold text-gray-900">{t('Processing Payment')}</h1>
-        <p className="text-xs sm:text-sm text-gray-500 mt-1">{t('Please wait a moment')}</p>
+        <h1 className="text-base sm:text-lg font-bold text-gray-900">{t('processing.title')}</h1>
+        <p className="text-xs sm:text-sm text-gray-500 mt-1">{t('processing.pleaseWait')}</p>
       </div>
 
       {!error && (
@@ -108,7 +108,7 @@ export default function PaymentProcessing({
 
           {/* Amount */}
           <div className="text-center mb-6 sm:mb-8">
-            <p className="text-xs text-gray-500 mb-1">{t('Payment Amount')}</p>
+            <p className="text-xs text-gray-500 mb-1">{t('processing.paymentAmount')}</p>
             <p className="text-xl sm:text-2xl font-bold text-gray-900">
               {amount} {token}
             </p>
@@ -117,12 +117,12 @@ export default function PaymentProcessing({
           {/* Progress Steps */}
           <div className="rounded-xl bg-gray-50 border border-gray-100 p-4 sm:p-5">
             <h2 className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-3 sm:mb-4">
-              {t('Payment Status')}
+              {t('processing.paymentStatus')}
             </h2>
             <div className="space-y-3 sm:space-y-4">
-              <StepItem label={t('Requesting Payment')} status={getStepStatus('requesting')} />
-              <StepItem label={t('Signing Transaction')} status={getStepStatus('signing')} />
-              <StepItem label={t('Confirming Payment')} status={getStepStatus('confirming')} />
+              <StepItem label={t('processing.requestingPayment')} status={getStepStatus('requesting')} />
+              <StepItem label={t('processing.signingTransaction')} status={getStepStatus('signing')} />
+              <StepItem label={t('processing.confirmingPayment')} status={getStepStatus('confirming')} />
             </div>
           </div>
         </>
@@ -146,7 +146,7 @@ export default function PaymentProcessing({
               />
             </svg>
             <div>
-              <p className="text-sm font-medium text-red-700">{t('Transaction Failed')}</p>
+              <p className="text-sm font-medium text-red-700">{t('error.transactionFailed')}</p>
               <p className="text-xs text-red-600 mt-1">{error}</p>
             </div>
           </div>
@@ -162,7 +162,7 @@ export default function PaymentProcessing({
               className="w-full py-3 sm:py-3.5 rounded-xl bg-blue-600 text-white text-sm font-semibold hover:bg-blue-500 transition-colors cursor-pointer"
               onClick={onRetry}
             >
-              {t('Try Again')}
+              {t('common.tryAgain')}
             </button>
           )}
           {onCancel && (
@@ -171,7 +171,7 @@ export default function PaymentProcessing({
               className="w-full py-3 sm:py-3.5 rounded-xl bg-gray-100 text-gray-700 text-sm font-semibold hover:bg-gray-200 transition-colors cursor-pointer"
               onClick={onCancel}
             >
-              {t('Cancel')}
+              {t('common.cancel')}
             </button>
           )}
         </div>

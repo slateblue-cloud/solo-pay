@@ -20,7 +20,7 @@ export function MobileConnectButton() {
         disabled={isConnecting}
         className={`${WALLET_BUTTON_BASE} ${WALLET_STYLES.appKit}`}
       >
-        {isConnecting ? t('Connecting...') : t('Connect Wallet')}
+        {isConnecting ? t('connect.connecting') : t('connect.title')}
       </button>
     </div>
   );
