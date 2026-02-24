@@ -75,6 +75,7 @@ function PaymentContent() {
 }
 
 const Home: NextPage = () => {
+
   return (
     <>
       <Head>
@@ -84,8 +85,10 @@ const Home: NextPage = () => {
         <link href="/favicon.ico" rel="icon" />
       </Head>
 
-      <main className="flex items-center justify-center min-h-screen bg-transparent">
-        <div className="w-full h-[700px] max-w-lg rounded-none sm:rounded-2xl shadow-none sm:shadow-xl border-0 sm:border border-gray-200 bg-white p-4 sm:p-6 flex flex-col overflow-hidden">
+      <main className="sm:flex sm:items-center sm:justify-center sm:min-h-screen bg-transparent">
+        <div
+          className="w-full sm:max-w-[520px] h-screen sm:h-[820px] bg-white p-6 py-10 sm:p-8 flex flex-col overflow-hidden sm:rounded-2xl sm:shadow-xl sm:border sm:border-gray-200"
+        >
           {/* Header */}
           <div className="shrink-0 pb-4 mb-4 border-b border-gray-200">
             <h1 className="text-base sm:text-lg font-bold text-gray-900">Solo Pay</h1>
@@ -98,8 +101,9 @@ const Home: NextPage = () => {
           </div>
 
           {/* Footer */}
-          <p className="shrink-0 text-center text-xs pt-4 sm:pt-6 text-gray-400">
-            Powered by Solo Pay
+          <p className="shrink-0 text-center pt-4 sm:pt-6 text-gray-400">
+            <span className="block text-xs">Copyright © 2026 Solo Pay.</span>
+            <span className="block text-[10px] mt-0.5">All rights reserved.</span>
           </p>
         </div>
       </main>
