@@ -1,51 +1,106 @@
 # Gasless Implementation
 
-A detailed guide for implementing gasless payments.
+A detailed guide to implementing Gasless payments.
 
-## Overall Flow
+::: tip Use the Widget (Recommended)
+The easiest way to use Gasless payments is via the `@solo-pay/widget-js` or `@solo-pay/widget-react` SDK. The widget automatically handles token Approve checks, Permit (EIP-2612) detection, EIP-712 signing, and relay submission.
+
+See [Widget Integration Guide](/en/widget/) for quick setup.
+:::
+
+## Custom Implementation Flow
+
+If you need a custom flow instead of the widget, follow the steps below. All steps are client-side and use the REST API directly.
 
 ```
-1. Create Payment (Server)
+1. Create Payment (REST API — client-side)
        ↓
-2. Request EIP-712 Signature (Frontend)
+2. Token Approve check (frontend)
        ↓
-3. Submit Gasless Request (Server)
+3. Request EIP-712 Signature (frontend)
        ↓
-4. Check Status (Server/Frontend)
+4. Submit Gasless Request (REST API — client-side)
+       ↓
+5. Check Status (REST API — client-side)
 ```
 
 ## Step 1: Create Payment
 
-Create a payment the same way as regular payments.
+Call `POST /payments` with the `x-public-key` header. This can be called directly from the browser.
 
 ```typescript
-// Server-side
-const payment = await client.createPayment({
-  merchantId: 'merchant_demo_001',
-  amount: 10.5,
-  chainId: 80002,
-  tokenAddress: '0x...',
-  recipientAddress: '0x...',
+const response = await fetch('https://pay-api.staging.msq.com/api/v1/payments', {
+  method: 'POST',
+  headers: {
+    'x-public-key': 'pk_test_xxxxx',
+    'Content-Type': 'application/json',
+  },
+  body: JSON.stringify({
+    orderId: 'order-001',
+    amount: 10.5,
+    tokenAddress: '0xE4C687167705Abf55d709395f92e254bdF5825a2',
+    successUrl: 'https://example.com/success',
+    failUrl: 'https://example.com/fail',
+  }),
 });
 
-// Pass paymentId, forwarderAddress to frontend
+const payment = await response.json();
+// payment contains: paymentId, forwarderAddress, gatewayAddress, amount, serverSignature, ...
 ```
 
-## Step 2: Request EIP-712 Signature
+::: warning Check forwarderAddress
+`payment.forwarderAddress` must be present to use Gasless on that chain.
+:::
 
-Request signature from the user on the frontend.
+## Step 2: Token Approve
 
-### wagmi Example
+Even for Gasless payments, the Relayer cannot transfer tokens unless the user has first **completed an `approve` transaction granting the PaymentGateway contract permission** to use the token.
+
+```typescript
+import { useWriteContract, useReadContract } from 'wagmi';
+
+// 1. Check existing allowance
+const { data: allowance } = useReadContract({
+  address: tokenAddress,
+  abi: ERC20ABI,
+  functionName: 'allowance',
+  args: [userAddress, gatewayAddress],
+});
+
+// 2. If insufficient, send Approve transaction (user pays gas for this 1-time setup)
+if (allowance < BigInt(amount)) {
+  await writeContract({
+    address: tokenAddress,
+    abi: ERC20ABI,
+    functionName: 'approve',
+    args: [gatewayAddress, amount],
+  });
+}
+```
+
+::: info Permit (Signature Approval) Supported Tokens
+Modern tokens like USDC support `Permit` (EIP-2612), which replaces the `approve` transaction with a simple signature.
+**If you use the official SoloPay Widget (`@solo-pay/widget-js` or `@solo-pay/widget-react`), it will automatically detect EIP-2612 support and skip the 1-time `approve` transaction, handling the `Permit` entirely gas-free via signature.**
+:::
+
+::: tip
+Once a sufficient amount is approved, all subsequent purchases (Step 3) can be completely gasless via **Signature only**.
+:::
+
+## Step 3: Request EIP-712 Signature
+
+Request a signature from the user on the frontend.
 
 ```typescript
 import { useSignTypedData } from 'wagmi';
+import { encodeFunctionData } from 'viem';
 
 const { signTypedDataAsync } = useSignTypedData();
 
-// Get current nonce from Forwarder
+// Fetch current nonce from Forwarder
 const nonce = await publicClient.readContract({
-  address: FORWARDER_ADDRESS,
-  abi: ForwarderABI,
+  address: forwarderAddress,
+  abi: ERC2771ForwarderABI,
   functionName: 'nonces',
   args: [userAddress],
 });
@@ -53,25 +108,33 @@ const nonce = await publicClient.readContract({
 // Build Forward Request
 const forwardRequest = {
   from: userAddress,
-  to: GATEWAY_ADDRESS,
+  to: gatewayAddress,
   value: 0n,
   gas: 200000n,
-  nonce: nonce,
-  deadline: BigInt(Math.floor(Date.now() / 1000) + 3600), // 1 hour later
+  nonce,
+  deadline: BigInt(Math.floor(Date.now() / 1000) + 3600), // 1 hour
   data: encodeFunctionData({
     abi: PaymentGatewayABI,
     functionName: 'payWithSignature',
-    args: [paymentHash, tokenAddress, amount],
+    args: [
+      paymentId,
+      tokenAddress,
+      BigInt(amount),
+      recipientAddress,
+      merchantId,
+      feeBps,
+      serverSignature,
+    ],
   }),
 };
 
-// EIP-712 Signature
+// EIP-712 Sign
 const signature = await signTypedDataAsync({
   domain: {
-    name: 'SoloForwarder',
+    name: 'ERC2771Forwarder', // OpenZeppelin ERC2771Forwarder default
     version: '1',
     chainId: 80002, // Polygon Amoy
-    verifyingContract: FORWARDER_ADDRESS,
+    verifyingContract: forwarderAddress,
   },
   types: {
     ForwardRequest: [
@@ -89,215 +152,134 @@ const signature = await signTypedDataAsync({
 });
 ```
 
-### User's Wallet Display
-
-The user's wallet will display something like this:
-
-```
-SoloForwarder
-
-ForwardRequest
-───────────────
-from:     0x1234...abcd
-to:       0xGateway...
-value:    0
-gas:      200000
-nonce:    1
-deadline: 1706281200
-data:     0x...
-```
-
 ::: warning Important
-Signatures are not transactions, so **no gas fees are incurred**.
+Signing is NOT a transaction, so **no gas fees are charged**.
+The `payWithSignature` function requires `serverSignature` as an argument.
 :::
 
-## Step 3: Submit Gasless Request
+## Step 4: Submit Gasless Request
 
-Send the signature to the server to request gasless payment.
-
-### SDK Usage
+**Endpoint**: `POST /payments/:id/relay`
 
 ```typescript
-// Server-side
-const result = await client.submitGasless({
-  paymentId: payment.paymentId,
-  forwarderAddress: payment.forwarderAddress,
-  forwardRequest: {
-    from: forwardRequest.from,
-    to: forwardRequest.to,
-    value: forwardRequest.value.toString(),
-    gas: forwardRequest.gas.toString(),
-    nonce: forwardRequest.nonce.toString(),
-    deadline: forwardRequest.deadline.toString(),
-    data: forwardRequest.data,
-    signature: signature, // signature is included in forwardRequest
-  },
-});
-
-console.log(result.relayRequestId); // relay_abc123
+const result = await fetch(
+  `https://pay-api.staging.msq.com/api/v1/payments/${payment.paymentId}/relay`,
+  {
+    method: 'POST',
+    headers: {
+      'x-public-key': 'pk_test_xxxxx',
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      paymentId: payment.paymentId,
+      forwarderAddress: payment.forwarderAddress,
+      forwardRequest: {
+        from: forwardRequest.from,
+        to: forwardRequest.to,
+        value: '0',
+        gas: '200000',
+        nonce: forwardRequest.nonce.toString(),
+        deadline: forwardRequest.deadline.toString(),
+        data: forwardRequest.data,
+        signature,
+      },
+    }),
+  }
+).then((r) => r.json());
 ```
 
-### REST API Usage
-
-```bash
-curl -X POST http://localhost:3001/payments/0xabc123.../gasless \
-  -H "x-api-key: sk_test_xxxxx" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "paymentId": "0xabc123...",
-    "forwarderAddress": "0x5FbDB2315678afecb367f032d93F642f64180aa3",
-    "forwardRequest": {
-      "from": "0x...",
-      "to": "0x...",
-      "value": "0",
-      "gas": "200000",
-      "nonce": "1",
-      "deadline": "1706281200",
-      "data": "0x...",
-      "signature": "0x..."
-    }
-  }'
-```
-
-### Response
-
-```json
-{
-  "success": true,
-  "relayRequestId": "relay_abc123",
-  "status": "submitted",
-  "message": "Gasless transaction submitted"
-}
-```
-
-## Step 4: Check Status
-
-### Check Relay Status
+## Step 5: Check Status
 
 ```typescript
-const relayStatus = await client.getRelayStatus('relay_abc123');
+// Relay status (by paymentId)
+const relayStatus = await fetch(
+  `https://pay-api.staging.msq.com/api/v1/payments/${paymentId}/relay`,
+  { headers: { 'x-public-key': 'pk_test_xxxxx' } }
+).then((r) => r.json());
+// relayStatus.data.status: 'QUEUED' | 'SUBMITTED' | 'CONFIRMED' | 'FAILED'
 
-console.log(relayStatus.status); // submitted | pending | mined | confirmed | failed
+// Payment status
+const paymentStatus = await fetch(`https://pay-api.staging.msq.com/api/v1/payments/${paymentId}`, {
+  headers: { 'x-public-key': 'pk_test_xxxxx' },
+}).then((r) => r.json());
+// paymentStatus.data.status: 'CREATED' | 'PENDING' | 'CONFIRMED' | 'FAILED'
 ```
 
-### Check Payment Status
+## Full Example (React + wagmi)
 
 ```typescript
-const paymentStatus = await client.getPaymentStatus('0xabc123...');
+function GaslessPayment({ payment }) {
+  const { address } = useAccount();
+  const publicClient = usePublicClient();
+  const { signTypedDataAsync } = useSignTypedData();
 
-console.log(paymentStatus.data.status); // CREATED | PENDING | CONFIRMED | FAILED
-```
-
-## Full Code Example
-
-### Frontend (React + wagmi)
-
-```typescript
-import { useSignTypedData, useAccount, usePublicClient } from 'wagmi'
-import { encodeFunctionData } from 'viem'
-
-function GaslessPayment({ paymentId, forwarderAddress, gatewayAddress, amount, tokenAddress }) {
-  const { address } = useAccount()
-  const publicClient = usePublicClient()
-  const { signTypedDataAsync } = useSignTypedData()
+  const { paymentId, forwarderAddress, gatewayAddress, amount, tokenAddress,
+          recipientAddress, merchantId, feeBps, serverSignature, chainId } = payment;
 
   const handleGaslessPayment = async () => {
-    // 1. Get nonce
     const nonce = await publicClient.readContract({
-      address: forwarderAddress,
-      abi: ForwarderABI,
-      functionName: 'nonces',
-      args: [address]
-    })
-
-    // 2. Build Forward Request
-    const forwardRequest = {
-      from: address,
-      to: gatewayAddress,
-      value: 0n,
-      gas: 200000n,
-      nonce: nonce,
-      deadline: BigInt(Math.floor(Date.now() / 1000) + 3600),
-      data: encodeFunctionData({
-        abi: PaymentGatewayABI,
-        functionName: 'payWithSignature',
-        args: [paymentId, tokenAddress, amount]
-      })
-    }
-
-    // 3. Request signature
-    const signature = await signTypedDataAsync({
-      domain: { /* ... */ },
-      types: { /* ... */ },
-      primaryType: 'ForwardRequest',
-      message: forwardRequest
-    })
-
-    // 4. Send to server
-    const response = await fetch('/api/gasless', {
-      method: 'POST',
-      body: JSON.stringify({
-        paymentId,
-        forwarderAddress,
-        forwardRequest: {
-          ...forwardRequest,
-          value: forwardRequest.value.toString(),
-          gas: forwardRequest.gas.toString(),
-          nonce: forwardRequest.nonce.toString(),
-          deadline: forwardRequest.deadline.toString(),
-          signature
-        }
-      })
-    })
-
-    return response.json()
-  }
-
-  return (
-    <button onClick={handleGaslessPayment}>
-      Pay without gas
-    </button>
-  )
-}
-```
-
-### Backend (Node.js)
-
-```typescript
-import { SoloPayClient } from '@globalmsq/solopay';
-
-const client = new SoloPayClient({
-  apiKey: process.env.SOLO_PAY_API_KEY!,
-  environment: 'staging',
-});
-
-app.post('/api/gasless', async (req, res) => {
-  const { paymentId, forwarderAddress, forwardRequest } = req.body;
-
-  try {
-    const result = await client.submitGasless({
-      paymentId,
-      forwarderAddress,
-      forwardRequest,
+      address: forwarderAddress, abi: ERC2771ForwarderABI,
+      functionName: 'nonces', args: [address],
     });
 
-    res.json({ success: true, relayRequestId: result.relayRequestId });
-  } catch (error) {
-    res.status(400).json({ success: false, error: error.message });
-  }
-});
+    const forwardRequest = {
+      from: address, to: gatewayAddress, value: 0n, gas: 200000n, nonce,
+      deadline: BigInt(Math.floor(Date.now() / 1000) + 3600),
+      data: encodeFunctionData({
+        abi: PaymentGatewayABI, functionName: 'payWithSignature',
+        args: [paymentId, tokenAddress, BigInt(amount), recipientAddress, merchantId, feeBps, serverSignature],
+      }),
+    };
+
+    const signature = await signTypedDataAsync({
+      domain: { name: 'ERC2771Forwarder', version: '1', chainId, verifyingContract: forwarderAddress },
+      types: {
+        ForwardRequest: [
+          { name: 'from', type: 'address' }, { name: 'to', type: 'address' },
+          { name: 'value', type: 'uint256' }, { name: 'gas', type: 'uint256' },
+          { name: 'nonce', type: 'uint256' }, { name: 'deadline', type: 'uint48' },
+          { name: 'data', type: 'bytes' },
+        ],
+      },
+      primaryType: 'ForwardRequest', message: forwardRequest,
+    });
+
+    const result = await fetch(
+      `https://pay-api.staging.msq.com/api/v1/payments/${paymentId}/relay`,
+      {
+        method: 'POST',
+        headers: { 'x-public-key': 'pk_test_xxxxx', 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          paymentId, forwarderAddress,
+          forwardRequest: {
+            from: forwardRequest.from, to: forwardRequest.to,
+            value: '0', gas: '200000',
+            nonce: forwardRequest.nonce.toString(),
+            deadline: forwardRequest.deadline.toString(),
+            data: forwardRequest.data, signature,
+          },
+        }),
+      }
+    ).then((r) => r.json());
+
+    return result;
+  };
+
+  return <button onClick={handleGaslessPayment}>Pay without gas</button>;
+}
 ```
 
 ## Error Handling
 
-| Error Code               | Cause                         | Solution                   |
-| ------------------------ | ----------------------------- | -------------------------- |
-| `INVALID_SIGNATURE`      | Signature verification failed | Check domain and types     |
-| `NONCE_MISMATCH`         | Nonce mismatch                | Get latest nonce and retry |
-| `DEADLINE_EXPIRED`       | Signature expired             | Request new signature      |
-| `INSUFFICIENT_ALLOWANCE` | Token approval insufficient   | Run approve first          |
+| Error Code               | Cause                          | Resolution                                          |
+| ------------------------ | ------------------------------ | --------------------------------------------------- |
+| `INVALID_SIGNATURE`      | Invalid signature format       | Ensure signature is a hex string starting with `0x` |
+| `INVALID_PAYMENT_STATUS` | Payment not in CREATED/PENDING | Prevent duplicate requests on completed payments    |
+| `PAYMENT_EXPIRED`        | Payment expired                | Create a new payment and retry                      |
+| `RELAYER_NOT_CONFIGURED` | No Relayer for this chain      | Verify supported chains                             |
+| `VALIDATION_ERROR`       | Input validation failed        | Verify forwardRequest amount matches payment amount |
 
 ## Next Steps
 
-- [Webhook Setup](/en/webhooks/) - Receive payment completion notifications
-- [Error Codes](/en/api/errors) - Complete error list
+- [Webhooks](/en/webhooks/) - Receive payment completion notifications
+- [Error Codes](/en/api/errors) - Full error list

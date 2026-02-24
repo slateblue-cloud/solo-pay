@@ -1,5 +1,85 @@
 import { defineConfig } from 'vitepress';
 
+const koDeveloperSidebar = [
+  {
+    text: '시작하기 및 연동',
+    items: [
+      { text: '서비스 개요', link: '/ko/developer/introduction' },
+      { text: '결제 동작 원리', link: '/ko/developer/how-it-works' },
+      { text: '클라이언트 사이드 연동', link: '/ko/developer/client-side' },
+      { text: '빠른 시작', link: '/ko/getting-started/quick-start' },
+      { text: '테스트 및 검증', link: '/ko/developer/testing' },
+      { text: 'FAQ 및 트러블슈팅', link: '/ko/developer/troubleshooting' },
+    ],
+  },
+  {
+    text: '상세 기능',
+    items: [
+      { text: '결제 생성', link: '/ko/payments/create' },
+      { text: '상태 조회', link: '/ko/payments/status' },
+      { text: '결제 내역', link: '/ko/payments/history' },
+      { text: 'Webhook 설정', link: '/ko/webhooks/' },
+      { text: '서명 검증', link: '/ko/webhooks/verify' },
+      { text: '이벤트 상세', link: '/ko/webhooks/events' },
+      { text: 'API 인증', link: '/ko/getting-started/authentication' },
+    ],
+  },
+  {
+    text: '개발 라이브러리',
+    items: [
+      { text: '위젯 연동', link: '/ko/widget/' },
+      { text: '스마트 컨트랙트', link: '/ko/developer/smart-contracts' },
+    ],
+  },
+  {
+    text: 'API Reference',
+    items: [
+      { text: 'API 전체 명세', link: '/ko/api/' },
+      { text: '에러 코드', link: '/ko/api/errors' },
+    ],
+  },
+];
+
+const enDeveloperSidebar = [
+  {
+    text: 'Getting Started',
+    items: [
+      { text: 'Service Overview', link: '/en/developer/introduction' },
+      { text: 'How Payments Work', link: '/en/developer/how-it-works' },
+      { text: 'Client-Side Integration', link: '/en/developer/client-side' },
+      { text: 'Quick Start', link: '/en/getting-started/quick-start' },
+      { text: 'Testing & QA', link: '/en/developer/testing' },
+      { text: 'FAQ & Troubleshooting', link: '/en/developer/troubleshooting' },
+    ],
+  },
+  {
+    text: 'Detailed Features',
+    items: [
+      { text: 'Create Payment', link: '/en/payments/create' },
+      { text: 'Payment Status', link: '/en/payments/status' },
+      { text: 'Payment History', link: '/en/payments/history' },
+      { text: 'Webhook Setup', link: '/en/webhooks/' },
+      { text: 'Signature Verification', link: '/en/webhooks/verify' },
+      { text: 'Event Details', link: '/en/webhooks/events' },
+      { text: 'API Authentication', link: '/en/getting-started/authentication' },
+    ],
+  },
+  {
+    text: 'Libraries',
+    items: [
+      { text: 'Widget Integration', link: '/en/widget/' },
+      { text: 'Smart Contracts', link: '/en/developer/smart-contracts' },
+    ],
+  },
+  {
+    text: 'API Reference',
+    items: [
+      { text: 'Full API Spec', link: '/en/api/' },
+      { text: 'Error Codes', link: '/en/api/errors' },
+    ],
+  },
+];
+
 export default defineConfig({
   title: 'SoloPay',
   description: 'SoloPay Documentation - Blockchain Payment Gateway',
@@ -11,69 +91,20 @@ export default defineConfig({
       link: '/ko/',
       themeConfig: {
         nav: [
-          { text: '시작하기', link: '/ko/getting-started/' },
-          { text: 'SDK', link: '/ko/sdk/' },
-          { text: '결제', link: '/ko/payments/create' },
-          { text: 'Gasless', link: '/ko/gasless/' },
-          { text: 'Webhooks', link: '/ko/webhooks/' },
-          { text: 'API Reference', link: '/ko/api/' },
+          { text: '개발자 가이드', link: '/ko/developer/' },
+          { text: '유저 가이드', link: '/ko/user/' },
         ],
         sidebar: {
-          '/ko/getting-started/': [
+          '/ko/developer/': koDeveloperSidebar,
+          '/ko/getting-started/': koDeveloperSidebar,
+          '/ko/payments/': koDeveloperSidebar,
+          '/ko/webhooks/': koDeveloperSidebar,
+          '/ko/widget/': koDeveloperSidebar,
+          '/ko/api/': koDeveloperSidebar,
+          '/ko/user/': [
             {
-              text: '시작하기',
-              items: [
-                { text: '개요', link: '/ko/getting-started/' },
-                { text: '빠른 시작', link: '/ko/getting-started/quick-start' },
-                { text: '인증', link: '/ko/getting-started/authentication' },
-              ],
-            },
-          ],
-          '/ko/sdk/': [
-            {
-              text: 'SDK',
-              items: [
-                { text: '설치', link: '/ko/sdk/' },
-                { text: '클라이언트 메서드', link: '/ko/sdk/client' },
-              ],
-            },
-          ],
-          '/ko/payments/': [
-            {
-              text: '결제',
-              items: [
-                { text: '결제 생성', link: '/ko/payments/create' },
-                { text: '상태 조회', link: '/ko/payments/status' },
-                { text: '결제 내역', link: '/ko/payments/history' },
-              ],
-            },
-          ],
-          '/ko/gasless/': [
-            {
-              text: 'Gasless 결제',
-              items: [
-                { text: '개요', link: '/ko/gasless/' },
-                { text: '구현 방법', link: '/ko/gasless/implementation' },
-              ],
-            },
-          ],
-          '/ko/webhooks/': [
-            {
-              text: 'Webhook',
-              items: [
-                { text: '설정', link: '/ko/webhooks/' },
-                { text: '서명 검증', link: '/ko/webhooks/verify' },
-                { text: '이벤트 상세', link: '/ko/webhooks/events' },
-              ],
-            },
-          ],
-          '/ko/api/': [
-            {
-              text: 'API Reference',
-              items: [
-                { text: '전체 명세', link: '/ko/api/' },
-                { text: '에러 코드', link: '/ko/api/errors' },
-              ],
+              text: '유저 가이드',
+              items: [{ text: '결제 방법', link: '/ko/user/' }],
             },
           ],
         },
@@ -89,69 +120,20 @@ export default defineConfig({
       link: '/en/',
       themeConfig: {
         nav: [
-          { text: 'Getting Started', link: '/en/getting-started/' },
-          { text: 'SDK', link: '/en/sdk/' },
-          { text: 'Payments', link: '/en/payments/create' },
-          { text: 'Gasless', link: '/en/gasless/' },
-          { text: 'Webhooks', link: '/en/webhooks/' },
-          { text: 'API Reference', link: '/en/api/' },
+          { text: 'Developer Guide', link: '/en/developer/' },
+          { text: 'User Guide', link: '/en/user/' },
         ],
         sidebar: {
-          '/en/getting-started/': [
+          '/en/developer/': enDeveloperSidebar,
+          '/en/getting-started/': enDeveloperSidebar,
+          '/en/payments/': enDeveloperSidebar,
+          '/en/webhooks/': enDeveloperSidebar,
+          '/en/widget/': enDeveloperSidebar,
+          '/en/api/': enDeveloperSidebar,
+          '/en/user/': [
             {
-              text: 'Getting Started',
-              items: [
-                { text: 'Overview', link: '/en/getting-started/' },
-                { text: 'Quick Start', link: '/en/getting-started/quick-start' },
-                { text: 'Authentication', link: '/en/getting-started/authentication' },
-              ],
-            },
-          ],
-          '/en/sdk/': [
-            {
-              text: 'SDK',
-              items: [
-                { text: 'Installation', link: '/en/sdk/' },
-                { text: 'Client Methods', link: '/en/sdk/client' },
-              ],
-            },
-          ],
-          '/en/payments/': [
-            {
-              text: 'Payments',
-              items: [
-                { text: 'Create Payment', link: '/en/payments/create' },
-                { text: 'Check Status', link: '/en/payments/status' },
-                { text: 'Payment History', link: '/en/payments/history' },
-              ],
-            },
-          ],
-          '/en/gasless/': [
-            {
-              text: 'Gasless Payments',
-              items: [
-                { text: 'Overview', link: '/en/gasless/' },
-                { text: 'Implementation', link: '/en/gasless/implementation' },
-              ],
-            },
-          ],
-          '/en/webhooks/': [
-            {
-              text: 'Webhook',
-              items: [
-                { text: 'Setup', link: '/en/webhooks/' },
-                { text: 'Signature Verification', link: '/en/webhooks/verify' },
-                { text: 'Event Details', link: '/en/webhooks/events' },
-              ],
-            },
-          ],
-          '/en/api/': [
-            {
-              text: 'API Reference',
-              items: [
-                { text: 'Full Specification', link: '/en/api/' },
-                { text: 'Error Codes', link: '/en/api/errors' },
-              ],
+              text: 'User Guide',
+              items: [{ text: 'How to Pay', link: '/en/user/' }],
             },
           ],
         },

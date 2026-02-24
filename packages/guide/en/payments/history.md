@@ -1,106 +1,53 @@
 # Payment History
 
-Retrieve payment history for a specific address.
+Query merchant payment history. Requires API Key authentication.
 
-## SDK Usage
-
-```typescript
-// Get payment history
-const result = await client.getPaymentHistory({
-  chainId: 80002, // Required: Chain ID
-  payer: '0x1234...', // Required: Payer wallet address
-  limit: 10, // Optional: Number of records
-});
-
-console.log(result.data); // Array of payments
-```
-
-## REST API Usage
+## REST API
 
 ```bash
-curl -X GET "http://localhost:3001/payments/history?chainId=80002&payer=0x...&limit=10" \
-  -H "x-api-key: sk_test_xxxxx"
+# Query by orderId
+curl "https://pay-api.staging.msq.com/api/v1/merchant/payments?orderId=order-001" \
+  -H "x-api-key: sk_xxxxx"
+
+# Query by paymentId
+curl "https://pay-api.staging.msq.com/api/v1/merchant/payments/0xabc123..." \
+  -H "x-api-key: sk_xxxxx"
 ```
-
-## Request Parameters
-
-| Field     | Type      | Required | Description                   |
-| --------- | --------- | -------- | ----------------------------- |
-| `chainId` | `number`  | ✓        | Blockchain network ID         |
-| `payer`   | `address` | ✓        | Payer wallet address          |
-| `limit`   | `number`  |          | Number of records to retrieve |
 
 ## Response
 
-### Success (200 OK)
-
 ```json
 {
-  "success": true,
-  "data": [
-    {
-      "paymentId": "0xabc123...",
-      "payer": "0x1234...",
-      "merchant": "0xMerchant...",
-      "token": "0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174",
-      "tokenSymbol": "USDC",
-      "decimals": 6,
-      "amount": "10000000",
-      "timestamp": "2024-01-26T12:35:42Z",
-      "transactionHash": "0xdef789...",
-      "status": "CONFIRMED",
-      "isGasless": false,
-      "relayId": null
-    },
-    {
-      "paymentId": "0xdef456...",
-      "payer": "0x1234...",
-      "merchant": "0xMerchant...",
-      "token": "0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174",
-      "tokenSymbol": "USDC",
-      "decimals": 6,
-      "amount": "5000000",
-      "timestamp": "2024-01-25T10:20:30Z",
-      "transactionHash": "0xabc123...",
-      "status": "CONFIRMED",
-      "isGasless": true,
-      "relayId": "relay_abc123"
-    }
-  ]
+  "paymentId": "0xabc123...",
+  "orderId": "order-001",
+  "status": "CONFIRMED",
+  "amount": "10500000000000000000",
+  "tokenSymbol": "SUT",
+  "tokenDecimals": 18,
+  "txHash": "0xdef789...",
+  "payerAddress": "0x1234...",
+  "createdAt": "2024-01-26T12:30:00Z",
+  "confirmedAt": "2024-01-26T12:35:42Z",
+  "expiresAt": "2024-01-26T13:00:00Z"
 }
 ```
 
-## Usage Example
+## Response Fields
 
-```typescript
-import { SoloPayClient } from '@globalmsq/solopay';
+| Field           | Type     | Description                                            |
+| --------------- | -------- | ------------------------------------------------------ |
+| `paymentId`     | `string` | Unique payment identifier (bytes32 hash)               |
+| `orderId`       | `string` | Merchant order ID                                      |
+| `status`        | `string` | CREATED \| PENDING \| CONFIRMED \| FAILED \| EXPIRED   |
+| `amount`        | `string` | Amount in wei                                          |
+| `tokenSymbol`   | `string` | Token symbol                                           |
+| `tokenDecimals` | `number` | Token decimals                                         |
+| `txHash`        | `string` | On-chain transaction hash (present after confirmation) |
+| `payerAddress`  | `string` | Payer wallet address (present after confirmation)      |
+| `confirmedAt`   | `string` | Payment confirmation timestamp                         |
+| `expiresAt`     | `string` | Payment expiry timestamp                               |
 
-const client = new SoloPayClient({
-  apiKey: process.env.SOLO_PAY_API_KEY!,
-  environment: 'staging',
-});
-
-// Fetch payment history
-async function fetchPaymentHistory() {
-  const result = await client.getPaymentHistory({
-    chainId: 80002,
-    payer: '0x1234567890abcdef...',
-    limit: 10,
-  });
-
-  if (result.success) {
-    for (const payment of result.data) {
-      console.log(`Payment ID: ${payment.paymentId}`);
-      console.log(`Amount: ${payment.amount} ${payment.tokenSymbol}`);
-      console.log(`Status: ${payment.status}`);
-      console.log(`Gasless: ${payment.isGasless ? 'Yes' : 'No'}`);
-      console.log('---');
-    }
-  }
-}
-```
-
-## On-chain Data Query
+## On-chain Query via Subgraph
 
 You can also query on-chain payment events directly via Subgraph.
 
@@ -123,11 +70,11 @@ query PaymentHistory($payer: Bytes!) {
 }
 ```
 
-::: tip Using Subgraph
-Use Subgraph for large history queries or complex filtering needs.
+::: tip Subgraph Usage
+Use Subgraph for bulk history queries or complex filtering.
 :::
 
 ## Next Steps
 
-- [Gasless Payments](/en/gasless/) - Pay without gas fees
+- [Refunds](/en/api/) - Payment refund processing
 - [Error Codes](/en/api/errors) - Error handling

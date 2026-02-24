@@ -1,104 +1,73 @@
 # Authentication
 
-SoloPay API uses API Keys for authentication.
+SoloPay API uses two authentication methods depending on the endpoint type.
 
-## Getting an API Key
+## Authentication Overview
 
-1. Log in to SoloPay Dashboard
-2. Navigate to Settings > API Keys
-3. Click "Create API Key"
-4. Store the issued key securely
+| Method     | Header         | Endpoints                                                   |
+| ---------- | -------------- | ----------------------------------------------------------- |
+| Public Key | `x-public-key` | POST /payments, GET /payments/:id, POST /payments/:id/relay |
+| API Key    | `x-api-key`    | GET /merchant/\*, POST /refunds, GET /refunds               |
+| None       | -              | GET /chains, GET /chains/tokens                             |
+
+## Getting Your Keys
+
+Request both keys from your administrator.
+
+| Type       | Prefix                  | Purpose                             |
+| ---------- | ----------------------- | ----------------------------------- |
+| API Key    | `sk_...`                | Merchant management, refunds        |
+| Public Key | `pk_live_` / `pk_test_` | Payment creation and status queries |
 
 ::: warning Security Notice
-API Key is only displayed once. If lost, you'll need to issue a new one.
-:::
 
-## API Key Types
+- **API Key**: Server-side only. Never expose to the client.
+- **Public Key**: Can be used in the browser, but we recommend configuring domain restrictions via the `Origin` header.
+  :::
 
-| Type     | Prefix     | Purpose             |
-| -------- | ---------- | ------------------- |
-| Test Key | `sk_test_` | Testnet environment |
-| Live Key | `sk_live_` | Mainnet environment |
+## API Key Usage Example
 
-## Usage
-
-### With SDK
-
-```typescript
-import { SoloPayClient } from '@globalmsq/solopay';
-
-// Default configuration (staging environment)
-const client = new SoloPayClient({
-  apiKey: process.env.SOLO_PAY_API_KEY,
-  environment: 'staging', // 'production' | 'staging' | 'custom'
-});
-
-// With custom URL
-const customClient = new SoloPayClient({
-  apiKey: process.env.SOLO_PAY_API_KEY,
-  environment: 'custom',
-  baseUrl: 'https://your-custom-api.com',
-});
-```
-
-### Direct REST API Calls
+The API Key is used for server-side management operations such as merchant info queries, webhook verification, and payment history.
 
 ```bash
-# Create payment example
-curl -X POST http://localhost:3001/api/v1/payments \
-  -H "x-api-key: sk_test_xxxxx" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "merchantId": "merchant_demo_001",
-    "amount": 10.5,
-    "chainId": 80002,
-    "tokenAddress": "0x...",
-    "recipientAddress": "0x..."
-  }'
+curl https://pay-api.staging.msq.com/api/v1/merchant \
+  -H "x-api-key: sk_xxxxx"
 ```
 
 ## Environment Variables
 
-::: code-group
-
-```bash [.env]
-SOLO_PAY_API_KEY=sk_test_xxxxx
+```bash
+SOLO_PAY_API_KEY=sk_xxxxx
+SOLO_PAY_PUBLIC_KEY=pk_test_xxxxx
 ```
 
-```typescript [Usage]
-const client = new SoloPayClient({
-  apiKey: process.env.SOLO_PAY_API_KEY!,
-  environment: 'staging',
-});
-```
+## Origin Verification
 
-:::
+When `ALLOWED_WIDGET_ORIGIN` is set on the server, the `Origin` header will be validated. In browser environments, `Origin` is set automatically.
+
+```bash
+# Server environment variable example
+ALLOWED_WIDGET_ORIGIN=https://yourshop.com
+```
 
 ## Security Best Practices
 
-### Do
+**Do**
 
-- Manage API Keys as environment variables
-- Use API Keys only on server-side
-- Rotate keys regularly
+- Store keys in environment variables
+- Use API Key (`sk_...`) server-side only
+- Configure Origin domain restrictions when possible
 
-### Don't
+**Don't**
 
-- Expose API Keys in client code
+- Expose API Key in client code
 - Commit keys to version control
-- Print API Keys in logs
+- Print keys in logs
 
 ::: danger Prohibited
-Never include API Keys in frontend code. If a key is exposed, revoke it immediately and issue a new one.
+Never include your API Key (`sk_...`) in frontend code. Only Public Keys (`pk_...`) should be used on the client side.
 :::
-
-## Revoking API Keys
-
-1. Select the key in the dashboard
-2. Click "Revoke"
-3. Issue a new key and update your application
 
 ## Next Steps
 
-- [SDK Installation](/en/sdk/) - Detailed SDK usage
-- [Create Payment](/en/payments/create) - Create your first payment
+- [Create Payment](/en/payments/create) - Your first payment
