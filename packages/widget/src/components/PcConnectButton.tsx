@@ -53,7 +53,7 @@ export function PcConnectButton({ className }: { className?: string }) {
         {/* MetaMask */}
         <button
           onClick={connectMetaMask}
-          disabled={isMetaMaskPending}
+          disabled={isPending}
           type="button"
           className={`${WALLET_BUTTON_BASE} ${WALLET_STYLES.metaMask}`}
         >
@@ -63,7 +63,7 @@ export function PcConnectButton({ className }: { className?: string }) {
         {/* Trust Wallet */}
         <button
           onClick={connectTrustWallet}
-          disabled={isTrustWalletPending}
+          disabled={isPending}
           type="button"
           className={`${WALLET_BUTTON_BASE} ${WALLET_STYLES.trustWallet}`}
         >
