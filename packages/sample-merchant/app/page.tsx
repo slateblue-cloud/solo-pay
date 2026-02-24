@@ -1,10 +1,11 @@
 import ProductCard from './components/ProductCard';
 import { prisma } from './lib/prisma';
+import type { Product } from './generated/prisma/client';
 
 export const dynamic = 'force-dynamic';
 
 export default async function Home() {
-  const products = await prisma.product.findMany({ orderBy: { id: 'asc' } });
+  const products: Product[] = await prisma.product.findMany({ orderBy: { id: 'asc' } });
   const widgetUrl = process.env.WIDGET_PUBLIC_URL || 'http://localhost:3005';
   const publicKey = process.env.SOLO_PAY_PUBLIC_KEY || '';
   return (
