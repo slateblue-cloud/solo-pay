@@ -1,0 +1,12 @@
+# Test data
+data/accounts.json
+
+# Build
+dist/
+
+# Reports
+playwright-report/
+test-results/
+
+# OS
+.DS_Store

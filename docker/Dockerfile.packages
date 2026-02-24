@@ -23,6 +23,7 @@ COPY packages/widget/package.json ./packages/widget/
 COPY packages/widget-js/package.json ./packages/widget-js/
 COPY packages/widget-react/package.json ./packages/widget-react/
 COPY packages/database/package.json ./packages/database/
+COPY packages/stress-test/package.json ./packages/stress-test/
 
 RUN pnpm install --frozen-lockfile
 

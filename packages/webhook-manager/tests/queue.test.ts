@@ -15,12 +15,7 @@ vi.mock('bullmq', () => ({
   Queue: vi.fn().mockImplementation(function Queue(this: unknown) {
     return { add: mockAdd, close: mockClose };
   }),
-  Worker: vi.fn().mockImplementation(function Worker(
-    this: unknown,
-    _name: string,
-    _processor: unknown,
-    _options: unknown
-  ) {
+  Worker: vi.fn().mockImplementation(function Worker(this: unknown) {
     return { on: mockWorkerOn, close: mockWorkerClose };
   }),
 }));

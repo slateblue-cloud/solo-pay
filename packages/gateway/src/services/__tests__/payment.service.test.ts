@@ -820,7 +820,8 @@ describe('PaymentService', () => {
       const result = await paymentService.findByHash(paymentHash);
 
       expect(result).toBeDefined();
-      expect(new Date(result!.expires_at).getTime()).toBeLessThan(Date.now());
+      if (!result) throw new Error('unreachable');
+      expect(new Date(result.expires_at).getTime()).toBeLessThan(Date.now());
     });
   });
 
