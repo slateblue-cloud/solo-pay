@@ -51,7 +51,7 @@ export function PcConnectButton({ className }: { className?: string }) {
       <div className="flex flex-col gap-2">
         <button
           onClick={connectMetaMask}
-          disabled={isMetaMaskPending}
+          disabled={isPending}
           type="button"
           className={`${WALLET_BUTTON_BASE} ${WALLET_STYLES.metaMask}`}
         >
@@ -60,7 +60,7 @@ export function PcConnectButton({ className }: { className?: string }) {
 
         <button
           onClick={connectTrustWallet}
-          disabled={isTrustWalletPending}
+          disabled={isPending}
           type="button"
           className={`${WALLET_BUTTON_BASE} ${WALLET_STYLES.trustWallet}`}
         >

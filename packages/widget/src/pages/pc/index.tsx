@@ -6,13 +6,7 @@ import { validateWidgetUrlParams } from '../../lib/validation';
 import type { UrlParamsValidationResult } from '../../types';
 import PaymentStep from '../../components/payment/PaymentStep';
 import { LocaleProvider, useLocale } from '../../context/LocaleContext';
-import type { Locale } from '../../lib/i18n';
-import { DEFAULT_LOCALE, SUPPORTED_LOCALES } from '../../lib/i18n';
-
-function parseLocaleFromQuery(query: Record<string, unknown>): Locale {
-  const lang = query.lang;
-  return lang === 'ko' || lang === 'en' ? lang : DEFAULT_LOCALE;
-}
+import { parseLocale, SUPPORTED_LOCALES } from '../../lib/i18n';
 
 /**
  * Loading spinner component
@@ -131,8 +125,8 @@ function WidgetLayout() {
 const Home: NextPage = () => {
   const router = useRouter();
   const locale = useMemo(
-    () => parseLocaleFromQuery(router.query as Record<string, unknown>),
-    [router.query]
+    () => parseLocale(router.query.lang as string | undefined),
+    [router.query.lang]
   );
 
   return (
@@ -144,9 +138,15 @@ const Home: NextPage = () => {
         <link href="/favicon.ico" rel="icon" />
       </Head>
 
-      <main className="flex items-center justify-center min-h-screen bg-transparent">
-        <div className="w-full h-[700px] max-w-lg rounded-none sm:rounded-2xl shadow-none sm:shadow-xl border-0 sm:border border-gray-200 bg-white p-4 sm:p-6 flex flex-col overflow-hidden">
-          <LocaleProvider locale={locale}>
+      <main className="sm:flex sm:items-center sm:justify-center sm:min-h-screen bg-transparent">
+        <div className="w-full sm:max-w-[520px] h-screen sm:h-[820px] bg-white p-6 py-10 sm:p-8 flex flex-col overflow-hidden sm:rounded-2xl sm:shadow-xl sm:border sm:border-gray-200">
+          <LocaleProvider locale={locale} onLocaleChange={(loc) =>
+              router.replace(
+                { pathname: router.pathname, query: { ...router.query, lang: loc } },
+                undefined,
+                { shallow: true }
+              )
+            }>
             <WidgetLayout />
           </LocaleProvider>
         </div>
