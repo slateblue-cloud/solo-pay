@@ -2,10 +2,12 @@
 
 import { useAccount } from 'wagmi';
 import { useAppKit } from '@reown/appkit/react';
+import { useLocale } from '../context/LocaleContext';
 import { WALLET_BUTTON_BASE, WALLET_STYLES } from './ConnectWalletButton';
 
 /** Custom button that opens AppKit connect modal (used when NEXT_PUBLIC_WC_PROJECT_ID is set). */
 export function MobileConnectButton() {
+  const { t } = useLocale();
   const { open } = useAppKit();
   const { status } = useAccount();
   const isConnecting = status === 'connecting' || status === 'reconnecting';
@@ -18,7 +20,7 @@ export function MobileConnectButton() {
         disabled={isConnecting}
         className={`${WALLET_BUTTON_BASE} ${WALLET_STYLES.appKit}`}
       >
-        {isConnecting ? 'Connecting...' : 'Connect Wallet'}
+        {isConnecting ? t('Connecting...') : t('Connect Wallet')}
       </button>
     </div>
   );

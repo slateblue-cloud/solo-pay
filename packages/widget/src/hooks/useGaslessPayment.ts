@@ -32,6 +32,8 @@ export interface UseGaslessPaymentReturn {
   isGaslessSupported: boolean;
   /** Whether the token supports EIP-2612 permit */
   isPermitSupported: boolean | undefined;
+  /** Whether permit support is still being checked (token contract reads in progress) */
+  isCheckingPermit: boolean;
 }
 
 // ============================================================================
@@ -70,7 +72,7 @@ export function useGaslessPayment({
   const isGaslessSupported = !!forwarderAddress;
 
   // EIP-2612 Permit support
-  const { isPermitSupported, signPermit } = usePermit({
+  const { isPermitSupported, isCheckingPermit, signPermit } = usePermit({
     tokenAddress,
     spenderAddress: gatewayAddress,
     amount,
@@ -259,5 +261,6 @@ export function useGaslessPayment({
     error,
     isGaslessSupported,
     isPermitSupported,
+    isCheckingPermit,
   };
 }

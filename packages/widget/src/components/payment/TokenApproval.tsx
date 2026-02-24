@@ -1,3 +1,5 @@
+import { useLocale } from '../../context/LocaleContext';
+
 interface TokenApprovalProps {
   walletAddress: string;
   balance: string;
@@ -36,6 +38,7 @@ export default function TokenApproval({
   gasRequestError = null,
   gasReceived = false,
 }: TokenApprovalProps) {
+  const { t } = useLocale();
   const hasBalance = balance !== '' && balance !== '0' && parseFloat(balance) > 0;
 
   return (
@@ -43,12 +46,12 @@ export default function TokenApproval({
       {/* Title */}
       <div className="text-center mb-5 sm:mb-6">
         <h1 className="text-base sm:text-lg font-bold text-gray-900">
-          {needsApproval ? 'Token Approval' : 'Already Approved'}
+          {needsApproval ? t('Token Approval') : t('Already Approved')}
         </h1>
         <p className="text-xs sm:text-sm text-gray-500 mt-1">
           {needsApproval
-            ? 'Please approve token spending permission to proceed'
-            : 'Token is already approved. Continue to payment.'}
+            ? t('Please approve token spending permission to proceed')
+            : t('Token is already approved. Continue to payment.')}
         </p>
       </div>
 
@@ -56,7 +59,7 @@ export default function TokenApproval({
       <div className="rounded-xl bg-gray-50 border border-gray-100 p-4 sm:p-5 mb-4 sm:mb-5">
         <div className="flex items-center justify-between mb-3 sm:mb-4">
           <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">
-            Connected Wallet
+            {t('Connected Wallet')}
           </span>
           {onDisconnect && (
             <button
@@ -77,7 +80,7 @@ export default function TokenApproval({
                   d="M15.75 9V5.25A2.25 2.25 0 0 0 13.5 3h-6a2.25 2.25 0 0 0-2.25 2.25v13.5A2.25 2.25 0 0 0 7.5 21h6a2.25 2.25 0 0 0 2.25-2.25V15m3 0 3-3m0 0-3-3m3 3H9"
                 />
               </svg>
-              <span className="hidden sm:inline">Disconnect</span>
+              <span className="hidden sm:inline">{t('Disconnect')}</span>
             </button>
           )}
         </div>
@@ -89,7 +92,7 @@ export default function TokenApproval({
 
         {/* Balance */}
         <div className="flex items-center justify-between pt-3 border-t border-gray-200">
-          <span className="text-xs sm:text-sm text-gray-500">Balance</span>
+          <span className="text-xs sm:text-sm text-gray-500">{t('Balance')}</span>
           <span className="text-xs sm:text-sm font-semibold text-gray-900">
             {balance} {token}
           </span>
@@ -117,9 +120,11 @@ export default function TokenApproval({
                 </svg>
               </div>
               <div>
-                <p className="text-sm font-semibold text-green-800">Gas received</p>
+                <p className="text-sm font-semibold text-green-800">{t('Gas received')}</p>
                 <p className="text-xs text-green-700 mt-0.5">
-                  Native token has been sent to your wallet. You can now approve the token below.
+                  {t(
+                    'Native token has been sent to your wallet. You can now approve the token below.'
+                  )}
                 </p>
               </div>
             </div>
@@ -142,8 +147,9 @@ export default function TokenApproval({
                   </svg>
                 </div>
                 <p className="text-xs text-blue-700 leading-relaxed">
-                  We provide free gas for token approval once per account. If you do not have enough
-                  gas, click the button below to receive it.
+                  {t(
+                    'We provide free gas for token approval once per account. If you do not have enough gas, click the button below to receive it.'
+                  )}
                 </p>
               </div>
               <button
@@ -155,10 +161,10 @@ export default function TokenApproval({
                 {isRequestingGas ? (
                   <span className="flex items-center justify-center gap-2">
                     <span className="w-3.5 h-3.5 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
-                    Requesting gas...
+                    {t('Requesting gas...')}
                   </span>
                 ) : (
-                  'GET GAS'
+                  t('GET GAS')
                 )}
               </button>
               {gasRequestError && <p className="mt-2 text-xs text-red-600">{gasRequestError}</p>}
@@ -193,14 +199,14 @@ export default function TokenApproval({
           {isApproving ? (
             <span className="flex items-center justify-center gap-2">
               <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-              Approving...
+              {t('Approving...')}
             </span>
           ) : error ? (
-            'Try Again'
+            t('Try Again')
           ) : needsApproval ? (
-            'Approve Token'
+            t('Approve Token')
           ) : (
-            'Continue to Payment'
+            t('Continue to Payment')
           )}
         </button>
       )}
@@ -212,7 +218,7 @@ export default function TokenApproval({
           className="w-full mt-3 py-3 sm:py-3.5 rounded-xl bg-red-600 text-white text-sm font-semibold hover:bg-red-500 transition-colors cursor-pointer"
           onClick={onCancel}
         >
-          Cancel Payment
+          {t('Cancel Payment')}
         </button>
       )}
     </div>

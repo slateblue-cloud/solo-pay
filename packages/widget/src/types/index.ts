@@ -5,9 +5,12 @@ export type PaymentStepType =
   | 'payment-processing'
   | 'payment-complete';
 
+/** Supported UI locale (URL param lang). */
+export type WidgetLocale = 'en' | 'ko';
+
 /**
  * URL parameters for widget initialization
- * Matches: /?pk=xxx&orderId=xxx&amount=xxx&tokenAddress=xxx&successUrl=xxx&failUrl=xxx
+ * Matches: /?pk=xxx&orderId=xxx&amount=xxx&tokenAddress=xxx&successUrl=xxx&failUrl=xxx&lang=en|ko
  */
 export interface WidgetUrlParams {
   /** Public key for merchant authentication (required) */
@@ -26,6 +29,8 @@ export interface WidgetUrlParams {
   currency?: string;
   /** If true, only connect wallet — no gateway API or payment flow */
   walletOnly?: boolean;
+  /** UI language: en (default) or ko. When changed in UI, URL is updated. */
+  lang?: WidgetLocale;
 }
 
 /**

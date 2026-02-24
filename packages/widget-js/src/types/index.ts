@@ -8,6 +8,9 @@ export interface SoloPayConfig {
   debug?: boolean;
 }
 
+/** Supported widget UI language (en | ko). Passed as URL param `lang`; when changed in widget UI, URL updates. */
+export type WidgetLocale = 'en' | 'ko';
+
 /** Payment request options - matches widget URL parameters */
 export interface PaymentRequest {
   /** Merchant order ID (required) */
@@ -22,6 +25,8 @@ export interface PaymentRequest {
   failUrl: string;
   /** Fiat currency code (e.g., USD, KRW). When provided, amount is treated as fiat amount. */
   currency?: string;
+  /** Widget UI language: en (default) or ko. Sets URL param `lang` so widget opens in that language. */
+  locale?: WidgetLocale;
 }
 
 /** Payment result from callback */

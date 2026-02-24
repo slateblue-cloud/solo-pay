@@ -1,8 +1,10 @@
 import { useWallet } from '../hooks/useWallet';
+import { useLocale } from '../context/LocaleContext';
 import { WALLET_BUTTON_BASE, WALLET_STYLES } from './ConnectWalletButton';
 
 /** PC/fallback connect: injected + MetaMask SDK (MetaMask / Trust Wallet buttons). */
 export function PcConnectButton({ className }: { className?: string }) {
+  const { t } = useLocale();
   const {
     isPending,
     isMobile,
@@ -19,7 +21,6 @@ export function PcConnectButton({ className }: { className?: string }) {
   const isTrustWalletPending = isPending && pendingConnectorId === 'trustWallet';
 
   const renderWalletButtons = () => {
-    // Inside Trust Wallet browser (mobile/tablet) - show single connect button
     if (isMobile && isTrustWalletBrowser) {
       return (
         <button
@@ -28,12 +29,11 @@ export function PcConnectButton({ className }: { className?: string }) {
           type="button"
           className={`${WALLET_BUTTON_BASE} ${WALLET_STYLES.trustWallet}`}
         >
-          {isTrustWalletPending ? 'Connecting...' : 'Connect Wallet'}
+          {isTrustWalletPending ? t('Connecting...') : t('Connect Wallet')}
         </button>
       );
     }
 
-    // Inside MetaMask browser (mobile) - show single connect button
     if (isMobile && isMetaMaskBrowser) {
       return (
         <button
@@ -42,32 +42,29 @@ export function PcConnectButton({ className }: { className?: string }) {
           type="button"
           className={`${WALLET_BUTTON_BASE} ${WALLET_STYLES.metaMask}`}
         >
-          {isMetaMaskPending ? 'Connecting...' : 'Connect Wallet'}
+          {isMetaMaskPending ? t('Connecting...') : t('Connect Wallet')}
         </button>
       );
     }
 
-    // Mobile without wallet browser OR Desktop - show both wallet options
     return (
       <div className="flex flex-col gap-2">
-        {/* MetaMask */}
         <button
           onClick={connectMetaMask}
           disabled={isMetaMaskPending}
           type="button"
           className={`${WALLET_BUTTON_BASE} ${WALLET_STYLES.metaMask}`}
         >
-          {isMetaMaskPending ? 'Connecting...' : 'MetaMask'}
+          {isMetaMaskPending ? t('Connecting...') : t('MetaMask')}
         </button>
 
-        {/* Trust Wallet */}
         <button
           onClick={connectTrustWallet}
           disabled={isTrustWalletPending}
           type="button"
           className={`${WALLET_BUTTON_BASE} ${WALLET_STYLES.trustWallet}`}
         >
-          {isTrustWalletPending ? 'Connecting...' : 'Trust Wallet'}
+          {isTrustWalletPending ? t('Connecting...') : t('Trust Wallet')}
         </button>
       </div>
     );
