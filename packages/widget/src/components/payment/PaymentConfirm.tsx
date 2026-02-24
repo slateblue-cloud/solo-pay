@@ -35,9 +35,7 @@ export default function PaymentConfirm({
       {/* Title */}
       <div className="text-center mb-5 sm:mb-6">
         <h1 className="text-base sm:text-lg font-bold text-gray-900">{t('confirm.title')}</h1>
-        <p className="text-xs sm:text-sm text-gray-500 mt-0.5">
-          {t('confirm.reviewDetails')}
-        </p>
+        <p className="text-xs sm:text-sm text-gray-500 mt-0.5">{t('confirm.reviewDetails')}</p>
       </div>
 
       {/* Payment Details */}
@@ -87,7 +85,9 @@ export default function PaymentConfirm({
           {/* Total - highlighted within the card */}
           <div className="border-t-2 border-blue-200 pt-2.5 sm:pt-3 mt-1.5 sm:mt-2">
             <div className="flex items-end justify-between rounded-lg bg-blue-50 p-2.5 sm:p-3">
-              <span className="text-sm sm:text-base font-semibold text-blue-700">{t('confirm.total')}</span>
+              <span className="text-sm sm:text-base font-semibold text-blue-700">
+                {t('confirm.total')}
+              </span>
               <div className="text-right">
                 {currency && fiatAmount !== undefined && (
                   <span className="block text-xs text-blue-500">

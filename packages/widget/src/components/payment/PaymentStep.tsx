@@ -293,16 +293,12 @@ export default function PaymentStep({ urlParams }: PaymentStepProps) {
 
     // Validate required payment details before proceeding
     if (!paymentDetails?.serverSignature) {
-      setConfigError(
-        t('error.configMissingSignature')
-      );
+      setConfigError(t('error.configMissingSignature'));
       console.error('Missing server signature - check SIGNER_PRIVATE_KEY configuration');
       return;
     }
     if (!paymentDetails?.recipientAddress || !paymentDetails?.merchantId) {
-      setConfigError(
-        t('error.configMissingRecipient')
-      );
+      setConfigError(t('error.configMissingRecipient'));
       console.error('Missing payment details:', {
         recipientAddress: paymentDetails?.recipientAddress,
         merchantId: paymentDetails?.merchantId,
@@ -310,9 +306,7 @@ export default function PaymentStep({ urlParams }: PaymentStepProps) {
       return;
     }
     if (!isGaslessSupported) {
-      setConfigError(
-        t('error.gaslessNotConfigured')
-      );
+      setConfigError(t('error.gaslessNotConfigured'));
       console.error('Missing forwarderAddress - gasless not supported');
       return;
     }

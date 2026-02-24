@@ -51,7 +51,8 @@ const translations = {
 
     // Connect wallet
     'connect.title': 'Connect Wallet',
-    'connect.description': 'Please connect your wallet to proceed.\nSupports MetaMask and Trust Wallet.',
+    'connect.description':
+      'Please connect your wallet to proceed.\nSupports MetaMask and Trust Wallet.',
     'connect.connecting': 'Connecting...',
     'connect.metaMask': 'MetaMask',
     'connect.trustWallet': 'Trust Wallet',
@@ -128,8 +129,7 @@ const translations = {
     'error.loadingPayment': '결제 정보 불러오는 중...',
     'error.checkingTokenSupport': '토큰 지원 확인 중...',
     'error.initializingPayment': '결제 초기화 중...',
-    'error.configMissingSignature':
-      '결제 설정 오류: 서버 서명이 없습니다. 고객센터에 문의하세요.',
+    'error.configMissingSignature': '결제 설정 오류: 서버 서명이 없습니다. 고객센터에 문의하세요.',
     'error.configMissingRecipient':
       '결제 설정 오류: 수신자 정보가 없습니다. 고객센터에 문의하세요.',
     'error.gaslessNotConfigured':

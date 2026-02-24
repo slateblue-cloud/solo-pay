@@ -120,9 +120,18 @@ export default function PaymentProcessing({
               {t('processing.paymentStatus')}
             </h2>
             <div className="space-y-3 sm:space-y-4">
-              <StepItem label={t('processing.requestingPayment')} status={getStepStatus('requesting')} />
-              <StepItem label={t('processing.signingTransaction')} status={getStepStatus('signing')} />
-              <StepItem label={t('processing.confirmingPayment')} status={getStepStatus('confirming')} />
+              <StepItem
+                label={t('processing.requestingPayment')}
+                status={getStepStatus('requesting')}
+              />
+              <StepItem
+                label={t('processing.signingTransaction')}
+                status={getStepStatus('signing')}
+              />
+              <StepItem
+                label={t('processing.confirmingPayment')}
+                status={getStepStatus('confirming')}
+              />
             </div>
           </div>
         </>

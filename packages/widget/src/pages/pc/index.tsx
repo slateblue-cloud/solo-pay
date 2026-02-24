@@ -140,13 +140,16 @@ const Home: NextPage = () => {
 
       <main className="sm:flex sm:items-center sm:justify-center sm:min-h-screen bg-transparent">
         <div className="w-full sm:max-w-[520px] h-screen sm:h-[820px] bg-white p-6 py-10 sm:p-8 flex flex-col overflow-hidden sm:rounded-2xl sm:shadow-xl sm:border sm:border-gray-200">
-          <LocaleProvider locale={locale} onLocaleChange={(loc) =>
+          <LocaleProvider
+            locale={locale}
+            onLocaleChange={(loc) =>
               router.replace(
                 { pathname: router.pathname, query: { ...router.query, lang: loc } },
                 undefined,
                 { shallow: true }
               )
-            }>
+            }
+          >
             <WidgetLayout />
           </LocaleProvider>
         </div>

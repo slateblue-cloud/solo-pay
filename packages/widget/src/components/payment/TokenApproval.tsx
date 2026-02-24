@@ -49,9 +49,7 @@ export default function TokenApproval({
           {needsApproval ? t('approval.title') : t('approval.alreadyApproved')}
         </h1>
         <p className="text-xs sm:text-sm text-gray-500 mt-1">
-          {needsApproval
-            ? t('approval.description')
-            : t('approval.descriptionAlready')}
+          {needsApproval ? t('approval.description') : t('approval.descriptionAlready')}
         </p>
       </div>
 
@@ -144,9 +142,7 @@ export default function TokenApproval({
                     />
                   </svg>
                 </div>
-                <p className="text-xs text-blue-700 leading-relaxed">
-                  {t('approval.getGasInfo')}
-                </p>
+                <p className="text-xs text-blue-700 leading-relaxed">{t('approval.getGasInfo')}</p>
               </div>
               <button
                 type="button"

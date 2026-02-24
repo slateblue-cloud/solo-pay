@@ -61,9 +61,7 @@ export default function PaymentComplete({
       {/* Title */}
       <div className="text-center mb-6 sm:mb-8">
         <h1 className="text-base sm:text-lg font-bold text-gray-900">{t('complete.title')}</h1>
-        <p className="text-xs sm:text-sm text-gray-500 mt-1">
-          {t('complete.description')}
-        </p>
+        <p className="text-xs sm:text-sm text-gray-500 mt-1">{t('complete.description')}</p>
       </div>
 
       {/* Payment Details */}
@@ -85,7 +83,9 @@ export default function PaymentComplete({
 
           {/* Transaction Hash */}
           <div className="border-t border-gray-200 pt-3 sm:pt-4">
-            <span className="text-xs text-gray-500 block mb-2">{t('complete.transactionHash')}</span>
+            <span className="text-xs text-gray-500 block mb-2">
+              {t('complete.transactionHash')}
+            </span>
             <div className="flex items-center gap-2">
               <span className="text-xs font-mono text-gray-700 truncate">{txHash}</span>
               <button
