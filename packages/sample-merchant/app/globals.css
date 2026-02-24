@@ -1,7 +1,6 @@
 @import 'tailwindcss';
 
-@theme inline;
-sdf {
+@theme {
   --color-surface: #f7f4f0;
   --color-surface-card: #ffffff;
   --color-surface-elevated: #fbf9f6;
@@ -28,7 +27,7 @@ sdf {
 
 @keyframes fadeInUp {
   from {
-    opacity: 0z;
+    opacity: 0;
     transform: translateY(24px);
   }
   to {

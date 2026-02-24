@@ -83,10 +83,10 @@ export class WidgetLauncher {
     this.closePopup();
     this.pendingFailUrl = failUrl;
 
-    const width = 624;
-    const height = 700;
-    const left = Math.round((window.screen.width - width) / 2);
-    const top = Math.round(Math.max(0, (window.screen.height - height) / 2 - 40));
+    const width = 420;
+    const height = 660;
+    const left = Math.round(window.screenX + (window.outerWidth - width) / 2);
+    const top = Math.round(window.screenY + (window.outerHeight - height) / 2);
     const features = `width=${width},height=${height},left=${left},top=${top},toolbar=no,menubar=no,scrollbars=yes,resizable=yes`;
 
     this.popupWindow = window.open(url, 'solopay-widget', features);
