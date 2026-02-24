@@ -1,106 +1,53 @@
 # 결제 내역 조회
 
-특정 주소의 결제 내역을 조회합니다.
+가맹점의 결제 내역을 조회합니다. API Key 인증이 필요합니다.
 
-## SDK 사용
-
-```typescript
-// 결제 내역 조회
-const result = await client.getPaymentHistory({
-  chainId: 80002, // 필수: 체인 ID
-  payer: '0x1234...', // 필수: 결제자 지갑 주소
-  limit: 10, // 선택: 조회 개수
-});
-
-console.log(result.data); // 결제 목록 배열
-```
-
-## REST API 사용
+## REST API
 
 ```bash
-curl -X GET "http://localhost:3001/payments/history?chainId=80002&payer=0x...&limit=10" \
-  -H "x-api-key: sk_test_xxxxx"
+# orderId로 조회
+curl "https://pay-api.staging.msq.com/api/v1/merchant/payments?orderId=order-001" \
+  -H "x-api-key: sk_xxxxx"
+
+# paymentId로 조회
+curl "https://pay-api.staging.msq.com/api/v1/merchant/payments/0xabc123..." \
+  -H "x-api-key: sk_xxxxx"
 ```
-
-## 요청 파라미터
-
-| 필드      | 타입      | 필수 | 설명                 |
-| --------- | --------- | ---- | -------------------- |
-| `chainId` | `number`  | ✓    | 블록체인 네트워크 ID |
-| `payer`   | `address` | ✓    | 결제자 지갑 주소     |
-| `limit`   | `number`  |      | 조회 개수            |
 
 ## 응답
 
-### 성공 (200 OK)
-
 ```json
 {
-  "success": true,
-  "data": [
-    {
-      "paymentId": "0xabc123...",
-      "payer": "0x1234...",
-      "merchant": "0xMerchant...",
-      "token": "0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174",
-      "tokenSymbol": "USDC",
-      "decimals": 6,
-      "amount": "10000000",
-      "timestamp": "2024-01-26T12:35:42Z",
-      "transactionHash": "0xdef789...",
-      "status": "CONFIRMED",
-      "isGasless": false,
-      "relayId": null
-    },
-    {
-      "paymentId": "0xdef456...",
-      "payer": "0x1234...",
-      "merchant": "0xMerchant...",
-      "token": "0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174",
-      "tokenSymbol": "USDC",
-      "decimals": 6,
-      "amount": "5000000",
-      "timestamp": "2024-01-25T10:20:30Z",
-      "transactionHash": "0xabc123...",
-      "status": "CONFIRMED",
-      "isGasless": true,
-      "relayId": "relay_abc123"
-    }
-  ]
+  "paymentId": "0xabc123...",
+  "orderId": "order-001",
+  "status": "CONFIRMED",
+  "amount": "10500000000000000000",
+  "tokenSymbol": "SUT",
+  "tokenDecimals": 18,
+  "txHash": "0xdef789...",
+  "payerAddress": "0x1234...",
+  "createdAt": "2024-01-26T12:30:00Z",
+  "confirmedAt": "2024-01-26T12:35:42Z",
+  "expiresAt": "2024-01-26T13:00:00Z"
 }
 ```
 
-## 사용 예시
+## 응답 필드
 
-```typescript
-import { SoloPayClient } from '@globalmsq/solopay';
+| 필드            | 타입     | 설명                                                 |
+| --------------- | -------- | ---------------------------------------------------- |
+| `paymentId`     | `string` | 결제 고유 식별자 (bytes32 해시)                      |
+| `orderId`       | `string` | 가맹점 주문 ID                                       |
+| `status`        | `string` | CREATED \| PENDING \| CONFIRMED \| FAILED \| EXPIRED |
+| `amount`        | `string` | wei 단위 금액                                        |
+| `tokenSymbol`   | `string` | 토큰 심볼                                            |
+| `tokenDecimals` | `number` | 토큰 소수점                                          |
+| `txHash`        | `string` | 온체인 트랜잭션 해시 (확정 후 존재)                  |
+| `payerAddress`  | `string` | 결제자 지갑 주소 (확정 후 존재)                      |
+| `confirmedAt`   | `string` | 결제 확정 시각                                       |
+| `expiresAt`     | `string` | 결제 만료 시각                                       |
 
-const client = new SoloPayClient({
-  apiKey: process.env.SOLO_PAY_API_KEY!,
-  environment: 'staging',
-});
-
-// 결제 내역 조회
-async function fetchPaymentHistory() {
-  const result = await client.getPaymentHistory({
-    chainId: 80002,
-    payer: '0x1234567890abcdef...',
-    limit: 10,
-  });
-
-  if (result.success) {
-    for (const payment of result.data) {
-      console.log(`결제 ID: ${payment.paymentId}`);
-      console.log(`금액: ${payment.amount} ${payment.tokenSymbol}`);
-      console.log(`상태: ${payment.status}`);
-      console.log(`Gasless: ${payment.isGasless ? '예' : '아니오'}`);
-      console.log('---');
-    }
-  }
-}
-```
-
-## 온체인 데이터 조회
+## Subgraph를 통한 온체인 조회
 
 Subgraph를 통해 온체인 결제 이벤트를 직접 조회할 수도 있습니다.
 
@@ -129,5 +76,5 @@ query PaymentHistory($payer: Bytes!) {
 
 ## 다음 단계
 
-- [Gasless 결제](/ko/gasless/) - 가스비 없는 결제
+- [환불](/ko/api/) - 결제 환불 처리
 - [에러 코드](/ko/api/errors) - 에러 처리

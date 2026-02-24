@@ -4,38 +4,17 @@ layout: home
 hero:
   name: SoloPay
   text: Blockchain Payment Gateway
-  tagline: Easy and Fast ERC-20 Token Payment Integration
-  actions:
-    - theme: brand
-      text: Quick Start
-      link: /en/getting-started/quick-start
-    - theme: alt
-      text: API Reference
-      link: /en/api/
+  tagline: Integrate ERC-20 token payments into your service with ease
 
 features:
-  - icon: 💳
-    title: Payment API
-    details: RESTful API for payment creation, status checking, and history management.
-    link: /en/payments/create
-  - icon: ⚡
-    title: Gasless Payments
-    details: Users can pay with just a signature, without gas fees. Based on ERC-2771 meta-transactions.
-    link: /en/gasless/
-  - icon: 🔔
-    title: Webhook
-    details: Receive real-time notifications when payment status changes.
-    link: /en/webhooks/
-  - icon: 🔗
-    title: Multi-chain Support
-    details: Supports various chains including Polygon, Ethereum, and BNB Chain.
-    link: /en/getting-started/#supported-chains
+  - icon: 🛠️
+    title: Developer Guide
+    details: Technical documentation for integrating SoloPay — APIs, SDK, payment integration, gasless payments, and Webhooks.
+    link: /en/developer/
+    linkText: View Developer Guide
+  - icon: 👤
+    title: User Guide
+    details: A guide on how to use SoloPay — payment flow, wallet connection, and screen-based instructions for end users.
+    link: /en/user/
+    linkText: View User Guide
 ---
-
-## Supported Chains {#supported-chains}
-
-| Chain     | Mainnet | Testnet |
-| --------- | ------- | ------- |
-| Polygon   | ✓       | Amoy    |
-| Ethereum  | ✓       | Sepolia |
-| BNB Chain | ✓       | Testnet |

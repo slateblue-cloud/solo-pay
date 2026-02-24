@@ -1,72 +1,48 @@
 # Quick Start
 
-Learn how to integrate SoloPay in 5 minutes.
+Get SoloPay integrated in 5 minutes.
 
 ## Prerequisites
 
-- API Key (get test key from dashboard)
+- API Key and Public Key (provided by admin)
 - Node.js 18 or higher
 
-## Step 1: Install SDK
+## Step 1: Open Payment Widget
 
-::: code-group
+Open the payment widget with `@solo-pay/widget-js`. The widget handles payment creation, wallet connection, signing, and processing.
 
-```bash [npm]
-npm install @globalmsq/solopay
+```bash
+npm install @solo-pay/widget-js
 ```
-
-```bash [pnpm]
-pnpm add @globalmsq/solopay
-```
-
-```bash [yarn]
-yarn add @globalmsq/solopay
-```
-
-:::
-
-## Step 2: Initialize Client
 
 ```typescript
-import { SoloPayClient } from '@globalmsq/solopay';
+import { SoloPay } from '@solo-pay/widget-js';
 
-const client = new SoloPayClient({
-  apiKey: 'sk_test_...',
-  environment: 'development', // 'development' | 'staging' | 'production'
+const solopay = new SoloPay({
+  publicKey: 'pk_test_xxxxx',
+});
+
+solopay.requestPayment({
+  orderId: 'order-001',
+  amount: '10.5',
+  tokenAddress: '0xE4C687167705Abf55d709395f92e254bdF5825a2',
+  successUrl: 'https://yourshop.com/payment/success',
+  failUrl: 'https://yourshop.com/payment/fail',
 });
 ```
 
-::: tip Environment Configuration
+For React projects, using the [`useWidget` hook from `@solo-pay/widget-react`](/en/widget/) is recommended.
 
-- `development`: Local development (`http://localhost:3001`)
-- `staging`: Testnet (Polygon Amoy, etc.)
-- `production`: Mainnet
-  :::
+## Step 2: Verify Payment Result
 
-## Step 3: Create Your First Payment
+As soon as the `paymentId` is received from the callback URL, verify the final status from the server.
 
-```typescript
-const payment = await client.createPayment({
-  merchantId: 'merchant_demo_001', // Merchant ID
-  amount: 10.5, // 10.5 USDC
-  chainId: 80002, // Polygon Amoy
-  tokenAddress: '0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174',
-  recipientAddress: '0x70997970C51812dc3A010C7d01b50e0d17dc79C8',
-});
-
-console.log(payment.paymentId); // 0xabc123... (bytes32 hash)
-console.log(payment.status); // created
-console.log(payment.amount); // 10500000 (in wei)
-console.log(payment.expiresAt); // 2024-01-26T13:00:00.000Z
+```bash
+curl https://pay-api.staging.msq.com/api/v1/payments/0xabc123... \
+  -H "x-public-key: pk_test_xxxxx"
 ```
 
-## Step 4: Check Payment Status
-
-```typescript
-const status = await client.getPaymentStatus(payment.paymentId);
-
-console.log(status.data.status); // CREATED | PENDING | CONFIRMED | FAILED | EXPIRED
-```
+Only mark the order complete when `status === 'CONFIRMED'` and `amount`, `tokenAddress`, and `orderId` all match.
 
 ## Payment Status Flow
 
@@ -76,59 +52,19 @@ CREATED ──────▶ PENDING ──────▶ CONFIRMED
     │              ▼
     │           FAILED
     ▼
- EXPIRED
+ EXPIRED (after 30 minutes)
 ```
 
-| Status      | Description                                      |
-| ----------- | ------------------------------------------------ |
-| `CREATED`   | Payment created, waiting for user action         |
-| `PENDING`   | Transaction sent, waiting for block confirmation |
-| `CONFIRMED` | Payment completed                                |
-| `FAILED`    | Transaction failed                               |
-| `EXPIRED`   | Expired after 30 minutes                         |
-
-## Full Example
-
-```typescript
-import { SoloPayClient, SoloPayError } from '@globalmsq/solopay';
-
-const client = new SoloPayClient({
-  apiKey: process.env.SOLO_PAY_API_KEY!,
-  environment: 'staging',
-});
-
-async function createPayment() {
-  try {
-    // 1. Create payment
-    const payment = await client.createPayment({
-      merchantId: 'merchant_demo_001',
-      amount: 10.5,
-      chainId: 80002,
-      tokenAddress: '0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174',
-      recipientAddress: '0x70997970C51812dc3A010C7d01b50e0d17dc79C8',
-    });
-
-    console.log('Payment created:', payment.paymentId);
-
-    // 2. Pass payment info to frontend
-    // - paymentId: Payment identifier
-    // - gatewayAddress: PaymentGateway contract
-    // - forwarderAddress: Forwarder contract for Gasless
-    // - amount: Amount in wei
-
-    return payment;
-  } catch (error) {
-    if (error instanceof SoloPayError) {
-      console.error('Payment creation failed:', error.code, error.message);
-    }
-    throw error;
-  }
-}
-```
+| Status      | Description                                   |
+| ----------- | --------------------------------------------- |
+| `CREATED`   | Payment created, awaiting user action         |
+| `PENDING`   | Transaction submitted, awaiting block confirm |
+| `CONFIRMED` | Payment complete                              |
+| `FAILED`    | Transaction failed                            |
+| `EXPIRED`   | Expired (30 minutes exceeded)                 |
 
 ## Next Steps
 
-- [Authentication](/en/getting-started/authentication) - Detailed API Key usage
-- [Create Payment](/en/payments/create) - Payment API detailed guide
-- [Gasless Payments](/en/gasless/) - Pay without gas fees
-- [Webhook Setup](/en/webhooks/) - Receive payment completion notifications
+- [Authentication](/en/getting-started/authentication) - API Key / Public Key details
+- [Client-Side Integration](/en/developer/client-side) - Step-by-step implementation guide
+- [Create Payment API](/en/payments/create) - Detailed payment API guide
