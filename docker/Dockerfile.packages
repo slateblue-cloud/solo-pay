@@ -21,6 +21,7 @@ COPY packages/sample-merchant/package.json ./packages/sample-merchant/
 COPY packages/price-service/package.json ./packages/price-service/
 COPY packages/widget/package.json ./packages/widget/
 COPY packages/widget-js/package.json ./packages/widget-js/
+COPY packages/widget-react/package.json ./packages/widget-react/
 COPY packages/database/package.json ./packages/database/
 
 RUN pnpm install --frozen-lockfile
@@ -250,9 +251,12 @@ CMD ["node_modules/.bin/next", "start"]
 FROM deps AS sample-merchant-builder
 
 WORKDIR /app
-# Build widget-js first (sample-merchant imports @solo-pay/widget-js)
+# Build widget-js first, then widget-react (sample-merchant imports both)
 COPY packages/widget-js ./packages/widget-js
 RUN cd /app/packages/widget-js && pnpm build
+
+COPY packages/widget-react ./packages/widget-react
+RUN cd /app/packages/widget-react && pnpm build
 
 COPY eslint.config.ts ./
 COPY packages/sample-merchant ./packages/sample-merchant

@@ -15,7 +15,6 @@
   white-space: normal;
 }
 
-
 @media (max-width: 768px) {
   .vp-doc table {
     font-size: 14px;
@@ -26,7 +25,6 @@
     padding: 8px 12px;
   }
 }
-
 
 @media (max-width: 640px) {
   .vp-doc div[class*='language-'] {
@@ -46,7 +44,6 @@
 .vp-doc div[class*='language-'] pre {
   -webkit-overflow-scrolling: touch;
 }
-
 
 @media (max-width: 768px) {
   /* 사이드바 링크 */
@@ -71,7 +68,6 @@
   }
 }
 
-
 @media (max-width: 640px) {
   .VPHero .actions {
     flex-direction: column;
@@ -87,7 +83,6 @@
     justify-content: center;
   }
 }
-
 
 @media (max-width: 640px) {
   .VPFeatures .items {
@@ -110,7 +105,6 @@
   }
 }
 
-
 @media (max-width: 640px) {
   .vp-doc .custom-block {
     padding: 16px;
@@ -126,7 +120,6 @@
     line-height: 1.6;
   }
 }
-
 
 @media (max-width: 640px) {
   .vp-doc p {
@@ -148,7 +141,6 @@
   }
 }
 
-
 .vp-doc h3 code {
   font-size: 0.9em;
   word-break: break-all;
@@ -164,7 +156,6 @@
     font-size: 0.85em;
   }
 }
-
 
 @media (max-width: 640px) {
   .VPLocalSearchBox .shell {
