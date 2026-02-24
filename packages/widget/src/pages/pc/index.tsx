@@ -75,7 +75,6 @@ function PaymentContent() {
 }
 
 const Home: NextPage = () => {
-
   return (
     <>
       <Head>
@@ -86,9 +85,7 @@ const Home: NextPage = () => {
       </Head>
 
       <main className="sm:flex sm:items-center sm:justify-center sm:min-h-screen bg-transparent">
-        <div
-          className="w-full sm:max-w-[520px] h-screen sm:h-[820px] bg-white p-6 py-10 sm:p-8 flex flex-col overflow-hidden sm:rounded-2xl sm:shadow-xl sm:border sm:border-gray-200"
-        >
+        <div className="w-full sm:max-w-[520px] h-screen sm:h-[820px] bg-white p-6 py-10 sm:p-8 flex flex-col overflow-hidden sm:rounded-2xl sm:shadow-xl sm:border sm:border-gray-200">
           {/* Header */}
           <div className="shrink-0 pb-4 mb-4 border-b border-gray-200">
             <h1 className="text-base sm:text-lg font-bold text-gray-900">Solo Pay</h1>
