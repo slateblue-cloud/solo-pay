@@ -32,8 +32,8 @@ const solopay = new SoloPay({
 });
 
 solopay.requestPayment({
-  orderId: 'order-001',       // Merchant order ID
-  amount: '10.5',             // Payment amount
+  orderId: 'order-001', // Merchant order ID
+  amount: '10.5', // Payment amount
   tokenAddress: '0xE4C687167705Abf55d709395f92e254bdF5825a2',
   successUrl: 'https://yourshop.com/payment/success',
   failUrl: 'https://yourshop.com/payment/fail',
@@ -58,10 +58,9 @@ URL parameters can be manipulated by the user. Always **verify payment status vi
 As soon as the `paymentId` is received from the callback URL, call the status API to verify payment. The `GET /payments/:id` endpoint uses the `x-public-key` header, which can be called from the browser.
 
 ```typescript
-const response = await fetch(
-  `https://pay-api.staging.msq.com/api/v1/payments/0xabc123...`,
-  { headers: { 'x-public-key': 'pk_test_xxxxx' } }
-);
+const response = await fetch(`https://pay-api.staging.msq.com/api/v1/payments/0xabc123...`, {
+  headers: { 'x-public-key': 'pk_test_xxxxx' },
+});
 const result = await response.json();
 ```
 

@@ -10,10 +10,10 @@ These are currently testnet addresses. Mainnet addresses will be announced separ
 
 ### Polygon Amoy (80002)
 
-| Contract             | Address                                                  |
-| -------------------- | -------------------------------------------------------- |
-| **PaymentGateway**   | See `gatewayAddress` in `GET /payments` response         |
-| **ERC2771Forwarder** | See `forwarderAddress` in `GET /payments` response       |
+| Contract             | Address                                            |
+| -------------------- | -------------------------------------------------- |
+| **PaymentGateway**   | See `gatewayAddress` in `GET /payments` response   |
+| **ERC2771Forwarder** | See `forwarderAddress` in `GET /payments` response |
 
 ::: tip Why not hardcode addresses?
 Contract addresses may differ per chain and per merchant, and may change on upgrades. The **payment creation API response** always contains the latest addresses — trust those values.

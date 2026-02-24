@@ -199,10 +199,9 @@ const relayStatus = await fetch(
 // relayStatus.data.status: 'QUEUED' | 'SUBMITTED' | 'CONFIRMED' | 'FAILED'
 
 // Payment status
-const paymentStatus = await fetch(
-  `https://pay-api.staging.msq.com/api/v1/payments/${paymentId}`,
-  { headers: { 'x-public-key': 'pk_test_xxxxx' } }
-).then((r) => r.json());
+const paymentStatus = await fetch(`https://pay-api.staging.msq.com/api/v1/payments/${paymentId}`, {
+  headers: { 'x-public-key': 'pk_test_xxxxx' },
+}).then((r) => r.json());
 // paymentStatus.data.status: 'CREATED' | 'PENDING' | 'CONFIRMED' | 'FAILED'
 ```
 
@@ -268,6 +267,7 @@ function GaslessPayment({ payment }) {
 
   return <button onClick={handleGaslessPayment}>Pay without gas</button>;
 }
+```
 
 ## Error Handling
 

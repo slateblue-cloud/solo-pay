@@ -8,14 +8,14 @@ SoloPay's core feature is **Gasless Payment**. Users simply sign once in a walle
 
 ### Key Benefits
 
-| Feature                   | Description                                                                 |
-| ------------------------- | --------------------------------------------------------------------------- |
-| **Gas-free UX**           | Users complete payments with just a signature — no ETH/MATIC required      |
-| **Fast Integration**      | Integrate via REST API or SDK within hours                                  |
-| **orderId Deduplication** | Idempotency guaranteed based on order ID                                    |
-| **Real-time Alerts**      | Receive payment status changes instantly via Webhook                        |
-| **Multi-token Support**   | Merchants can specify any ERC-20 token as the payment method                |
-| **Built-in Refunds**      | Handle on-chain refunds via API                                             |
+| Feature                   | Description                                                           |
+| ------------------------- | --------------------------------------------------------------------- |
+| **Gas-free UX**           | Users complete payments with just a signature — no ETH/MATIC required |
+| **Fast Integration**      | Integrate via REST API or SDK within hours                            |
+| **orderId Deduplication** | Idempotency guaranteed based on order ID                              |
+| **Real-time Alerts**      | Receive payment status changes instantly via Webhook                  |
+| **Multi-token Support**   | Merchants can specify any ERC-20 token as the payment method          |
+| **Built-in Refunds**      | Handle on-chain refunds via API                                       |
 
 ## Supported Networks and Assets
 
@@ -24,8 +24,8 @@ SoloPay's core feature is **Gasless Payment**. Users simply sign once in a walle
 Currently testnet environments are supported.
 
 | Chain        | Network ID | Type    |
-| ------------ | ----------- | ------- |
-| Polygon Amoy | 80002       | Testnet |
+| ------------ | ---------- | ------- |
+| Polygon Amoy | 80002      | Testnet |
 
 ::: info Mainnet Support Coming Soon
 Mainnet support (Ethereum, Polygon PoS, etc.) will be announced in the future. We recommend implementing and validating your integration on testnet first.
@@ -56,10 +56,10 @@ Contact the SoloPay operations team to register as a merchant. The following inf
 
 After merchant registration, you will receive two keys from the operations team.
 
-| Key Type       | Prefix                        | Purpose                                | Usage                    |
-| -------------- | ----------------------------- | -------------------------------------- | ------------------------ |
-| **API Key**    | `sk_...`                      | Admin/management operations (setup)    | Never in client code     |
-| **Public Key** | `pk_test_...` / `pk_live_...` | Payment creation, status queries       | Client-side (widget)     |
+| Key Type       | Prefix                        | Purpose                             | Usage                |
+| -------------- | ----------------------------- | ----------------------------------- | -------------------- |
+| **API Key**    | `sk_...`                      | Admin/management operations (setup) | Never in client code |
+| **Public Key** | `pk_test_...` / `pk_live_...` | Payment creation, status queries    | Client-side (widget) |
 
 ::: danger API Key Security
 Never include API Keys starting with `sk_` in frontend code. The API Key is for admin/management setup only and is not required for client-side widget integration.

@@ -33,13 +33,13 @@ Every SoloPay payment is processed in the following 5 steps.
 
 ### Step-by-Step
 
-| Step                       | Actor          | Action                                                               |
-| -------------------------- | -------------- | -------------------------------------------------------------------- |
-| **1. Payment Request**     | SoloPay Widget | `POST /payments` → receives `paymentId`, `serverSignature`          |
-| **2. Signing**             | User Wallet    | MetaMask performs EIP-712 signing only (no transaction, no gas)     |
-| **3. Relayer Processing**  | SoloPay Server | `POST /payments/:id/relay` → verify signature → submit on-chain TX  |
-| **4. Contract Execution**  | Blockchain     | `PaymentGateway.payWithSignature()` executes → token transfer       |
-| **5. Webhook Notification**| SoloPay Server | Send payment confirmed/failed event to merchant Webhook URL         |
+| Step                        | Actor          | Action                                                             |
+| --------------------------- | -------------- | ------------------------------------------------------------------ |
+| **1. Payment Request**      | SoloPay Widget | `POST /payments` → receives `paymentId`, `serverSignature`         |
+| **2. Signing**              | User Wallet    | MetaMask performs EIP-712 signing only (no transaction, no gas)    |
+| **3. Relayer Processing**   | SoloPay Server | `POST /payments/:id/relay` → verify signature → submit on-chain TX |
+| **4. Contract Execution**   | Blockchain     | `PaymentGateway.payWithSignature()` executes → token transfer      |
+| **5. Webhook Notification** | SoloPay Server | Send payment confirmed/failed event to merchant Webhook URL        |
 
 ## 2.2 Gasless & Relayer System
 
@@ -131,11 +131,11 @@ Approving the maximum value (`BigInt(2**256 - 1)`) in the first Approve allows h
 
 ### Permit Support Comparison
 
-| Item                  | Permit-Supported Tokens (USDC, etc.) | Standard ERC-20          |
-| --------------------- | ------------------------------------ | ------------------------ |
-| First payment gas     | None ✅                              | Required (once) ⚠️       |
-| Subsequent payment gas| None ✅                              | None ✅                  |
-| Implementation effort | Low                                  | Low (one extra Approve)  |
+| Item                   | Permit-Supported Tokens (USDC, etc.) | Standard ERC-20         |
+| ---------------------- | ------------------------------------ | ----------------------- |
+| First payment gas      | None ✅                              | Required (once) ⚠️      |
+| Subsequent payment gas | None ✅                              | None ✅                 |
+| Implementation effort  | Low                                  | Low (one extra Approve) |
 
 ## 2.4 Transaction Status Cycle
 
@@ -166,12 +166,12 @@ QUEUED ──────▶ SUBMITTED ──────▶ CONFIRMED
                   FAILED
 ```
 
-| Status      | Description                                         |
-| ----------- | --------------------------------------------------- |
-| `QUEUED`    | Relayer received signature data, preparing TX       |
-| `SUBMITTED` | Relayer submitted TX to blockchain                  |
-| `CONFIRMED` | TX included in block and confirmed                  |
-| `FAILED`    | TX failed (out of gas, contract revert, etc.)       |
+| Status      | Description                                   |
+| ----------- | --------------------------------------------- |
+| `QUEUED`    | Relayer received signature data, preparing TX |
+| `SUBMITTED` | Relayer submitted TX to blockchain            |
+| `CONFIRMED` | TX included in block and confirmed            |
+| `FAILED`    | TX failed (out of gas, contract revert, etc.) |
 
 ::: info Payment Status vs Relay Status
 
