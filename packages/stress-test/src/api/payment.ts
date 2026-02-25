@@ -3,14 +3,7 @@
  * Handles create payment and gasless relay submission
  */
 
-import {
-  JsonRpcProvider,
-  Wallet,
-  Contract,
-  Interface,
-  parseUnits,
-  Signature,
-} from 'ethers';
+import { JsonRpcProvider, Wallet, Contract, Interface, parseUnits, Signature } from 'ethers';
 import type { NetworkConfig } from '../../config';
 import type { TestAccount } from '../account-manager';
 
@@ -437,7 +430,9 @@ export async function executePayment(
     };
 
     if (confirmResult.status !== 'CONFIRMED') {
-      throw new Error(`Payment not confirmed: status=${confirmResult.status} after ${confirmResult.durationMs}ms`);
+      throw new Error(
+        `Payment not confirmed: status=${confirmResult.status} after ${confirmResult.durationMs}ms`
+      );
     }
 
     result.success = true;
