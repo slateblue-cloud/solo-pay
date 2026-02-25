@@ -5,8 +5,8 @@
   "description": "SoloPay - Blockchain Payment Gateway Monorepo",
   "scripts": {
     "build": "pnpm -r build",
-    "test": "pnpm -r --filter '!@solo-pay/integration-tests' test",
-    "test:coverage": "pnpm -r --filter '!@solo-pay/integration-tests' test:coverage",
+    "test": "pnpm -r --filter '!@solo-pay/integration-tests' --filter '!@solo-pay/stress-test' test",
+    "test:coverage": "pnpm -r --filter '!@solo-pay/integration-tests' --filter '!@solo-pay/stress-test' test:coverage",
     "lint": "pnpm -r lint",
     "typecheck": "pnpm -r typecheck",
     "clean": "pnpm -r clean",

@@ -1,0 +1,32 @@
+{
+  "name": "@solo-pay/stress-test",
+  "version": "0.1.0",
+  "description": "Stress tests for Solo Pay: API load test and browser client tests",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "accounts": "tsx src/account-manager/cli.ts",
+    "accounts:generate": "tsx src/account-manager/cli.ts generate",
+    "accounts:fund": "tsx src/account-manager/cli.ts fund",
+    "accounts:list": "tsx src/account-manager/cli.ts list",
+    "accounts:clear": "tsx src/account-manager/cli.ts clear",
+    "execute:api": "tsx src/api/run.ts",
+    "execute:client": "tsx src/client/run.ts",
+    "execute:client:headed": "tsx src/client/run.ts -- --headed",
+    "execute:client:ui": "tsx src/client/run.ts -- --ui",
+    "execute:client:debug": "tsx src/client/run.ts -- --debug",
+    "report:client": "playwright show-report playwright-report",
+    "test": "pnpm execute:client",
+    "typecheck": "tsc --noEmit",
+    "lint": "echo 'No lint configured'"
+  },
+  "dependencies": {
+    "ethers": "^6.13.0"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.45.0",
+    "@types/node": "^20.0.0",
+    "tsx": "^4.7.0",
+    "typescript": "^5.4.0"
+  }
+}
