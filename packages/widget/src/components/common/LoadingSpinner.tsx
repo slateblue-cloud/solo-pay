@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import { useLocale } from '../../context/LocaleContext';
 
 interface LoadingSpinnerProps {
@@ -6,7 +7,11 @@ interface LoadingSpinnerProps {
 
 export default function LoadingSpinner({ message }: LoadingSpinnerProps) {
   const { t } = useLocale();
-  const delay = `-${(Date.now() % 1000) / 1000}s`;
+  const [delay, setDelay] = useState('0s');
+
+  useEffect(() => {
+    setDelay(`-${(Date.now() % 1000) / 1000}s`);
+  }, []);
 
   return (
     <div className="text-center py-8">
