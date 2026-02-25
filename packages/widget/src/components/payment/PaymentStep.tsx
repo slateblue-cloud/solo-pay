@@ -175,8 +175,9 @@ export default function PaymentStep({ urlParams }: PaymentStepProps) {
 
   // Auto-switch chain and advance when wallet connects
   useEffect(() => {
+    if (currentStep !== 'wallet-connect') return;
     if (!isConnected || !address || !paymentDetails) return;
-    if (userRequestedWalletChange.current && currentStep === 'wallet-connect') return;
+    if (userRequestedWalletChange.current) return;
 
     const targetChainId = paymentDetails.chainId;
     const needsSwitch = chain?.id !== targetChainId;
