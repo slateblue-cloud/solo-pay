@@ -43,8 +43,6 @@ export default function ProductCard({
       console.error('[ProductCard] Payment error:', err);
       setIsOpening(false);
     },
-    // Optional: set default locale for widget UI (en | ko). Can also pass locale per openWidget() call.
-    // defaultPaymentRequest: { locale: 'ko' },
   });
 
   const handleClickPayNow = async () => {
@@ -67,7 +65,6 @@ export default function ProductCard({
         currency: 'USD',
         successUrl: `${origin}/payments/success?paymentId=${data.paymentId}`,
         failUrl: `${origin}/`,
-        // locale: 'ko', // optional: open widget in Korean
       });
     } catch (err) {
       console.error('[ProductCard] Payment error:', err);
