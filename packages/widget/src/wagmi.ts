@@ -31,9 +31,10 @@ export const config = createConfig({
   connectors: [
     // Injected connector for wallet browsers (MetaMask mobile, etc.)
     injected(),
-    // Trust Wallet: explicit target + wait for late injection (e.g. production popup)
+    // Trust Wallet: explicit target; provider from window.trustwallet, ethereum.providers[], or EIP-6963
     injected({
       target() {
+        if (typeof window === 'undefined') return undefined;
         const provider = getTrustWalletProvider();
         if (!provider) return undefined;
         return { id: 'trustWallet', name: 'Trust Wallet', provider } as {
@@ -42,7 +43,7 @@ export const config = createConfig({
           provider: import('viem').EIP1193Provider;
         };
       },
-      unstable_shimAsyncInject: 2_000,
+      unstable_shimAsyncInject: 3_500,
     }),
     // MetaMask SDK for desktop extension + mobile deeplink (analytics off to avoid ERR_BLOCKED_BY_CLIENT from ad blockers)
     metaMask({ enableAnalytics: false }),
