@@ -20,7 +20,7 @@
  */
 
 import { getNetworkConfig } from '../../config';
-import { loadAccounts, type TestAccount } from '../account-manager';
+import { loadAccounts } from '../account-manager';
 import { executePaymentsParallel, type PaymentResult } from './payment';
 
 const DEFAULT_TEST_CONFIG = {
@@ -100,6 +100,9 @@ function printSummary(results: PaymentResult[], durationMs: number) {
   const relayDurations = successful
     .filter((r) => r.steps.signAndRelay?.success)
     .map((r) => r.steps.signAndRelay!.durationMs);
+  const confirmDurations = successful
+    .filter((r) => r.steps.confirm?.success)
+    .map((r) => r.steps.confirm!.durationMs);
 
   const avgCreate =
     createDurations.length > 0
@@ -113,6 +116,12 @@ function printSummary(results: PaymentResult[], durationMs: number) {
     relayDurations.length > 0
       ? relayDurations.reduce((a, b) => a + b, 0) / relayDurations.length
       : 0;
+  const avgConfirm =
+    confirmDurations.length > 0
+      ? confirmDurations.reduce((a, b) => a + b, 0) / confirmDurations.length
+      : 0;
+  const minConfirm = confirmDurations.length > 0 ? Math.min(...confirmDurations) : 0;
+  const maxConfirm = confirmDurations.length > 0 ? Math.max(...confirmDurations) : 0;
 
   console.log('\n\n╔══════════════════════════════════════════════════════════╗');
   console.log('║                  STRESS TEST RESULTS                     ║');
@@ -132,6 +141,27 @@ function printSummary(results: PaymentResult[], durationMs: number) {
   console.log(`║    Create Payment:   ${avgCreate.toFixed(0).padEnd(36)}║`);
   console.log(`║    Approve Token:    ${avgApprove.toFixed(0).padEnd(36)}║`);
   console.log(`║    Sign & Relay:     ${avgRelay.toFixed(0).padEnd(36)}║`);
+  console.log(`║    Confirm (on-chain):${avgConfirm.toFixed(0).padEnd(35)}║`);
+  console.log('╠══════════════════════════════════════════════════════════╣');
+  console.log('║  Confirmation Time (ms):                                 ║');
+  console.log(`║    Avg:              ${avgConfirm.toFixed(0).padEnd(36)}║`);
+  console.log(`║    Min:              ${minConfirm.toString().padEnd(36)}║`);
+  console.log(`║    Max:              ${maxConfirm.toString().padEnd(36)}║`);
+  // Count confirm failures among relay-successful results
+  const relaySuccessful = results.filter((r) => r.steps.signAndRelay?.success);
+  const confirmFailed = relaySuccessful.filter((r) => r.steps.confirm && !r.steps.confirm.success);
+  if (confirmFailed.length > 0) {
+    console.log('╠══════════════════════════════════════════════════════════╣');
+    console.log(`║  Confirm Failures:   ${confirmFailed.length.toString().padEnd(36)}║`);
+    const statusCounts: Record<string, number> = {};
+    confirmFailed.forEach((r) => {
+      const s = r.steps.confirm?.finalStatus || 'UNKNOWN';
+      statusCounts[s] = (statusCounts[s] || 0) + 1;
+    });
+    Object.entries(statusCounts).forEach(([status, count]) => {
+      console.log(`║    ${status}: ${count.toString().padEnd(40)}║`);
+    });
+  }
   console.log('╚══════════════════════════════════════════════════════════╝');
 
   if (failed.length > 0) {
@@ -186,7 +216,7 @@ async function main() {
     config,
     options.amount,
     options.concurrency,
-    (done, total, result) => {
+    (done, total) => {
       printProgress('Payments', done, total);
     }
   );

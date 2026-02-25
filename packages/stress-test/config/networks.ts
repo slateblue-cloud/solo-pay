@@ -44,7 +44,7 @@ export const NETWORKS: Record<string, NetworkConfig> = {
     chainId: 80002,
     rpcUrl: process.env.RPC_URL || 'https://rpc-amoy.polygon.technology',
     gatewayUrl: process.env.GATEWAY_URL || 'https://gateway.example.com',
-    paymentGatewayAddress: '0x2024b6669A2BE5fF9624792cB1BB657d20C4b24B',
+    paymentGatewayAddress: '0x2e1fAFd7d30FD625a546f0221705baE97a925a6C',
     forwarderAddress: '0xE8a3C8e530dddd14e02DA1C81Df6a15f41ad78DE',
     tokenAddress: process.env.TOKEN_ADDRESS || '0xE4C687167705Abf55d709395f92e254bdF5825a2',
     tokenDecimals: 18,

@@ -9,9 +9,6 @@ import {
   Contract,
   Interface,
   parseUnits,
-  keccak256,
-  toUtf8Bytes,
-  ZeroHash,
   Signature,
 } from 'ethers';
 import type { NetworkConfig } from '../../config';
@@ -90,6 +87,7 @@ export interface PaymentResult {
     createPayment?: { success: boolean; durationMs: number };
     approve?: { success: boolean; durationMs: number };
     signAndRelay?: { success: boolean; durationMs: number };
+    confirm?: { success: boolean; durationMs: number; finalStatus?: string };
   };
 }
 
@@ -300,6 +298,54 @@ async function submitRelay(
   return response.json() as Promise<RelayResponse>;
 }
 
+const CONFIRM_POLL_INTERVAL_MS = 3000;
+const CONFIRM_TIMEOUT_MS = 120_000;
+const TERMINAL_STATUSES = ['CONFIRMED', 'FAILED', 'EXPIRED'];
+
+interface PaymentStatusResponse {
+  success: boolean;
+  data: {
+    status: string;
+    transactionHash?: string;
+    [key: string]: unknown;
+  };
+}
+
+/**
+ * Poll GET /payments/:id until status reaches a terminal state (CONFIRMED, FAILED, EXPIRED)
+ */
+async function pollPaymentStatus(
+  config: NetworkConfig,
+  paymentId: string,
+  timeoutMs: number = CONFIRM_TIMEOUT_MS,
+  intervalMs: number = CONFIRM_POLL_INTERVAL_MS
+): Promise<{ status: string; durationMs: number }> {
+  const start = Date.now();
+
+  while (Date.now() - start < timeoutMs) {
+    const response = await fetch(`${config.gatewayUrl}/api/v1/payments/${paymentId}`, {
+      method: 'GET',
+      headers: {
+        'x-public-key': config.merchantPublicKey,
+        'x-origin': config.merchantOrigin,
+      },
+    });
+
+    if (response.ok) {
+      const body = (await response.json()) as PaymentStatusResponse;
+      const status = body.data?.status;
+
+      if (status && TERMINAL_STATUSES.includes(status)) {
+        return { status, durationMs: Date.now() - start };
+      }
+    }
+
+    await new Promise((r) => setTimeout(r, intervalMs));
+  }
+
+  return { status: 'TIMEOUT', durationMs: Date.now() - start };
+}
+
 /**
  * Execute full payment flow for a single wallet
  */
@@ -380,6 +426,19 @@ export async function executePayment(
       success: true,
       durationMs: Date.now() - relayStart,
     };
+
+    // Step 4: Poll for on-chain confirmation
+    const confirmResult = await pollPaymentStatus(config, payment.paymentId);
+
+    result.steps.confirm = {
+      success: confirmResult.status === 'CONFIRMED',
+      durationMs: confirmResult.durationMs,
+      finalStatus: confirmResult.status,
+    };
+
+    if (confirmResult.status !== 'CONFIRMED') {
+      throw new Error(`Payment not confirmed: status=${confirmResult.status} after ${confirmResult.durationMs}ms`);
+    }
 
     result.success = true;
   } catch (error) {
