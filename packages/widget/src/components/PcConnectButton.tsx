@@ -1,9 +1,16 @@
+import { useCallback } from 'react';
 import { useWallet } from '../hooks/useWallet';
 import { useLocale } from '../context/LocaleContext';
 import { WALLET_BUTTON_BASE, WALLET_STYLES } from './ConnectWalletButton';
 
 /** PC/fallback connect: injected + MetaMask SDK (MetaMask / Trust Wallet buttons). */
-export function PcConnectButton({ className }: { className?: string }) {
+export function PcConnectButton({
+  className,
+  onConnectorClick,
+}: {
+  className?: string;
+  onConnectorClick?: () => void;
+}) {
   const { t } = useLocale();
   const {
     isPending,
@@ -20,11 +27,19 @@ export function PcConnectButton({ className }: { className?: string }) {
     isPending && (pendingConnectorId === 'metaMask' || pendingConnectorId === 'metaMaskSDK');
   const isTrustWalletPending = isPending && pendingConnectorId === 'trustWallet';
 
+  const wrap = useCallback(
+    (fn: () => void) => () => {
+      onConnectorClick?.();
+      fn();
+    },
+    [onConnectorClick]
+  );
+
   const renderWalletButtons = () => {
     if (isMobile && isTrustWalletBrowser) {
       return (
         <button
-          onClick={connectTrustWallet}
+          onClick={wrap(connectTrustWallet)}
           disabled={isTrustWalletPending}
           type="button"
           className={`${WALLET_BUTTON_BASE} ${WALLET_STYLES.trustWallet}`}
@@ -37,7 +52,7 @@ export function PcConnectButton({ className }: { className?: string }) {
     if (isMobile && isMetaMaskBrowser) {
       return (
         <button
-          onClick={connectInjected}
+          onClick={wrap(connectInjected)}
           disabled={isMetaMaskPending}
           type="button"
           className={`${WALLET_BUTTON_BASE} ${WALLET_STYLES.metaMask}`}
@@ -50,7 +65,7 @@ export function PcConnectButton({ className }: { className?: string }) {
     return (
       <div className="flex flex-col gap-2">
         <button
-          onClick={connectMetaMask}
+          onClick={wrap(connectMetaMask)}
           disabled={isPending}
           type="button"
           className={`${WALLET_BUTTON_BASE} ${WALLET_STYLES.metaMask}`}
@@ -59,7 +74,7 @@ export function PcConnectButton({ className }: { className?: string }) {
         </button>
 
         <button
-          onClick={connectTrustWallet}
+          onClick={wrap(connectTrustWallet)}
           disabled={isPending}
           type="button"
           className={`${WALLET_BUTTON_BASE} ${WALLET_STYLES.trustWallet}`}

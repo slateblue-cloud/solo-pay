@@ -68,6 +68,6 @@ export default function WidgetConfigProvider({ children }: { children: ReactNode
   return createElement(
     AppKitConnectProviderComponent,
     { useAppKit },
-    createElement(WagmiProvider, { config }, children)
+    createElement(WagmiProvider, { config, reconnectOnMount: false }, children)
   ) as any;
 }

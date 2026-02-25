@@ -6,7 +6,7 @@ import { useLocale } from '../context/LocaleContext';
 import { WALLET_BUTTON_BASE, WALLET_STYLES } from './ConnectWalletButton';
 
 /** Custom button that opens AppKit connect modal (used when NEXT_PUBLIC_WC_PROJECT_ID is set). */
-export function MobileConnectButton() {
+export function MobileConnectButton({ onConnectorClick }: { onConnectorClick?: () => void }) {
   const { t } = useLocale();
   const { open } = useAppKit();
   const { status } = useAccount();
@@ -16,7 +16,10 @@ export function MobileConnectButton() {
     <div className="w-full">
       <button
         type="button"
-        onClick={() => open({ view: 'Connect' })}
+        onClick={() => {
+          onConnectorClick?.();
+          open({ view: 'Connect' });
+        }}
         disabled={isConnecting}
         className={`${WALLET_BUTTON_BASE} ${WALLET_STYLES.appKit}`}
       >

@@ -1,6 +1,10 @@
 import type { PaymentRequest } from '../types';
 import { isMobile } from './dom';
 
+const POPUP_WIDTH = 420;
+const POPUP_HEIGHT = 660;
+const POPUP_POLL_MS = 300;
+
 export interface WidgetLauncherConfig {
   publicKey: string;
   widgetUrl: string;
@@ -15,7 +19,6 @@ export class WidgetLauncher {
   private onClose?: () => void;
   private popupWindow: Window | null = null;
   private popupCheckInterval: ReturnType<typeof setInterval> | null = null;
-  /** Stored failUrl for current popup; used to redirect on manual close */
   private pendingFailUrl: string | null = null;
 
   constructor(config: WidgetLauncherConfig) {
@@ -59,7 +62,10 @@ export class WidgetLauncher {
     return url;
   }
 
-  /** Open widget. PC → popup window, mobile → redirect. */
+  /**
+   * Open widget. On desktop opens a popup; on mobile redirects.
+   * Call directly from a user gesture (e.g. click handler) so the browser allows the popup.
+   */
   open(request: PaymentRequest, options?: { onClose?: () => void }): void {
     const mobile = isMobile();
     const url = this.buildWidgetUrl(request, mobile);
@@ -74,25 +80,26 @@ export class WidgetLauncher {
     }
   }
 
-  /** Redirect to widget URL */
   private openRedirect(url: string): void {
     this.log('Redirecting to widget:', url);
     window.location.href = url;
   }
 
-  /** Open widget in new window popup (for PC; avoids iframe issues e.g. Trust Wallet) */
+  /**
+   * Open widget in a popup window.
+   * Uses a unique window name and explicit size/position so the browser opens a window rather than a tab.
+   */
   private openPopup(url: string, failUrl: string): void {
     this.log('Opening popup:', url);
     this.closePopup();
     this.pendingFailUrl = failUrl;
 
-    const width = 420;
-    const height = 660;
-    const left = Math.round(window.screenX + (window.outerWidth - width) / 2);
-    const top = Math.round(window.screenY + (window.outerHeight - height) / 2);
-    const features = `width=${width},height=${height},left=${left},top=${top},toolbar=no,menubar=no,scrollbars=yes,resizable=yes`;
+    const left = Math.round(window.screenX + (window.outerWidth - POPUP_WIDTH) / 2);
+    const top = Math.round(window.screenY + (window.outerHeight - POPUP_HEIGHT) / 2);
+    const features = `width=${POPUP_WIDTH},height=${POPUP_HEIGHT},left=${left},top=${top},toolbar=no,menubar=no,scrollbars=yes,resizable=yes`;
 
-    this.popupWindow = window.open(url, 'solopay-widget', features);
+    const windowName = `solopay-widget-${Date.now()}`;
+    this.popupWindow = window.open(url, windowName, features);
     if (!this.popupWindow) {
       this.pendingFailUrl = null;
       this.log('Popup blocked; falling back to redirect');
@@ -142,15 +149,13 @@ export class WidgetLauncher {
         this.clearPopupCheck();
         this.pendingFailUrl = null;
         this.handleClose();
-        // Manual close: redirect to fail URL so merchant can show result
         if (failUrl) {
           window.location.href = failUrl;
         }
       }
-    }, 300);
+    }, POPUP_POLL_MS);
   }
 
-  /** Stop polling and clear popup reference. Callers must clear pendingFailUrl if needed. */
   private clearPopupCheck(): void {
     if (this.popupCheckInterval !== null) {
       clearInterval(this.popupCheckInterval);

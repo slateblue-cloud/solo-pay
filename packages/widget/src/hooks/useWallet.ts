@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useAccount, useConnect, useDisconnect } from 'wagmi';
-import { getMetaMaskProvider, getTrustWalletProvider } from '../lib/wallet-providers';
-
-// ============================================================================
-// Types
-// ============================================================================
+import {
+  getMetaMaskProvider,
+  getTrustWalletProvider,
+  requestEIP6963Providers,
+} from '../lib/wallet-providers';
 
 export interface WalletState {
   /** Connected wallet address */
@@ -40,9 +40,7 @@ export interface WalletActions {
 
 export interface UseWalletReturn extends WalletState, WalletActions {}
 
-// ============================================================================
-// Detection (device + which wallet env; provider resolution is in lib/wallet-providers)
-// ============================================================================
+/** Device and wallet detection; provider resolution is in lib/wallet-providers. */
 
 /**
  * Detect if device is mobile or tablet (touchscreen without extension support)
@@ -87,10 +85,6 @@ function detectMetaMask(): boolean {
   return getMetaMaskProvider() !== null;
 }
 
-// ============================================================================
-// Deeplink Generators
-// ============================================================================
-
 /**
  * Generate Trust Wallet deeplink to open current page in Trust Wallet browser
  * @see https://developer.trustwallet.com/developer/develop-for-trust/deeplinking
@@ -99,10 +93,6 @@ export function getTrustWalletDeeplink(url?: string): string {
   const targetUrl = url ?? (typeof window !== 'undefined' ? window.location.href : '');
   return `trust://open_url?coin_id=60&url=${encodeURIComponent(targetUrl)}`;
 }
-
-// ============================================================================
-// Hook
-// ============================================================================
 
 export function useWallet(): UseWalletReturn {
   const { address, isConnected, chain } = useAccount();
@@ -142,6 +132,7 @@ export function useWallet(): UseWalletReturn {
     if (typeof window === 'undefined') return;
 
     if (trustWalletConnector) {
+      requestEIP6963Providers();
       connect({ connector: trustWalletConnector });
       return;
     }

@@ -93,6 +93,9 @@ export default function PaymentStep({ urlParams }: PaymentStepProps) {
   // Track if payment was initiated in this session (prevents stale txHash from triggering success)
   const paymentInitiated = useRef(false);
 
+  /** When true, user clicked "Change wallet" — show wallet selection and do not auto-advance on reconnect */
+  const userRequestedWalletChange = useRef(false);
+
   // Error for invalid payment configuration
   const [configError, setConfigError] = useState<string | null>(null);
 
@@ -172,6 +175,7 @@ export default function PaymentStep({ urlParams }: PaymentStepProps) {
   // Auto-switch chain and advance when wallet connects
   useEffect(() => {
     if (!isConnected || !address || !paymentDetails) return;
+    if (userRequestedWalletChange.current && currentStep === 'wallet-connect') return;
 
     const targetChainId = paymentDetails.chainId;
     const needsSwitch = chain?.id !== targetChainId;
@@ -209,6 +213,7 @@ export default function PaymentStep({ urlParams }: PaymentStepProps) {
     chain?.id,
     isSwitchingChain,
     switchChainAsync,
+    currentStep,
   ]);
 
   // Fallback: if permit check never resolves, advance to token-approval after 12s
@@ -218,7 +223,8 @@ export default function PaymentStep({ urlParams }: PaymentStepProps) {
       !isConnected ||
       !address ||
       isPermitSupported !== undefined ||
-      currentStep !== 'wallet-connect'
+      currentStep !== 'wallet-connect' ||
+      userRequestedWalletChange.current
     ) {
       return;
     }
@@ -266,11 +272,16 @@ export default function PaymentStep({ urlParams }: PaymentStepProps) {
     ? parseFloat(formattedBalance) >= parseFloat(displayAmount)
     : true; // Assume true while loading
 
-  // Disconnect handler
+  // Disconnect handler — always show wallet selection (don't auto-reconnect to previous wallet)
   const handleDisconnect = useCallback(() => {
+    userRequestedWalletChange.current = true;
     disconnect();
     goToWalletConnect();
   }, [disconnect]);
+
+  const clearWalletChangeIntent = useCallback(() => {
+    userRequestedWalletChange.current = false;
+  }, []);
 
   // Approve handler
   const handleApprove = useCallback(() => {
@@ -510,6 +521,9 @@ export default function PaymentStep({ urlParams }: PaymentStepProps) {
     if (!paymentDetails) return null;
     switch (currentStep) {
       case 'wallet-connect':
+        if (userRequestedWalletChange.current) {
+          return <ConnectWalletButton onConnectorClick={clearWalletChangeIntent} />;
+        }
         if (isConnected && paymentDetails) {
           return (
             <div className="text-center py-8">
@@ -520,7 +534,7 @@ export default function PaymentStep({ urlParams }: PaymentStepProps) {
             </div>
           );
         }
-        return <ConnectWalletButton />;
+        return <ConnectWalletButton onConnectorClick={clearWalletChangeIntent} />;
 
       case 'token-approval':
         return (

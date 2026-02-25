@@ -17,8 +17,15 @@ export const WALLET_STYLES = {
 
 /**
  * Connect step: icon, title, description, then MobileConnectButton (AppKit) or PcConnectButton (injected + MetaMask SDK).
+ * onConnectorClick: called when user clicks a wallet option (e.g. to clear "change wallet" intent).
  */
-export function ConnectWalletButton({ className }: { className?: string }) {
+export function ConnectWalletButton({
+  className,
+  onConnectorClick,
+}: {
+  className?: string;
+  onConnectorClick?: () => void;
+}) {
   const isAppKit = useAppKitConnect();
   const { t } = useLocale();
 
@@ -63,7 +70,11 @@ export function ConnectWalletButton({ className }: { className?: string }) {
       </div>
 
       <div className="flex justify-center w-full">
-        {isAppKit ? <MobileConnectButton /> : <PcConnectButton className={className} />}
+        {isAppKit ? (
+          <MobileConnectButton onConnectorClick={onConnectorClick} />
+        ) : (
+          <PcConnectButton className={className} onConnectorClick={onConnectorClick} />
+        )}
       </div>
     </div>
   );
