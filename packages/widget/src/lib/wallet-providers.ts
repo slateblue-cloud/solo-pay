@@ -70,7 +70,7 @@ function isTrustProvider(p: EthereumProvider): boolean {
 function isTrustByEntry(entry: EIP6963Entry): boolean {
   const r = (entry.info.rdns || '').toLowerCase();
   const n = (entry.info.name || '').toLowerCase();
-  return r.includes('trustwallet') || r.includes('trust.wallet') || n.includes('trust');
+  return r.includes('trustwallet') || r.includes('trust.wallet') || n.includes('trust wallet');
 }
 
 /** Trust Wallet: window.trustwallet → ethereum.providers[] → window.ethereum → EIP-6963. */
