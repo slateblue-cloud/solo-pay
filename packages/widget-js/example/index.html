@@ -115,6 +115,13 @@
           <input type="text" id="failUrl" placeholder="Leave empty = return here with result">
         </div>
       </div>
+      <div class="form-group">
+        <label for="locale">Language</label>
+        <select id="locale">
+          <option value="en">English</option>
+          <option value="ko">한국어</option>
+        </select>
+      </div>
     </div>
     <button class="btn btn-primary" onclick="pay()" style="width: 100%;">Pay</button>
   </div>
@@ -161,9 +168,7 @@
 
     function pay() {
       if (!soloPay) { log('SDK not initialized!', 'error'); return; }
-      const base = getBaseUrl();
-      const successUrlInput = document.getElementById('successUrl').value.trim();
-      const failUrlInput = document.getElementById('failUrl').value.trim();
+      const localeVal = document.getElementById('locale').value;
       const req = {
         orderId: document.getElementById('orderId').value || `order-${Date.now()}`,
         amount: document.getElementById('amount').value || '10',
@@ -171,6 +176,9 @@
         successUrl: document.getElementById('successUrl').value || window.location.href,
         failUrl: document.getElementById('failUrl').value || window.location.href,
       };
+      if (localeVal === 'en' || localeVal === 'ko') {
+        req.locale = localeVal;
+      }
       log(`Payment: ${JSON.stringify(req)}`, 'info');
       try {
         soloPay.requestPayment(req, {

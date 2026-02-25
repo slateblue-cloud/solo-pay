@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useLocale } from '../../context/LocaleContext';
 
 interface PaymentCompleteProps {
   amount: string;
@@ -15,6 +16,7 @@ export default function PaymentComplete({
   txHash,
   onConfirm,
 }: PaymentCompleteProps) {
+  const { t } = useLocale();
   const [copied, setCopied] = useState(false);
 
   const handleCopyTxHash = async () => {
@@ -58,10 +60,8 @@ export default function PaymentComplete({
 
       {/* Title */}
       <div className="text-center mb-6 sm:mb-8">
-        <h1 className="text-base sm:text-lg font-bold text-gray-900">Payment Complete</h1>
-        <p className="text-xs sm:text-sm text-gray-500 mt-1">
-          Your payment has been successfully processed
-        </p>
+        <h1 className="text-base sm:text-lg font-bold text-gray-900">{t('complete.title')}</h1>
+        <p className="text-xs sm:text-sm text-gray-500 mt-1">{t('complete.description')}</p>
       </div>
 
       {/* Payment Details */}
@@ -69,13 +69,13 @@ export default function PaymentComplete({
         <div className="space-y-3 sm:space-y-4">
           {/* Date */}
           <div className="flex items-center justify-between">
-            <span className="text-xs sm:text-sm text-gray-500">Date</span>
+            <span className="text-xs sm:text-sm text-gray-500">{t('complete.date')}</span>
             <span className="text-xs sm:text-sm font-medium text-gray-900">{date}</span>
           </div>
 
           {/* Amount */}
           <div className="flex items-center justify-between">
-            <span className="text-xs sm:text-sm text-gray-500">Amount</span>
+            <span className="text-xs sm:text-sm text-gray-500">{t('complete.amount')}</span>
             <span className="text-xs sm:text-sm font-bold text-gray-900">
               {amount} {token}
             </span>
@@ -83,13 +83,15 @@ export default function PaymentComplete({
 
           {/* Transaction Hash */}
           <div className="border-t border-gray-200 pt-3 sm:pt-4">
-            <span className="text-xs text-gray-500 block mb-2">Transaction Hash</span>
+            <span className="text-xs text-gray-500 block mb-2">
+              {t('complete.transactionHash')}
+            </span>
             <div className="flex items-center gap-2">
               <span className="text-xs font-mono text-gray-700 truncate">{txHash}</span>
               <button
                 type="button"
                 className="shrink-0 p-1 rounded hover:bg-gray-200 transition-colors cursor-pointer"
-                aria-label="Copy transaction hash"
+                aria-label={t('common.copyTxHash')}
                 onClick={handleCopyTxHash}
               >
                 {copied ? (
@@ -129,7 +131,7 @@ export default function PaymentComplete({
         className="w-full py-3 sm:py-3.5 rounded-xl bg-blue-600 text-white text-sm font-semibold hover:bg-blue-500 active:bg-blue-700 transition-colors cursor-pointer"
         onClick={onConfirm}
       >
-        Confirm
+        {t('common.confirm')}
       </button>
     </div>
   );

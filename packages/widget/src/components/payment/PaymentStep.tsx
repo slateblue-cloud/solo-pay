@@ -9,6 +9,8 @@ import { useWallet } from '../../hooks/useWallet';
 import { useToken } from '../../hooks/useToken';
 import { useGaslessPayment } from '../../hooks/useGaslessPayment';
 import { ConnectWalletButton } from '../ConnectWalletButton';
+import { useLocale } from '../../context/LocaleContext';
+import type { TranslationKeys } from '../../lib/i18n';
 import type { PaymentStepType, WidgetUrlParams } from '../../types/index';
 import { formatUnits } from 'viem';
 
@@ -52,48 +54,39 @@ function formatAddress(addr: string): string {
 }
 
 /**
- * Parse blockchain error message to user-friendly text
+ * Parse blockchain error message to user-friendly text (locale-aware via t)
  */
-function parseErrorMessage(error: string | undefined): string | undefined {
+function parseErrorMessage(
+  error: string | undefined,
+  t: (key: TranslationKeys, params?: Record<string, string | number>) => string
+): string | undefined {
   if (!error) return undefined;
 
-  // User rejected transaction
   if (error.includes('User rejected') || error.includes('User denied')) {
-    return 'Transaction was cancelled by user';
+    return t('error.transactionCancelled');
   }
-
-  // Insufficient funds for gas
   if (error.includes('insufficient funds')) {
-    return 'Insufficient funds for gas fee';
+    return t('error.insufficientFundsGas');
   }
-
-  // Gas fee exceeds cap (usually wrong network)
   if (error.includes('exceeds the configured cap')) {
-    return 'Transaction failed. Please check you are on the correct network';
+    return t('error.wrongNetwork');
   }
-
-  // Contract revert
   if (error.includes('reverted') || error.includes('revert')) {
-    // Try to extract revert reason
     const match = error.match(/reason:\s*([^,\n]+)/i);
     if (match) return match[1].trim();
-    return 'Transaction failed. Please try again';
+    return t('error.transactionFailedRetry');
   }
-
-  // Network error
   if (error.includes('network') || error.includes('connection')) {
-    return 'Network error. Please check your connection';
+    return t('error.networkError');
   }
-
-  // Default: truncate long messages
   if (error.length > 100) {
     return error.substring(0, 100) + '...';
   }
-
   return error;
 }
 
 export default function PaymentStep({ urlParams }: PaymentStepProps) {
+  const { t, locale } = useLocale();
   const [currentStep, setCurrentStep] = useState<PaymentStepType>('wallet-connect');
   const [completionDate, setCompletionDate] = useState<string>('');
 
@@ -138,7 +131,11 @@ export default function PaymentStep({ urlParams }: PaymentStepProps) {
     error: gaslessError,
     isGaslessSupported,
     isPermitSupported,
+    isCheckingPermit,
   } = useGaslessPayment({ paymentDetails, publicKey: urlParams?.pk });
+
+  /** Prevents duplicate switchChainAsync (wallet errors on "request already pending") */
+  const switchInProgressRef = useRef(false);
 
   // Prevent double API call in React Strict Mode
   const isInitialized = useRef(false);
@@ -179,23 +176,25 @@ export default function PaymentStep({ urlParams }: PaymentStepProps) {
     const targetChainId = paymentDetails.chainId;
     const needsSwitch = chain?.id !== targetChainId;
 
-    if (needsSwitch && !isSwitchingChain) {
+    if (needsSwitch) {
+      if (switchInProgressRef.current || isSwitchingChain) return;
+      switchInProgressRef.current = true;
       setIsSwitchingChain(true);
       switchChainAsync({ chainId: targetChainId })
         .then(() => {
+          switchInProgressRef.current = false;
           setIsSwitchingChain(false);
         })
         .catch((err) => {
           console.warn('Chain switch failed:', err);
+          switchInProgressRef.current = false;
           setIsSwitchingChain(false);
         });
       return;
     }
 
     if (!isSwitchingChain) {
-      // Wait until permit check finishes before deciding the next step
       if (isPermitSupported === undefined) return;
-
       if (isPermitSupported) {
         setCurrentStep('payment-confirm');
       } else {
@@ -211,6 +210,21 @@ export default function PaymentStep({ urlParams }: PaymentStepProps) {
     isSwitchingChain,
     switchChainAsync,
   ]);
+
+  // Fallback: if permit check never resolves, advance to token-approval after 12s
+  useEffect(() => {
+    if (
+      !paymentDetails ||
+      !isConnected ||
+      !address ||
+      isPermitSupported !== undefined ||
+      currentStep !== 'wallet-connect'
+    ) {
+      return;
+    }
+    const timeout = window.setTimeout(() => setCurrentStep('token-approval'), 12000);
+    return () => window.clearTimeout(timeout);
+  }, [paymentDetails, isConnected, address, isPermitSupported, currentStep]);
 
   // Auto-advance after approval confirmation
   useEffect(() => {
@@ -231,8 +245,9 @@ export default function PaymentStep({ urlParams }: PaymentStepProps) {
       !isRelayConfirming &&
       !gaslessError
     ) {
+      const dateLocale = locale === 'ko' ? 'ko-KR' : 'en-US';
       setCompletionDate(
-        new Date().toLocaleString('en-US', {
+        new Date().toLocaleString(dateLocale, {
           year: 'numeric',
           month: '2-digit',
           day: '2-digit',
@@ -244,7 +259,7 @@ export default function PaymentStep({ urlParams }: PaymentStepProps) {
       );
       goToPaymentComplete();
     }
-  }, [currentStep, relayTxHash, isRelayConfirming, gaslessError]);
+  }, [currentStep, relayTxHash, isRelayConfirming, gaslessError, locale]);
 
   // Check if user has sufficient balance
   const hasSufficientBalance = formattedBalance
@@ -278,16 +293,12 @@ export default function PaymentStep({ urlParams }: PaymentStepProps) {
 
     // Validate required payment details before proceeding
     if (!paymentDetails?.serverSignature) {
-      setConfigError(
-        'Payment configuration error: Missing server signature. Please contact support.'
-      );
+      setConfigError(t('error.configMissingSignature'));
       console.error('Missing server signature - check SIGNER_PRIVATE_KEY configuration');
       return;
     }
     if (!paymentDetails?.recipientAddress || !paymentDetails?.merchantId) {
-      setConfigError(
-        'Payment configuration error: Missing recipient details. Please contact support.'
-      );
+      setConfigError(t('error.configMissingRecipient'));
       console.error('Missing payment details:', {
         recipientAddress: paymentDetails?.recipientAddress,
         merchantId: paymentDetails?.merchantId,
@@ -295,7 +306,7 @@ export default function PaymentStep({ urlParams }: PaymentStepProps) {
       return;
     }
     if (!isGaslessSupported) {
-      setConfigError('Gasless payment is not configured for this network. Please contact support.');
+      setConfigError(t('error.gaslessNotConfigured'));
       console.error('Missing forwarderAddress - gasless not supported');
       return;
     }
@@ -303,7 +314,7 @@ export default function PaymentStep({ urlParams }: PaymentStepProps) {
     paymentInitiated.current = true;
     goToPaymentProcessing();
     payGasless();
-  }, [payGasless, isGaslessSupported, paymentDetails]);
+  }, [payGasless, isGaslessSupported, paymentDetails, t]);
 
   // Retry payment handler (gasless only)
   const handleRetryPayment = useCallback(() => {
@@ -345,7 +356,7 @@ export default function PaymentStep({ urlParams }: PaymentStepProps) {
       return;
     }
     goToWalletConnect();
-  }, [paymentDetails?.successUrl]);
+  }, [paymentDetails?.successUrl, isPopup]);
 
   // Cancel/fail redirect handler
   const handleCancel = useCallback(() => {
@@ -362,14 +373,14 @@ export default function PaymentStep({ urlParams }: PaymentStepProps) {
         window.location.href = urlParams.failUrl;
       }
     }
-  }, [urlParams?.failUrl]);
+  }, [urlParams?.failUrl, isPopup]);
 
   // Loading state (skip when walletOnly — no API call)
   if (!urlParams?.walletOnly && isLoading) {
     return (
       <div className="text-center py-8">
         <div className="animate-spin w-8 h-8 border-2 border-blue-600 border-t-transparent rounded-full mx-auto mb-4" />
-        <p className="text-sm text-gray-600">Loading payment...</p>
+        <p className="text-sm text-gray-600">{t('error.loadingPayment')}</p>
       </div>
     );
   }
@@ -392,7 +403,7 @@ export default function PaymentStep({ urlParams }: PaymentStepProps) {
               d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
             />
           </svg>
-          <p className="font-medium">Payment Error</p>
+          <p className="font-medium">{t('error.paymentError')}</p>
         </div>
         <p className="text-sm text-gray-600 mb-4">{apiError}</p>
         {urlParams?.failUrl && (
@@ -412,7 +423,7 @@ export default function PaymentStep({ urlParams }: PaymentStepProps) {
             }}
             className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm hover:bg-gray-200"
           >
-            Go Back
+            {t('common.goBack')}
           </button>
         )}
       </div>
@@ -423,7 +434,7 @@ export default function PaymentStep({ urlParams }: PaymentStepProps) {
   if (!urlParams?.walletOnly && !paymentDetails) {
     return (
       <div className="text-center py-8">
-        <p className="text-sm text-gray-600">Initializing payment...</p>
+        <p className="text-sm text-gray-600">{t('error.initializingPayment')}</p>
       </div>
     );
   }
@@ -475,21 +486,21 @@ export default function PaymentStep({ urlParams }: PaymentStepProps) {
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
           </svg>
         </div>
-        <p className="font-medium text-gray-900 mb-1">Wallet connected</p>
+        <p className="font-medium text-gray-900 mb-1">{t('walletOnly.connected')}</p>
         <p className="text-sm text-gray-500 mb-4">{formatAddress(address)}</p>
         <button
           type="button"
           onClick={handleWalletOnlyContinue}
           className="w-full px-4 py-3 bg-blue-600 text-white rounded-xl font-medium hover:bg-blue-700 active:bg-blue-800"
         >
-          Continue
+          {t('common.continue')}
         </button>
         <button
           type="button"
           onClick={handleDisconnect}
           className="mt-3 text-sm text-gray-500 hover:text-gray-700"
         >
-          Disconnect
+          {t('common.disconnect')}
         </button>
       </div>
     );
@@ -499,12 +510,13 @@ export default function PaymentStep({ urlParams }: PaymentStepProps) {
     if (!paymentDetails) return null;
     switch (currentStep) {
       case 'wallet-connect':
-        // Wallet connected but waiting for chain switch or permit check
         if (isConnected && paymentDetails) {
           return (
             <div className="text-center py-8">
               <div className="animate-spin w-8 h-8 border-2 border-blue-600 border-t-transparent rounded-full mx-auto mb-4" />
-              <p className="text-sm text-gray-600">Loading payment...</p>
+              <p className="text-sm text-gray-600">
+                {isCheckingPermit ? t('error.checkingTokenSupport') : t('error.loadingPayment')}
+              </p>
             </div>
           );
         }
@@ -523,8 +535,11 @@ export default function PaymentStep({ urlParams }: PaymentStepProps) {
             needsApproval={needsApproval}
             error={
               !hasSufficientBalance
-                ? `Insufficient balance. You need ${displayAmount} ${paymentDetails.tokenSymbol}`
-                : parseErrorMessage(approvalError?.message)
+                ? t('error.insufficientBalance', {
+                    amount: displayAmount,
+                    token: paymentDetails.tokenSymbol,
+                  })
+                : parseErrorMessage(approvalError?.message, t)
             }
           />
         );
@@ -542,7 +557,10 @@ export default function PaymentStep({ urlParams }: PaymentStepProps) {
             error={
               configError ??
               (!hasSufficientBalance
-                ? `Insufficient balance. You need ${displayAmount} ${paymentDetails.tokenSymbol}`
+                ? t('error.insufficientBalance', {
+                    amount: displayAmount,
+                    token: paymentDetails.tokenSymbol,
+                  })
                 : undefined)
             }
             onPay={handlePay}
@@ -559,7 +577,7 @@ export default function PaymentStep({ urlParams }: PaymentStepProps) {
             onRetry={handleRetryPayment}
             onCancel={urlParams?.failUrl ? handleCancel : undefined}
             isPending={isPayingGasless || isRelayConfirming}
-            error={parseErrorMessage(gaslessError?.message)}
+            error={parseErrorMessage(gaslessError?.message, t)}
           />
         );
 

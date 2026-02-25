@@ -1,9 +1,10 @@
-import type { WidgetUrlParams, UrlParamsValidationResult } from '../types';
+import type { WidgetUrlParams, UrlParamsValidationResult, WidgetLocale } from '../types';
 
 /**
  * Validate URL parameters for widget initialization
  *
  * Required params: pk, orderId, amount, tokenAddress, successUrl, failUrl
+ * Optional: currency, walletOnly, lang (en | ko)
  *
  * @example
  * ```tsx
@@ -15,7 +16,7 @@ import type { WidgetUrlParams, UrlParamsValidationResult } from '../types';
  *   return <ErrorPage errors={result.errors} />;
  * }
  *
- * const { pk, orderId, amount, successUrl, failUrl } = result.params;
+ * const { pk, orderId, amount, successUrl, failUrl, lang } = result.params;
  * ```
  */
 export function validateWidgetUrlParams(
@@ -33,6 +34,8 @@ export function validateWidgetUrlParams(
   const currency = searchParams.get('currency');
   const walletOnlyRaw = searchParams.get('walletOnly');
   const walletOnly = walletOnlyRaw === '1' || walletOnlyRaw === 'true' || walletOnlyRaw === 'yes';
+  const langRaw = searchParams.get('lang');
+  const lang: WidgetLocale = langRaw === 'ko' || langRaw === 'en' ? langRaw : 'en';
 
   // Validate required fields
   if (!pk || pk.trim() === '') {
@@ -88,6 +91,7 @@ export function validateWidgetUrlParams(
       failUrl: failUrl!,
       ...(currency ? { currency } : {}),
       ...(walletOnly ? { walletOnly: true } : {}),
+      lang,
     },
   };
 }

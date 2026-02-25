@@ -34,10 +34,10 @@ export interface UseWidgetConfig {
   debug?: boolean;
   /**
    * Defaults for openWidget() so you can call openWidget({ orderId, amount }) only.
-   * Provide tokenAddress, successUrl, failUrl here or pass them per call.
+   * Provide tokenAddress, successUrl, failUrl, locale here or pass them per call.
    */
   defaultPaymentRequest?: Partial<
-    Pick<PaymentRequest, 'tokenAddress' | 'successUrl' | 'failUrl' | 'currency'>
+    Pick<PaymentRequest, 'tokenAddress' | 'successUrl' | 'failUrl' | 'currency' | 'locale'>
   >;
 }
 
@@ -97,6 +97,9 @@ export function useWidget(config: UseWidgetConfig): UseWidgetReturn {
       failUrl: data.failUrl ?? defaults.failUrl ?? '',
       ...((data.currency ?? defaults.currency) != null && {
         currency: data.currency ?? defaults.currency,
+      }),
+      ...((data.locale ?? defaults.locale) != null && {
+        locale: data.locale ?? defaults.locale,
       }),
     };
 

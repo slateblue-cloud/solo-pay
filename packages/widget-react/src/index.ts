@@ -8,4 +8,9 @@ export type {
 } from './useWidget';
 
 // Re-export core types for convenience
-export type { PaymentRequest, PaymentResult, SoloPayConfig } from '@solo-pay/widget-js';
+export type {
+  PaymentRequest,
+  PaymentResult,
+  SoloPayConfig,
+  WidgetLocale,
+} from '@solo-pay/widget-js';

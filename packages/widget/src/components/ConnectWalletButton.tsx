@@ -1,6 +1,7 @@
 'use client';
 
 import { useAppKitConnect } from '../context/AppKitConnectContext';
+import { useLocale } from '../context/LocaleContext';
 import { PcConnectButton } from './PcConnectButton';
 import { MobileConnectButton } from './MobileConnectButton';
 
@@ -19,6 +20,7 @@ export const WALLET_STYLES = {
  */
 export function ConnectWalletButton({ className }: { className?: string }) {
   const isAppKit = useAppKitConnect();
+  const { t } = useLocale();
 
   return (
     <div className={['w-full', className].filter(Boolean).join(' ')}>
@@ -43,15 +45,20 @@ export function ConnectWalletButton({ className }: { className?: string }) {
 
       {/* Title */}
       <div className="text-center mb-5">
-        <h1 className="text-base sm:text-lg font-bold text-gray-900">Connect Wallet</h1>
+        <h1 className="text-base sm:text-lg font-bold text-gray-900">{t('connect.title')}</h1>
       </div>
 
       {/* Description */}
       <div className="text-center mb-10 sm:mb-12">
         <p className="text-xs sm:text-sm text-gray-500 leading-relaxed">
-          Please connect your wallet to proceed.
-          <br />
-          Supports MetaMask and Trust Wallet.
+          {t('connect.description')
+            .split('\n')
+            .map((line, i) => (
+              <span key={i}>
+                {line}
+                {i === 0 && <br />}
+              </span>
+            ))}
         </p>
       </div>
 

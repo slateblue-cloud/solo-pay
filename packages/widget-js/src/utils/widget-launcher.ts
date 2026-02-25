@@ -50,6 +50,9 @@ export class WidgetLauncher {
     if (request.currency) {
       params.set('currency', request.currency);
     }
+    if (request.locale === 'ko' || request.locale === 'en') {
+      params.set('lang', request.locale);
+    }
 
     const url = `${baseUrl}?${params.toString()}`;
     this.log('Built widget URL:', url, `(${mobile ? 'mobile' : 'pc'})`);
