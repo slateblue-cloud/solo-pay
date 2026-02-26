@@ -111,7 +111,7 @@ describe('GET /payments/:id', () => {
       expect(mockPaymentService.getTokenPermitSupported).toHaveBeenCalledWith(5);
     });
 
-    it('should update status to CONFIRMED when on-chain status is completed', async () => {
+    it('should update status to ESCROWED when on-chain status is escrowed', async () => {
       const paymentHash = '0x' + 'b'.repeat(64);
       const txHash = '0x' + 'c'.repeat(64);
       const mockPayment = {
@@ -128,7 +128,7 @@ describe('GET /payments/:id', () => {
       mockPaymentService.findByHash.mockResolvedValue(mockPayment);
       mockBlockchainService.isChainSupported.mockReturnValue(true);
       mockBlockchainService.getPaymentStatus.mockResolvedValue({
-        status: 'completed',
+        status: 'escrowed',
         transactionHash: txHash,
         amount: '2000000',
         payerAddress: '0x' + 'd'.repeat(40),
@@ -144,10 +144,10 @@ describe('GET /payments/:id', () => {
 
       expect(response.statusCode).toBe(200);
       const body = JSON.parse(response.payload);
-      expect(body.data.status).toBe('CONFIRMED');
+      expect(body.data.status).toBe('ESCROWED');
       expect(mockPaymentService.updateStatusByHash).toHaveBeenCalledWith(
         paymentHash,
-        'CONFIRMED',
+        'ESCROWED',
         txHash
       );
       expect(mockPaymentService.updatePayerAddress).toHaveBeenCalled();
@@ -235,7 +235,7 @@ describe('GET /payments/:id', () => {
       mockPaymentService.findByHash.mockResolvedValue(mockPayment);
       mockBlockchainService.isChainSupported.mockReturnValue(true);
       mockBlockchainService.getPaymentStatus.mockResolvedValue({
-        status: 'completed',
+        status: 'escrowed',
         amount: '2000000',
         transactionHash: '0x' + 'i'.repeat(64),
       });

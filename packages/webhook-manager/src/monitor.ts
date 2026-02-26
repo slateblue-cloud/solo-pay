@@ -2,8 +2,13 @@ import { Queue, Worker } from 'bullmq';
 import type { Redis } from 'ioredis';
 import type { PrismaClient } from '@solo-pay/database';
 import type { ChainClient } from './blockchain';
-import { checkPaymentOnChain } from './blockchain';
-import type { WebhookJobData, PaymentConfirmedBody } from './types';
+import { getOnChainStatus, OnChainPaymentStatus } from './blockchain';
+import type { WebhookJobData, PaymentWebhookBody } from './types';
+import {
+  JOB_NAME_PAYMENT_ESCROWED,
+  JOB_NAME_PAYMENT_FINALIZED,
+  JOB_NAME_PAYMENT_CANCELLED,
+} from './types';
 
 const MONITOR_QUEUE_NAME = 'solo-pay-payment-monitor';
 
@@ -20,6 +25,8 @@ interface MonitorJobData {
 }
 
 export interface WebhookQueueForMonitor {
+  addPaymentEvent(jobName: string, data: WebhookJobData): Promise<void>;
+  /** @deprecated Use addPaymentEvent */
   addPaymentConfirmed(data: WebhookJobData): Promise<void>;
 }
 
@@ -36,16 +43,37 @@ export interface MonitorOptions {
   timeoutMs: number;
 }
 
+function buildWebhookBody(
+  data: MonitorJobData,
+  newStatus: string,
+  txHash: string | null
+): PaymentWebhookBody {
+  return {
+    paymentId: data.paymentHash,
+    orderId: data.orderId,
+    status: newStatus,
+    txHash,
+    amount: data.amount,
+    tokenSymbol: data.tokenSymbol,
+    escrowedAt: newStatus === 'ESCROWED' ? new Date().toISOString() : undefined,
+    finalizedAt: newStatus === 'FINALIZED' ? new Date().toISOString() : undefined,
+    cancelledAt: newStatus === 'CANCELLED' ? new Date().toISOString() : undefined,
+  };
+}
+
 /**
- * Two-stage payment monitor backed by BullMQ:
- *   Stage 1 (DB poll, every pollingIntervalMs):
- *     query CREATED/PENDING payments → enqueue to monitor queue (jobId = paymentHash for dedup)
- *   Stage 2 (monitor worker, retry with blockchainCheckIntervalMs backoff):
- *     check blockchain → not confirmed = throw (retry) → confirmed = DB update + webhook
+ * Multi-status payment monitor backed by BullMQ:
  *
- * Between DB polls, the worker retries each job up to (pollingInterval / checkInterval) times.
- * After exhausting retries the job is removed (removeOnFail), and the next DB poll re-enqueues
- * payments that are still CREATED/PENDING.
+ *   Stage 1 (DB poll, every pollingIntervalMs):
+ *     query payments in monitored statuses → enqueue to monitor queue
+ *
+ *   Stage 2 (monitor worker, retry with blockchainCheckIntervalMs backoff):
+ *     check on-chain status → update DB + enqueue webhook
+ *
+ *   Monitored transitions:
+ *     CREATED/PENDING      → on-chain Escrowed  → DB ESCROWED   + webhook
+ *     FINALIZE_SUBMITTED   → on-chain Finalized → DB FINALIZED  + webhook
+ *     CANCEL_SUBMITTED     → on-chain Cancelled → DB CANCELLED  + webhook
  */
 export function startPaymentMonitor(options: MonitorOptions): { stop: () => Promise<void> } {
   const {
@@ -74,6 +102,28 @@ export function startPaymentMonitor(options: MonitorOptions): { stop: () => Prom
     },
   });
 
+  // ── Resolve webhook URL ────────────────────────────────────────────
+  async function resolveWebhookUrl(data: MonitorJobData): Promise<string | null> {
+    if (data.webhookUrl) return data.webhookUrl;
+    const merchant = await prisma.merchant.findUnique({
+      where: { id: data.merchantId },
+    });
+    return merchant?.webhook_url ?? null;
+  }
+
+  // ── Enqueue webhook ────────────────────────────────────────────────
+  async function enqueueWebhook(
+    data: MonitorJobData,
+    jobName: string,
+    newStatus: string,
+    txHash: string | null
+  ): Promise<void> {
+    const webhookUrl = await resolveWebhookUrl(data);
+    if (!webhookUrl) return;
+    const body = buildWebhookBody(data, newStatus, txHash);
+    await webhookQueue.addPaymentEvent(jobName, { url: webhookUrl, body });
+  }
+
   // ── Monitor worker ───────────────────────────────────────────────────
   const monitorWorker = new Worker<MonitorJobData>(
     MONITOR_QUEUE_NAME,
@@ -83,82 +133,28 @@ export function startPaymentMonitor(options: MonitorOptions): { stop: () => Prom
       const chainClient = chainClients.get(data.networkId);
       if (!chainClient) return;
 
-      const onChain = await checkPaymentOnChain(
+      const { status: onChainStatus, details } = await getOnChainStatus(
         chainClient.client,
         chainClient.gatewayAddress,
         data.paymentHash
       );
 
-      if (!onChain) {
-        throw new Error('not_confirmed');
-      }
+      switch (data.status) {
+        case 'CREATED':
+        case 'PENDING':
+          await handleCreatedPending(data, onChainStatus, details);
+          break;
 
-      // Amount verification
-      const onChainAmount = BigInt(onChain.amount);
-      const dbAmount = BigInt(data.amount);
-      if (onChainAmount !== dbAmount) {
-        console.error(
-          '[monitor] amount mismatch payment=%s db=%s onchain=%s tx=%s',
-          data.paymentHash,
-          data.amount,
-          onChainAmount.toString(),
-          onChain.transactionHash
-        );
-        return;
-      }
+        case 'FINALIZE_SUBMITTED':
+          await handleFinalizeSubmitted(data, onChainStatus, details);
+          break;
 
-      // Conditional update: only if still CREATED/PENDING (prevents duplicate webhooks)
-      const updated = await prisma.payment.updateMany({
-        where: {
-          payment_hash: data.paymentHash,
-          status: { in: ['CREATED', 'PENDING'] },
-        },
-        data: {
-          status: 'CONFIRMED',
-          tx_hash: onChain.transactionHash,
-          confirmed_at: new Date(),
-          ...(onChain.payerAddress && { payer_address: onChain.payerAddress }),
-        },
-      });
+        case 'CANCEL_SUBMITTED':
+          await handleCancelSubmitted(data, onChainStatus, details);
+          break;
 
-      if (updated.count === 0) return; // already confirmed elsewhere
-
-      // Create payment event
-      await prisma.paymentEvent.create({
-        data: {
-          payment_id: data.paymentId,
-          event_type: 'STATUS_CHANGED',
-          old_status: data.status,
-          new_status: 'CONFIRMED',
-        },
-      });
-
-      console.log(
-        '[monitor] confirmed payment=%s tx=%s',
-        data.paymentHash,
-        onChain.transactionHash
-      );
-
-      // Resolve webhook URL
-      let webhookUrl = data.webhookUrl;
-      if (!webhookUrl) {
-        const merchant = await prisma.merchant.findUnique({
-          where: { id: data.merchantId },
-        });
-        webhookUrl = merchant?.webhook_url ?? null;
-      }
-
-      if (webhookUrl) {
-        const body: PaymentConfirmedBody = {
-          paymentId: data.paymentHash,
-          orderId: data.orderId,
-          status: 'CONFIRMED',
-          txHash: onChain.transactionHash,
-          amount: data.amount,
-          tokenSymbol: data.tokenSymbol,
-          confirmedAt: new Date().toISOString(),
-        };
-        await webhookQueue.addPaymentConfirmed({ url: webhookUrl, body });
+        default:
+          break;
       }
     },
     {
@@ -166,6 +162,148 @@ export function startPaymentMonitor(options: MonitorOptions): { stop: () => Prom
       concurrency: 10,
     }
   );
+
+  // ── CREATED/PENDING → ESCROWED ─────────────────────────────────────
+  async function handleCreatedPending(
+    data: MonitorJobData,
+    onChainStatus: number,
+    details: import('./blockchain').OnChainPaymentDetails | null
+  ): Promise<void> {
+    if (onChainStatus === OnChainPaymentStatus.None) {
+      throw new Error('not_confirmed');
+    }
+
+    if (onChainStatus >= OnChainPaymentStatus.Escrowed && details) {
+      // Amount verification
+      const onChainAmount = BigInt(details.amount);
+      const dbAmount = BigInt(data.amount);
+      if (onChainAmount !== dbAmount) {
+        console.error(
+          '[monitor] amount mismatch payment=%s db=%s onchain=%s tx=%s',
+          data.paymentHash,
+          data.amount,
+          onChainAmount.toString(),
+          details.transactionHash
+        );
+        return;
+      }
+
+      const updated = await prisma.payment.updateMany({
+        where: {
+          payment_hash: data.paymentHash,
+          status: { in: ['CREATED', 'PENDING'] },
+        },
+        data: {
+          status: 'ESCROWED',
+          tx_hash: details.transactionHash,
+          confirmed_at: new Date(),
+          ...(details.escrowDeadline && { escrow_deadline: new Date(details.escrowDeadline) }),
+          ...(details.payerAddress && { payer_address: details.payerAddress }),
+        },
+      });
+
+      if (updated.count === 0) return;
+
+      await prisma.paymentEvent.create({
+        data: {
+          payment_id: data.paymentId,
+          event_type: 'ESCROWED',
+          old_status: data.status,
+          new_status: 'ESCROWED',
+        },
+      });
+
+      console.log('[monitor] escrowed payment=%s tx=%s', data.paymentHash, details.transactionHash);
+
+      await enqueueWebhook(data, JOB_NAME_PAYMENT_ESCROWED, 'ESCROWED', details.transactionHash);
+    }
+  }
+
+  // ── FINALIZE_SUBMITTED → FINALIZED ─────────────────────────────────
+  async function handleFinalizeSubmitted(
+    data: MonitorJobData,
+    onChainStatus: number,
+    details: import('./blockchain').OnChainPaymentDetails | null
+  ): Promise<void> {
+    if (onChainStatus === OnChainPaymentStatus.Finalized) {
+      const txHash = details?.transactionHash ?? null;
+
+      const updated = await prisma.payment.updateMany({
+        where: {
+          payment_hash: data.paymentHash,
+          status: 'FINALIZE_SUBMITTED',
+        },
+        data: {
+          status: 'FINALIZED',
+          finalized_at: new Date(),
+          ...(txHash && { tx_hash: txHash }),
+        },
+      });
+
+      if (updated.count === 0) return;
+
+      await prisma.paymentEvent.create({
+        data: {
+          payment_id: data.paymentId,
+          event_type: 'FINALIZE_CONFIRMED',
+          old_status: 'FINALIZE_SUBMITTED',
+          new_status: 'FINALIZED',
+        },
+      });
+
+      console.log('[monitor] finalized payment=%s tx=%s', data.paymentHash, txHash);
+      await enqueueWebhook(data, JOB_NAME_PAYMENT_FINALIZED, 'FINALIZED', txHash);
+      return;
+    }
+
+    // Still escrowed — retry
+    if (onChainStatus === OnChainPaymentStatus.Escrowed) {
+      throw new Error('not_finalized');
+    }
+  }
+
+  // ── CANCEL_SUBMITTED → CANCELLED ───────────────────────────────────
+  async function handleCancelSubmitted(
+    data: MonitorJobData,
+    onChainStatus: number,
+    details: import('./blockchain').OnChainPaymentDetails | null
+  ): Promise<void> {
+    if (onChainStatus === OnChainPaymentStatus.Cancelled) {
+      const txHash = details?.transactionHash ?? null;
+
+      const updated = await prisma.payment.updateMany({
+        where: {
+          payment_hash: data.paymentHash,
+          status: 'CANCEL_SUBMITTED',
+        },
+        data: {
+          status: 'CANCELLED',
+          cancelled_at: new Date(),
+          ...(txHash && { tx_hash: txHash }),
+        },
+      });
+
+      if (updated.count === 0) return;
+
+      await prisma.paymentEvent.create({
+        data: {
+          payment_id: data.paymentId,
+          event_type: 'CANCEL_CONFIRMED',
+          old_status: 'CANCEL_SUBMITTED',
+          new_status: 'CANCELLED',
+        },
+      });
+
+      console.log('[monitor] cancelled payment=%s tx=%s', data.paymentHash, txHash);
+      await enqueueWebhook(data, JOB_NAME_PAYMENT_CANCELLED, 'CANCELLED', txHash);
+      return;
+    }
+
+    // Still escrowed — retry
+    if (onChainStatus === OnChainPaymentStatus.Escrowed) {
+      throw new Error('not_cancelled');
+    }
+  }
 
   // ── DB poller ────────────────────────────────────────────────────────
   async function pollDb(): Promise<void> {
@@ -175,7 +313,7 @@ export function startPaymentMonitor(options: MonitorOptions): { stop: () => Prom
       const cutoff = new Date(Date.now() - timeoutMs);
       const payments = await prisma.payment.findMany({
         where: {
-          status: { in: ['CREATED', 'PENDING'] },
+          status: { in: ['CREATED', 'PENDING', 'FINALIZE_SUBMITTED', 'CANCEL_SUBMITTED'] },
           created_at: { gt: cutoff },
         },
         orderBy: { created_at: 'asc' },
@@ -183,7 +321,7 @@ export function startPaymentMonitor(options: MonitorOptions): { stop: () => Prom
       });
 
       for (const payment of payments) {
-        // jobId = paymentHash → BullMQ auto-deduplicates while job is active/delayed
+        // jobId includes status to avoid dedup conflicts across different status monitors
         await monitorQueue.add(
           'check-payment',
           {
@@ -197,7 +335,7 @@ export function startPaymentMonitor(options: MonitorOptions): { stop: () => Prom
             webhookUrl: payment.webhook_url ?? null,
             status: payment.status,
           },
-          { jobId: payment.payment_hash }
+          { jobId: `${payment.payment_hash}:${payment.status}` }
         );
       }
     } catch (err) {

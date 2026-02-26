@@ -124,6 +124,9 @@ export class PaymentService {
       data: {
         status: newStatus,
         ...(newStatus === 'CONFIRMED' && { confirmed_at: new Date() }),
+        ...(newStatus === 'ESCROWED' && { confirmed_at: new Date() }),
+        ...(newStatus === 'FINALIZED' && { finalized_at: new Date() }),
+        ...(newStatus === 'CANCELLED' && { cancelled_at: new Date() }),
       },
     });
 
@@ -165,6 +168,9 @@ export class PaymentService {
         status: newStatus,
         ...(txHash && { tx_hash: txHash }),
         ...(newStatus === 'CONFIRMED' && { confirmed_at: new Date() }),
+        ...(newStatus === 'ESCROWED' && { confirmed_at: new Date() }),
+        ...(newStatus === 'FINALIZED' && { finalized_at: new Date() }),
+        ...(newStatus === 'CANCELLED' && { cancelled_at: new Date() }),
       },
     });
 

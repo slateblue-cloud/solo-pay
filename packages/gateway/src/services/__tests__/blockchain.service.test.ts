@@ -616,7 +616,7 @@ describe('BlockchainService - Blockchain interaction methods', () => {
 
   describe('getPaymentStatus', () => {
     it('should return pending status when payment not processed', async () => {
-      mockClient.readContract.mockResolvedValue(false);
+      mockClient.readContract.mockResolvedValue(0n);
 
       const result = await service.getPaymentStatus(80002, '0x' + 'a'.repeat(64));
 
@@ -624,17 +624,25 @@ describe('BlockchainService - Blockchain interaction methods', () => {
       expect(result?.status).toBe('pending');
     });
 
-    it('should return completed status when payment is processed', async () => {
-      mockClient.readContract.mockResolvedValue(true);
+    it('should return escrowed status when payment is escrowed', async () => {
+      mockClient.readContract.mockImplementation(
+        async ({ functionName }: { functionName: string }) => {
+          if (functionName === 'paymentStatus') return 1n;
+          if (functionName === 'symbol') return 'SUT';
+          return null;
+        }
+      );
       mockClient.getBlockNumber.mockResolvedValue(BigInt(1000));
       mockClient.getLogs.mockResolvedValue([
         {
           args: {
             paymentId: '0x' + 'a'.repeat(64),
+            merchantId: '0x' + 'a'.repeat(64),
             payerAddress: '0x1234567890123456789012345678901234567890',
-            treasuryAddress: '0x0987654321098765432109876543210987654321',
+            recipientAddress: '0x0987654321098765432109876543210987654321',
             tokenAddress: '0xE4C687167705Abf55d709395f92e254bdF5825a2',
             amount: BigInt('1000000000000000000'),
+            escrowDeadline: BigInt(1234567890 + 86400),
             timestamp: BigInt(1234567890),
           },
           blockHash: '0x' + 'b'.repeat(64),
@@ -645,19 +653,10 @@ describe('BlockchainService - Blockchain interaction methods', () => {
         timestamp: BigInt(1234567890),
       });
 
-      // Mock getTokenSymbolOnChain
-      mockClient.readContract.mockImplementation(
-        async ({ functionName }: { functionName: string }) => {
-          if (functionName === 'processedPayments') return true;
-          if (functionName === 'symbol') return 'SUT';
-          return null;
-        }
-      );
-
       const result = await service.getPaymentStatus(80002, '0x' + 'a'.repeat(64));
 
       expect(result).toBeDefined();
-      expect(result?.status).toBe('completed');
+      expect(result?.status).toBe('escrowed');
     });
 
     it('should return pending status when error occurs', async () => {
@@ -698,10 +697,12 @@ describe('BlockchainService - Blockchain interaction methods', () => {
         {
           args: {
             paymentId: '0x' + 'a'.repeat(64),
+            merchantId: '0x' + 'a'.repeat(64),
             payerAddress: '0x1234567890123456789012345678901234567890',
-            treasuryAddress: '0x0987654321098765432109876543210987654321',
+            recipientAddress: '0x0987654321098765432109876543210987654321',
             tokenAddress: '0xE4C687167705Abf55d709395f92e254bdF5825a2',
             amount: BigInt('1000000000000000000'),
+            escrowDeadline: BigInt(1000 + 86400),
             timestamp: BigInt(1000),
           },
           blockHash: '0x' + 'b'.repeat(64),
@@ -710,10 +711,12 @@ describe('BlockchainService - Blockchain interaction methods', () => {
         {
           args: {
             paymentId: '0x' + 'd'.repeat(64),
+            merchantId: '0x' + 'd'.repeat(64),
             payerAddress: '0x1234567890123456789012345678901234567890',
-            treasuryAddress: '0x0987654321098765432109876543210987654321',
+            recipientAddress: '0x0987654321098765432109876543210987654321',
             tokenAddress: '0xE4C687167705Abf55d709395f92e254bdF5825a2',
             amount: BigInt('2000000000000000000'),
+            escrowDeadline: BigInt(2000 + 86400),
             timestamp: BigInt(2000),
           },
           blockHash: '0x' + 'e'.repeat(64),

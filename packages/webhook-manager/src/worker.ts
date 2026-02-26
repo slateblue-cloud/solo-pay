@@ -31,7 +31,7 @@ async function main(): Promise<void> {
   const worker = createWebhookWorker({
     connection: redis,
     onSuccess: (job) => {
-      console.log('[webhook] delivered payment.confirmed job=%s', job.id);
+      console.log('[webhook] delivered %s job=%s', job.name, job.id);
     },
     onFailed: (job, err) => {
       console.error('[webhook] failed job=%s error=%s', job?.id, err.message);
