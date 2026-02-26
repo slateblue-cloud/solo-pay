@@ -13,8 +13,11 @@ import { getToken } from '../fixtures/token';
 import {
   generatePaymentId,
   signPaymentRequest,
+  signFinalizeRequest,
   merchantKeyToId,
+  getDeadline,
   ZERO_PERMIT,
+  DEFAULT_ESCROW_DURATION,
   type PaymentParams,
 } from '../helpers/signature';
 
@@ -40,7 +43,7 @@ describe('Direct Payment Integration', () => {
     }
   });
 
-  it('should complete a direct payment successfully with no fee', async () => {
+  it('should complete a payment successfully with no fee (escrow + finalize)', async () => {
     const paymentId = generatePaymentId(`ORDER_DIRECT_${Date.now()}`);
     const amount = parseUnits('100', token.decimals);
     const feeBps = 0;
@@ -49,6 +52,7 @@ describe('Direct Payment Integration', () => {
     const initialRecipientBalance = await getTokenBalance(token.address, recipientAddress);
 
     // Create server signature
+    const deadline = getDeadline(1);
     const paymentParams: PaymentParams = {
       paymentId,
       tokenAddress: token.address,
@@ -56,6 +60,8 @@ describe('Direct Payment Integration', () => {
       recipientAddress: recipientAddress,
       merchantId,
       feeBps,
+      deadline,
+      escrowDuration: DEFAULT_ESCROW_DURATION,
     };
     const serverSignature = await signPaymentRequest(paymentParams, signerPrivateKey);
 
@@ -71,6 +77,8 @@ describe('Direct Payment Integration', () => {
       recipientAddress,
       merchantId,
       feeBps,
+      deadline,
+      DEFAULT_ESCROW_DURATION,
       serverSignature,
       ZERO_PERMIT
     );
@@ -78,6 +86,13 @@ describe('Direct Payment Integration', () => {
 
     const isProcessed = await gateway.isPaymentProcessed(paymentId);
     expect(isProcessed).toBe(true);
+
+    // Finalize to release funds to recipient (server calls finalize)
+    const signerWallet = getWallet(signerPrivateKey);
+    const gatewayAsSigner = getContract(gatewayAddress, PaymentGatewayABI, signerWallet);
+    const finalizeSignature = await signFinalizeRequest(paymentId, signerPrivateKey);
+    const finalizeTx = await gatewayAsSigner.finalize(paymentId, finalizeSignature);
+    await finalizeTx.wait();
 
     const finalPayerBalance = await getTokenBalance(token.address, payerAddress);
     const finalRecipientBalance = await getTokenBalance(token.address, recipientAddress);
@@ -96,6 +111,7 @@ describe('Direct Payment Integration', () => {
     const initialRecipientBalance = await getTokenBalance(token.address, recipientAddress);
 
     // Create server signature with fee
+    const deadline = getDeadline(1);
     const paymentParams: PaymentParams = {
       paymentId,
       tokenAddress: token.address,
@@ -103,6 +119,8 @@ describe('Direct Payment Integration', () => {
       recipientAddress: recipientAddress,
       merchantId,
       feeBps,
+      deadline,
+      escrowDuration: DEFAULT_ESCROW_DURATION,
     };
     const serverSignature = await signPaymentRequest(paymentParams, signerPrivateKey);
 
@@ -118,10 +136,19 @@ describe('Direct Payment Integration', () => {
       recipientAddress,
       merchantId,
       feeBps,
+      deadline,
+      DEFAULT_ESCROW_DURATION,
       serverSignature,
       ZERO_PERMIT
     );
     await tx.wait();
+
+    // Finalize to release funds with fee split (server calls finalize)
+    const signerWallet = getWallet(signerPrivateKey);
+    const gatewayAsSigner = getContract(gatewayAddress, PaymentGatewayABI, signerWallet);
+    const finalizeSignature = await signFinalizeRequest(paymentId, signerPrivateKey);
+    const finalizeTx = await gatewayAsSigner.finalize(paymentId, finalizeSignature);
+    await finalizeTx.wait();
 
     const expectedFee = (amount * BigInt(feeBps)) / 10000n;
     const expectedRecipientAmount = amount - expectedFee;
@@ -140,6 +167,7 @@ describe('Direct Payment Integration', () => {
     const amount = parseUnits('50', token.decimals);
     const feeBps = 0;
 
+    const deadline = getDeadline(1);
     const paymentParams: PaymentParams = {
       paymentId,
       tokenAddress: token.address,
@@ -147,6 +175,8 @@ describe('Direct Payment Integration', () => {
       recipientAddress: recipientAddress,
       merchantId,
       feeBps,
+      deadline,
+      escrowDuration: DEFAULT_ESCROW_DURATION,
     };
     const serverSignature = await signPaymentRequest(paymentParams, signerPrivateKey);
 
@@ -162,6 +192,8 @@ describe('Direct Payment Integration', () => {
       recipientAddress,
       merchantId,
       feeBps,
+      deadline,
+      DEFAULT_ESCROW_DURATION,
       serverSignature,
       ZERO_PERMIT
     );
@@ -175,6 +207,8 @@ describe('Direct Payment Integration', () => {
         recipientAddress,
         merchantId,
         feeBps,
+        deadline,
+        DEFAULT_ESCROW_DURATION,
         serverSignature,
         ZERO_PERMIT
       )
@@ -185,6 +219,7 @@ describe('Direct Payment Integration', () => {
     const paymentId = generatePaymentId(`ORDER_ZERO_${Date.now()}`);
     const feeBps = 0;
 
+    const deadline = getDeadline(1);
     const paymentParams: PaymentParams = {
       paymentId,
       tokenAddress: token.address,
@@ -192,6 +227,8 @@ describe('Direct Payment Integration', () => {
       recipientAddress: recipientAddress,
       merchantId,
       feeBps,
+      deadline,
+      escrowDuration: DEFAULT_ESCROW_DURATION,
     };
     const serverSignature = await signPaymentRequest(paymentParams, signerPrivateKey);
 
@@ -206,6 +243,8 @@ describe('Direct Payment Integration', () => {
         recipientAddress,
         merchantId,
         feeBps,
+        deadline,
+        DEFAULT_ESCROW_DURATION,
         serverSignature,
         ZERO_PERMIT
       )
@@ -218,6 +257,7 @@ describe('Direct Payment Integration', () => {
     const feeBps = 0;
 
     // Sign with wrong key (relayer instead of signer)
+    const deadline = getDeadline(1);
     const paymentParams: PaymentParams = {
       paymentId,
       tokenAddress: token.address,
@@ -225,6 +265,8 @@ describe('Direct Payment Integration', () => {
       recipientAddress: recipientAddress,
       merchantId,
       feeBps,
+      deadline,
+      escrowDuration: DEFAULT_ESCROW_DURATION,
     };
     const wrongSignature = await signPaymentRequest(
       paymentParams,
@@ -244,6 +286,8 @@ describe('Direct Payment Integration', () => {
         recipientAddress,
         merchantId,
         feeBps,
+        deadline,
+        DEFAULT_ESCROW_DURATION,
         wrongSignature,
         ZERO_PERMIT
       )
@@ -256,6 +300,7 @@ describe('Direct Payment Integration', () => {
     const amount = balance + parseUnits('1000', token.decimals);
     const feeBps = 0;
 
+    const deadline = getDeadline(1);
     const paymentParams: PaymentParams = {
       paymentId,
       tokenAddress: token.address,
@@ -263,6 +308,8 @@ describe('Direct Payment Integration', () => {
       recipientAddress: recipientAddress,
       merchantId,
       feeBps,
+      deadline,
+      escrowDuration: DEFAULT_ESCROW_DURATION,
     };
     const serverSignature = await signPaymentRequest(paymentParams, signerPrivateKey);
 
@@ -279,6 +326,8 @@ describe('Direct Payment Integration', () => {
         recipientAddress,
         merchantId,
         feeBps,
+        deadline,
+        DEFAULT_ESCROW_DURATION,
         serverSignature,
         ZERO_PERMIT
       )

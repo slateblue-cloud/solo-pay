@@ -32,6 +32,8 @@ export interface UsePermitParams {
   amount: bigint | undefined;
   /** Chain ID */
   chainId: number | undefined;
+  /** Server hint from API: when false, skip on-chain permit probing entirely */
+  serverPermitSupported?: boolean;
 }
 
 export interface UsePermitReturn {
@@ -150,6 +152,7 @@ export function usePermit({
   spenderAddress,
   amount,
   chainId,
+  serverPermitSupported,
 }: UsePermitParams): UsePermitReturn {
   const [isSigning, setIsSigning] = useState(false);
   const [error, setError] = useState<Error | null>(null);
@@ -157,6 +160,9 @@ export function usePermit({
   const { data: walletClient } = useWalletClient();
   const publicClient = usePublicClient({ chainId });
   const userAddress = walletClient?.account?.address;
+
+  // When server says permit is not supported, skip all on-chain reads
+  const shouldProbe = serverPermitSupported !== false;
 
   // Probe for EIP-2612 support: check nonces(address) function
   const {
@@ -170,7 +176,7 @@ export function usePermit({
     args: userAddress ? [userAddress] : undefined,
     chainId,
     query: {
-      enabled: !!tokenAddress && !!userAddress,
+      enabled: shouldProbe && !!tokenAddress && !!userAddress,
       retry: false,
     },
   });
@@ -182,7 +188,7 @@ export function usePermit({
     functionName: 'DOMAIN_SEPARATOR',
     chainId,
     query: {
-      enabled: !!tokenAddress,
+      enabled: shouldProbe && !!tokenAddress,
       retry: false,
     },
   });
@@ -194,18 +200,24 @@ export function usePermit({
     functionName: 'name',
     chainId,
     query: {
-      enabled: !!tokenAddress,
+      enabled: shouldProbe && !!tokenAddress,
     },
   });
 
   // Permit check can only run when both tokenAddress and userAddress are available
   const isPermitEnabled = !!tokenAddress && !!userAddress;
-  const isCheckingPermit = !isPermitEnabled || isNonceLoading || isDomainLoading;
 
-  // Token supports permit if both nonces and DOMAIN_SEPARATOR calls succeed
-  const isPermitSupported = isCheckingPermit
-    ? undefined
-    : !isNonceError && !isDomainError && nonce !== undefined;
+  // When server hint is false, immediately resolve as not supported (no loading)
+  const isCheckingPermit = !shouldProbe
+    ? false
+    : !isPermitEnabled || isNonceLoading || isDomainLoading;
+
+  // Token supports permit: trust server hint when available, else probe on-chain
+  const isPermitSupported = !shouldProbe
+    ? false
+    : isCheckingPermit
+      ? undefined
+      : !isNonceError && !isDomainError && nonce !== undefined;
 
   const signPermit = useCallback(async (): Promise<PermitSignature> => {
     if (!walletClient || !walletClient.account) {

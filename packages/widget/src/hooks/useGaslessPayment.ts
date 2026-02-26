@@ -66,6 +66,10 @@ export function useGaslessPayment({
   const recipientAddress = paymentDetails?.recipientAddress as `0x${string}` | undefined;
   const merchantId = paymentDetails?.merchantId as `0x${string}` | undefined;
   const feeBps = paymentDetails?.feeBps ?? 0;
+  const payDeadline = paymentDetails?.deadline ? BigInt(paymentDetails.deadline) : undefined;
+  const escrowDuration = paymentDetails?.escrowDuration
+    ? BigInt(paymentDetails.escrowDuration)
+    : undefined;
   const serverSignature = paymentDetails?.serverSignature as `0x${string}` | undefined;
 
   // Check if gasless is supported
@@ -77,6 +81,7 @@ export function useGaslessPayment({
     spenderAddress: gatewayAddress,
     amount,
     chainId: paymentDetails?.chainId,
+    serverPermitSupported: paymentDetails?.tokenPermitSupported,
   });
 
   // Get nonce from forwarder contract
@@ -102,6 +107,8 @@ export function useGaslessPayment({
       !amount ||
       !recipientAddress ||
       !merchantId ||
+      !payDeadline ||
+      !escrowDuration ||
       !serverSignature
     ) {
       console.error('Missing gasless payment details');
@@ -157,6 +164,8 @@ export function useGaslessPayment({
           recipientAddress,
           merchantId,
           feeBps,
+          payDeadline,
+          escrowDuration,
           serverSignature,
           permitData,
         ],
@@ -245,6 +254,8 @@ export function useGaslessPayment({
     recipientAddress,
     merchantId,
     feeBps,
+    payDeadline,
+    escrowDuration,
     serverSignature,
     paymentDetails?.chainId,
     publicKey,

@@ -149,6 +149,10 @@ Retrieves the current status of a payment by its payment hash. Requires x-public
           finalStatus = 'CONFIRMED';
         }
 
+        const tokenPermitSupported = await paymentService.getTokenPermitSupported(
+          paymentData.payment_method_id
+        );
+
         return reply.code(200).send({
           success: true,
           data: {
@@ -157,6 +161,7 @@ Retrieves the current status of a payment by its payment hash. Requires x-public
             network_id: paymentData.network_id,
             token_symbol: paymentData.token_symbol,
             status: finalStatus,
+            tokenPermitSupported,
           },
         });
       } catch (error) {

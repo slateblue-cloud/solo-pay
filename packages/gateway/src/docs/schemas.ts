@@ -234,6 +234,10 @@ export const PaymentStatusResponseSchema = {
         payment_hash: { type: 'string', description: 'Payment hash (bytes32)' },
         network_id: { type: 'integer', description: 'Network/Chain ID' },
         token_symbol: { type: 'string', description: 'Token symbol from DB' },
+        tokenPermitSupported: {
+          type: 'boolean',
+          description: 'Whether the token supports EIP-2612 permit (gasless approval)',
+        },
       },
     },
   },

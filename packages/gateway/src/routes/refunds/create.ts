@@ -224,13 +224,7 @@ Creates a refund request for a confirmed payment.
         // 11. Generate server signature
         const merchantId = ServerSigningService.merchantKeyToId(merchant.merchant_key);
 
-        const serverSignature = await signingService.signRefundRequest(
-          paymentId as Hex,
-          tokenConfig.address as Address,
-          BigInt(payment.amount.toString()),
-          payment.payer_address as Address,
-          merchantId
-        );
+        const serverSignature = await signingService.signRefundRequest(paymentId as Hex);
 
         // 12. TODO: Submit to relayer (for now, just return the signature)
         // In a full implementation, you would call relayerService here

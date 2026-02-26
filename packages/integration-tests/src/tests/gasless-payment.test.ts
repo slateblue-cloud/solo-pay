@@ -12,10 +12,12 @@ import {
 import {
   signForwardRequest,
   signPaymentRequest,
+  signFinalizeRequest,
   encodePayFunctionData,
   generatePaymentId,
   merchantKeyToId,
   getDeadline,
+  DEFAULT_ESCROW_DURATION,
   type ForwardRequest,
   type PaymentParams,
 } from '../helpers/signature';
@@ -51,7 +53,7 @@ describe('Gasless Payment Integration', () => {
     return forwarder.nonces(address);
   }
 
-  it('should complete a gasless payment via forwarder with no fee', async () => {
+  it('should complete a gasless payment via forwarder with no fee (escrow + finalize)', async () => {
     const paymentId = generatePaymentId(`ORDER_GASLESS_${Date.now()}`);
     const amount = parseUnits('100', token.decimals);
     const feeBps = 0;
@@ -60,6 +62,7 @@ describe('Gasless Payment Integration', () => {
     const initialRecipientBalance = await getTokenBalance(token.address, recipientAddress);
 
     // Create server signature
+    const paymentDeadline = getDeadline(1);
     const paymentParams: PaymentParams = {
       paymentId,
       tokenAddress: token.address,
@@ -67,6 +70,8 @@ describe('Gasless Payment Integration', () => {
       recipientAddress: recipientAddress,
       merchantId,
       feeBps,
+      deadline: paymentDeadline,
+      escrowDuration: DEFAULT_ESCROW_DURATION,
     };
     const serverSignature = await signPaymentRequest(paymentParams, signerPrivateKey);
 
@@ -79,6 +84,8 @@ describe('Gasless Payment Integration', () => {
       recipientAddress,
       merchantId,
       feeBps,
+      paymentDeadline,
+      DEFAULT_ESCROW_DURATION,
       serverSignature
     );
     const nonce = await getNonce(payerAddress);
@@ -117,6 +124,13 @@ describe('Gasless Payment Integration', () => {
     const isProcessed = await gateway.isPaymentProcessed(paymentId);
     expect(isProcessed).toBe(true);
 
+    // Finalize to release funds
+    const signerWallet = getWallet(signerPrivateKey);
+    const gatewayWithSigner = getContract(gatewayAddress, PaymentGatewayABI, signerWallet);
+    const finalizeSignature = await signFinalizeRequest(paymentId, signerPrivateKey);
+    const finalizeTx = await gatewayWithSigner.finalize(paymentId, finalizeSignature);
+    await finalizeTx.wait();
+
     const finalPayerBalance = await getTokenBalance(token.address, payerAddress);
     const finalRecipientBalance = await getTokenBalance(token.address, recipientAddress);
 
@@ -134,6 +148,7 @@ describe('Gasless Payment Integration', () => {
     const initialRecipientBalance = await getTokenBalance(token.address, recipientAddress);
 
     // Create server signature with fee
+    const paymentDeadline = getDeadline(1);
     const paymentParams: PaymentParams = {
       paymentId,
       tokenAddress: token.address,
@@ -141,6 +156,8 @@ describe('Gasless Payment Integration', () => {
       recipientAddress: recipientAddress,
       merchantId,
       feeBps,
+      deadline: paymentDeadline,
+      escrowDuration: DEFAULT_ESCROW_DURATION,
     };
     const serverSignature = await signPaymentRequest(paymentParams, signerPrivateKey);
 
@@ -153,6 +170,8 @@ describe('Gasless Payment Integration', () => {
       recipientAddress,
       merchantId,
       feeBps,
+      paymentDeadline,
+      DEFAULT_ESCROW_DURATION,
       serverSignature
     );
     const nonce = await getNonce(payerAddress);
@@ -186,6 +205,13 @@ describe('Gasless Payment Integration', () => {
     const tx = await forwarder.execute(requestData);
     await tx.wait();
 
+    // Finalize to release funds with fee split
+    const signerWallet = getWallet(signerPrivateKey);
+    const gatewayWithSigner = getContract(gatewayAddress, PaymentGatewayABI, signerWallet);
+    const finalizeSignature = await signFinalizeRequest(paymentId, signerPrivateKey);
+    const finalizeTx = await gatewayWithSigner.finalize(paymentId, finalizeSignature);
+    await finalizeTx.wait();
+
     const expectedFee = (amount * BigInt(feeBps)) / 10000n;
     const expectedRecipientAmount = amount - expectedFee;
 
@@ -204,6 +230,7 @@ describe('Gasless Payment Integration', () => {
     const feeBps = 0;
 
     // Create server signature
+    const paymentDeadline = getDeadline(1);
     const paymentParams: PaymentParams = {
       paymentId,
       tokenAddress: token.address,
@@ -211,6 +238,8 @@ describe('Gasless Payment Integration', () => {
       recipientAddress: recipientAddress,
       merchantId,
       feeBps,
+      deadline: paymentDeadline,
+      escrowDuration: DEFAULT_ESCROW_DURATION,
     };
     const serverSignature = await signPaymentRequest(paymentParams, signerPrivateKey);
 
@@ -223,6 +252,8 @@ describe('Gasless Payment Integration', () => {
       recipientAddress,
       merchantId,
       feeBps,
+      paymentDeadline,
+      DEFAULT_ESCROW_DURATION,
       serverSignature
     );
     const nonce = await getNonce(payerAddress);
@@ -262,6 +293,7 @@ describe('Gasless Payment Integration', () => {
     const feeBps = 0;
 
     // Create server signature
+    const paymentDeadline = getDeadline(1);
     const paymentParams: PaymentParams = {
       paymentId,
       tokenAddress: token.address,
@@ -269,6 +301,8 @@ describe('Gasless Payment Integration', () => {
       recipientAddress: recipientAddress,
       merchantId,
       feeBps,
+      deadline: paymentDeadline,
+      escrowDuration: DEFAULT_ESCROW_DURATION,
     };
     const serverSignature = await signPaymentRequest(paymentParams, signerPrivateKey);
 
@@ -281,6 +315,8 @@ describe('Gasless Payment Integration', () => {
       recipientAddress,
       merchantId,
       feeBps,
+      paymentDeadline,
+      DEFAULT_ESCROW_DURATION,
       serverSignature
     );
     const nonce = await getNonce(payerAddress);
@@ -327,6 +363,7 @@ describe('Gasless Payment Integration', () => {
     const deadline = getDeadline(1);
 
     // First transaction - create server signature
+    const paymentDeadline1 = getDeadline(1);
     const paymentParams1: PaymentParams = {
       paymentId: paymentId1,
       tokenAddress: token.address,
@@ -334,6 +371,8 @@ describe('Gasless Payment Integration', () => {
       recipientAddress: recipientAddress,
       merchantId,
       feeBps,
+      deadline: paymentDeadline1,
+      escrowDuration: DEFAULT_ESCROW_DURATION,
     };
     const serverSignature1 = await signPaymentRequest(paymentParams1, signerPrivateKey);
 
@@ -344,6 +383,8 @@ describe('Gasless Payment Integration', () => {
       recipientAddress,
       merchantId,
       feeBps,
+      paymentDeadline1,
+      DEFAULT_ESCROW_DURATION,
       serverSignature1
     );
     const request1: ForwardRequest = {
@@ -374,6 +415,7 @@ describe('Gasless Payment Integration', () => {
     await tx.wait();
 
     // Second transaction with same nonce (replay attack)
+    const paymentDeadline2 = getDeadline(1);
     const paymentParams2: PaymentParams = {
       paymentId: paymentId2,
       tokenAddress: token.address,
@@ -381,6 +423,8 @@ describe('Gasless Payment Integration', () => {
       recipientAddress: recipientAddress,
       merchantId,
       feeBps,
+      deadline: paymentDeadline2,
+      escrowDuration: DEFAULT_ESCROW_DURATION,
     };
     const serverSignature2 = await signPaymentRequest(paymentParams2, signerPrivateKey);
 
@@ -391,6 +435,8 @@ describe('Gasless Payment Integration', () => {
       recipientAddress,
       merchantId,
       feeBps,
+      paymentDeadline2,
+      DEFAULT_ESCROW_DURATION,
       serverSignature2
     );
     const request2: ForwardRequest = {
@@ -423,6 +469,7 @@ describe('Gasless Payment Integration', () => {
     const feeBps = 0;
 
     // Create server signature with wrong key (relayer instead of signer)
+    const paymentDeadline = getDeadline(1);
     const paymentParams: PaymentParams = {
       paymentId,
       tokenAddress: token.address,
@@ -430,6 +477,8 @@ describe('Gasless Payment Integration', () => {
       recipientAddress: recipientAddress,
       merchantId,
       feeBps,
+      deadline: paymentDeadline,
+      escrowDuration: DEFAULT_ESCROW_DURATION,
     };
     const wrongServerSignature = await signPaymentRequest(
       paymentParams,
@@ -445,6 +494,8 @@ describe('Gasless Payment Integration', () => {
       recipientAddress,
       merchantId,
       feeBps,
+      paymentDeadline,
+      DEFAULT_ESCROW_DURATION,
       wrongServerSignature
     );
     const nonce = await getNonce(payerAddress);

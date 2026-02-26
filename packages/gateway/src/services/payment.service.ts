@@ -1,4 +1,4 @@
-import { PrismaClient, Payment, PaymentStatus } from '@solo-pay/database';
+import { PrismaClient, Payment, PaymentStatus, EventType, Prisma } from '@solo-pay/database';
 import { Decimal } from '@solo-pay/database';
 import { getCache, setCache, deleteCache } from '../db/redis';
 
@@ -19,6 +19,7 @@ export interface CreatePaymentInput {
   currency_code?: string;
   fiat_amount?: Decimal;
   token_price?: Decimal;
+  escrow_deadline?: Date;
 }
 
 export class PaymentService {
@@ -48,6 +49,7 @@ export class PaymentService {
         currency_code: input.currency_code,
         fiat_amount: input.fiat_amount,
         token_price: input.token_price,
+        escrow_deadline: input.escrow_deadline,
       },
     });
 
@@ -251,5 +253,56 @@ export class PaymentService {
     });
     await deleteCache(this.getCacheKey(paymentHash));
     return updated;
+  }
+
+  /**
+   * Look up whether the token behind a payment supports EIP-2612 permit.
+   * Follows Payment → MerchantPaymentMethod → Token.
+   */
+  async getTokenPermitSupported(paymentMethodId: number): Promise<boolean> {
+    const pm = await this.prisma.merchantPaymentMethod.findUnique({
+      where: { id: paymentMethodId },
+      select: { token_id: true },
+    });
+    if (!pm) return false;
+    const token = await this.prisma.token.findFirst({
+      where: { id: pm.token_id },
+      select: { permit_enabled: true },
+    });
+    return token?.permit_enabled ?? false;
+  }
+
+  /**
+   * Optimistic lock: atomically verify the payment is still in the expected status.
+   * Uses updateMany with a WHERE clause on both id and status so that only one
+   * concurrent request can succeed. Returns true if the lock was acquired.
+   */
+  async claimForProcessing(
+    id: number,
+    expectedStatus: PaymentStatus,
+    targetStatus: PaymentStatus
+  ): Promise<boolean> {
+    const result = await this.prisma.payment.updateMany({
+      where: { id, status: expectedStatus },
+      data: { status: targetStatus, updated_at: new Date() },
+    });
+    return result.count > 0;
+  }
+
+  /**
+   * Create a PaymentEvent for audit logging.
+   */
+  async createEvent(
+    paymentId: number,
+    eventType: EventType,
+    metadata?: Prisma.InputJsonValue
+  ): Promise<void> {
+    await this.prisma.paymentEvent.create({
+      data: {
+        payment_id: paymentId,
+        event_type: eventType,
+        ...(metadata !== undefined ? { metadata } : {}),
+      },
+    });
   }
 }

@@ -56,9 +56,8 @@ export const config = createConfig({
     [polygon.id]: http('https://polygon-bor-rpc.publicnode.com'),
     // Polygon Amoy - use fallback RPCs for reliability
     [polygonAmoy.id]: fallback([
-      http('https://polygon-amoy.drpc.org'),
       http('https://polygon-amoy-bor-rpc.publicnode.com'),
-      http('https://rpc-amoy.polygon.technology'),
+      http('https://polygon-amoy.drpc.org'),
     ]),
     [optimism.id]: http('https://optimism-rpc.publicnode.com'),
     [arbitrum.id]: http('https://arbitrum-one-rpc.publicnode.com'),

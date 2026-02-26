@@ -87,4 +87,10 @@ export async function waitForTransaction(hash: string): Promise<void> {
   await provider.waitForTransaction(hash);
 }
 
+export async function increaseTime(seconds: number): Promise<void> {
+  const provider = getProvider();
+  await provider.send('evm_increaseTime', [seconds]);
+  await provider.send('evm_mine', []);
+}
+
 export { parseUnits, formatUnits, ethers };

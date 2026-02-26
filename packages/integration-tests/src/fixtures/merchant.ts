@@ -8,7 +8,6 @@ export interface MerchantFixture {
   webhookUrl?: string;
   /** For POST /payments (public key auth). */
   publicKey?: string;
-  /** Origin for createPayment; verified against ALLOWED_WIDGET_ORIGIN on gateway. */
   origin?: string;
 }
 
@@ -30,7 +29,8 @@ export const TEST_MERCHANTS: Record<string, MerchantFixture> = {
     networkId: 31337,
     webhookUrl: 'https://webhook.site/demo',
     publicKey: 'pk_test_demo',
-    origin: 'http://localhost:3000',
+    // Temporarily using the widget origin to pass gateway's ALLOWED_WIDGET_ORIGIN check
+    origin: 'http://localhost:3005',
   },
   // MetaStar Merchant (id=2) - Amoy chain (chain_id=3, network_id=80002)
   metastar: {

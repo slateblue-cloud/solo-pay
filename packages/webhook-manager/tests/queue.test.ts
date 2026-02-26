@@ -4,6 +4,9 @@ import {
   createWebhookWorker,
   WEBHOOK_QUEUE_NAME,
   JOB_NAME_PAYMENT_CONFIRMED,
+  JOB_NAME_PAYMENT_ESCROWED,
+  JOB_NAME_PAYMENT_FINALIZED,
+  JOB_NAME_PAYMENT_CANCELLED,
 } from '../src/queue';
 
 const mockAdd = vi.fn().mockResolvedValue(undefined);
@@ -28,10 +31,29 @@ describe('createWebhookQueue', () => {
     mockClose.mockClear();
   });
 
-  it('exposes addPaymentConfirmed and close', () => {
+  it('exposes addPaymentEvent, addPaymentConfirmed and close', () => {
     const queue = createWebhookQueue(mockRedis);
+    expect(typeof queue.addPaymentEvent).toBe('function');
     expect(typeof queue.addPaymentConfirmed).toBe('function');
     expect(typeof queue.close).toBe('function');
+  });
+
+  it('addPaymentEvent enqueues with given job name', async () => {
+    const queue = createWebhookQueue(mockRedis);
+    const data = {
+      url: 'https://merchant.example/webhook',
+      body: {
+        paymentId: '0xabc',
+        orderId: 'order-1',
+        status: 'ESCROWED',
+        txHash: null,
+        amount: '1000000',
+        tokenSymbol: 'USDC',
+        escrowedAt: '2024-01-26T12:00:00.000Z',
+      },
+    };
+    await queue.addPaymentEvent(JOB_NAME_PAYMENT_ESCROWED, data);
+    expect(mockAdd).toHaveBeenCalledWith(JOB_NAME_PAYMENT_ESCROWED, data, expect.any(Object));
   });
 
   it('addPaymentConfirmed calls Queue.add with job name and data', async () => {
@@ -164,9 +186,12 @@ describe('createWebhookWorker', () => {
 });
 
 describe('constants', () => {
-  it('queue name and job name are defined', () => {
+  it('queue name and job names are defined', () => {
     expect(WEBHOOK_QUEUE_NAME).toBe('solo-pay-webhook');
     expect(JOB_NAME_PAYMENT_CONFIRMED).toBe('payment.confirmed');
+    expect(JOB_NAME_PAYMENT_ESCROWED).toBe('payment.escrowed');
+    expect(JOB_NAME_PAYMENT_FINALIZED).toBe('payment.finalized');
+    expect(JOB_NAME_PAYMENT_CANCELLED).toBe('payment.cancelled');
   });
 });
 

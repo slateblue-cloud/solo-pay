@@ -128,9 +128,21 @@ Creates a payment. Single endpoint for both widget and backend. Uses Public Key 
               },
               merchantId: { type: 'string', description: 'Merchant ID (bytes32)' },
               feeBps: { type: 'integer', description: 'Fee in basis points (100 = 1%)' },
+              deadline: {
+                type: 'string',
+                description: 'Deadline timestamp for server signature expiration',
+              },
+              escrowDuration: {
+                type: 'string',
+                description: 'Escrow duration in seconds (passed to contract pay())',
+              },
               forwarderAddress: {
                 type: 'string',
                 description: 'ERC2771Forwarder address for gasless payments',
+              },
+              tokenPermitSupported: {
+                type: 'boolean',
+                description: 'Whether the token supports EIP-2612 permit (gasless approval)',
               },
               currency: {
                 type: 'string',
@@ -176,6 +188,7 @@ Creates a payment. Single endpoint for both widget and backend. Uses Public Key 
               chain_id: number;
               recipient_address: string | null;
               fee_bps: number;
+              escrow_duration: number | null;
             };
           }
         ).merchant;
@@ -291,7 +304,20 @@ Creates a payment. Single endpoint for both widget and backend. Uses Public Key 
           });
         }
 
+        // Check for duplicate orderId BEFORE generating signature (avoid wasting resources)
+        const existingPayment = await paymentService.findByOrderId(validated.orderId, merchant.id);
+        if (existingPayment) {
+          return reply.code(409).send({
+            code: 'DUPLICATE_ORDER',
+            message: 'Order ID already used for this merchant.',
+          });
+        }
+
         // Generate server signature if signing service is available for this chain
+        const deadlineTtl = Number(process.env.PAYMENT_DEADLINE_SECONDS) || 3600;
+        const deadline = BigInt(Math.floor(Date.now() / 1000) + deadlineTtl);
+        const defaultEscrowDuration = Number(process.env.DEFAULT_ESCROW_DURATION) || 300;
+        const escrowDuration = BigInt(merchant.escrow_duration ?? defaultEscrowDuration);
         let serverSignature: Hex | undefined;
         const signingService = signingServices?.get(chainId);
         if (signingService) {
@@ -302,7 +328,9 @@ Creates a payment. Single endpoint for both widget and backend. Uses Public Key 
               amountInWei,
               recipientAddress,
               merchantId,
-              merchant.fee_bps
+              merchant.fee_bps,
+              deadline,
+              escrowDuration
             );
           } catch (err) {
             app.log.error({ err }, 'Failed to generate server signature');
@@ -313,15 +341,8 @@ Creates a payment. Single endpoint for both widget and backend. Uses Public Key 
           }
         }
 
-        const existingPayment = await paymentService.findByOrderId(validated.orderId, merchant.id);
-        if (existingPayment) {
-          return reply.code(409).send({
-            code: 'DUPLICATE_ORDER',
-            message: 'Order ID already used for this merchant.',
-          });
-        }
-
         const expiresAt = new Date(Date.now() + 30 * 60 * 1000);
+        const escrowDeadline = new Date(Date.now() + Number(escrowDuration) * 1000);
         await paymentService.create({
           payment_hash: paymentHash,
           merchant_id: merchant.id,
@@ -338,6 +359,7 @@ Creates a payment. Single endpoint for both widget and backend. Uses Public Key 
           currency_code: currencyCode,
           fiat_amount: fiatAmount !== undefined ? new Decimal(fiatAmount.toString()) : undefined,
           token_price: tokenPrice !== undefined ? new Decimal(tokenPrice.toString()) : undefined,
+          escrow_deadline: escrowDeadline,
         });
 
         return reply.code(201).send({
@@ -357,7 +379,10 @@ Creates a payment. Single endpoint for both widget and backend. Uses Public Key 
           recipientAddress,
           merchantId,
           feeBps: merchant.fee_bps,
+          deadline: deadline.toString(),
+          escrowDuration: escrowDuration.toString(),
           forwarderAddress: chain.forwarder_address ?? undefined,
+          tokenPermitSupported: token.permit_enabled ?? false,
           currency: currencyCode,
           fiatAmount,
           tokenPrice,
@@ -368,6 +393,12 @@ Creates a payment. Single endpoint for both widget and backend. Uses Public Key 
             code: 'VALIDATION_ERROR',
             message: 'Input validation failed',
             details: err.errors,
+          });
+        }
+        if (err && typeof err === 'object' && 'code' in err && err.code === 'P2002') {
+          return reply.code(409).send({
+            code: 'DUPLICATE_ORDER',
+            message: 'A payment with this orderId already exists',
           });
         }
         const message = err instanceof Error ? err.message : 'Failed to create payment';
