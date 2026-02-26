@@ -157,8 +157,6 @@ export default function PaymentStep({ urlParams }: PaymentStepProps) {
   // Fresh wallet session: if we're connected without user clicking connect (e.g. cached), disconnect and lock
   useEffect(() => {
     if (!buttonConnectClicked && isConnected) {
-      localStorage.removeItem('wagmi.recentConnectorId');
-      localStorage.removeItem('wagmi.store');
       setLockReconnect(true);
       disconnect();
     }
@@ -217,9 +215,9 @@ export default function PaymentStep({ urlParams }: PaymentStepProps) {
     }
 
     if (!isSwitchingChain) {
-      // Advance immediately: permit-supported → confirm step; otherwise (or still checking) → token-approval
-      // Don't block on isPermitSupported: Trust Wallet etc. can delay walletClient, so permit check may stay undefined
-      setCurrentStep(isPermitSupported === true ? 'payment-confirm' : 'token-approval');
+      // Wait for permit check so we can go straight to payment-confirm when token supports permit (already approved flow)
+      if (isPermitSupported === undefined) return;
+      setCurrentStep(isPermitSupported ? 'payment-confirm' : 'token-approval');
     }
   }, [
     isConnected,
