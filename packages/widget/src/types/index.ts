@@ -79,8 +79,14 @@ export interface PaymentDetails {
   merchantId: string;
   /** Fee in basis points (e.g., 100 = 1%) */
   feeBps: number;
+  /** Deadline timestamp for server signature expiration */
+  deadline: string;
+  /** Escrow duration in seconds (bigint as string from API) */
+  escrowDuration: string;
   /** ERC2771Forwarder contract address (for gasless payments) */
   forwarderAddress?: string;
+  /** Whether the token supports EIP-2612 permit (from server, skips on-chain probing) */
+  tokenPermitSupported?: boolean;
   /** Fiat currency code used for conversion */
   currency?: string;
   /** Original fiat amount before conversion */

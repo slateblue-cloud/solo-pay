@@ -22,6 +22,7 @@ export default defineConfig({
       CHAIN_ID: process.env.CHAIN_ID || '31337',
       GATEWAY_URL: process.env.GATEWAY_URL || 'http://localhost:3001',
       RELAYER_URL: process.env.RELAY_API_URL || process.env.RELAYER_URL || 'http://localhost:3002',
+      ALLOWED_WIDGET_ORIGIN: process.env.ALLOWED_WIDGET_ORIGIN || 'http://localhost:3005',
     },
   },
 });

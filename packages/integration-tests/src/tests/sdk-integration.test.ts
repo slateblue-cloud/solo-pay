@@ -191,6 +191,8 @@ describe('SDK Integration', () => {
         createResponse.recipientAddress,
         createResponse.merchantId,
         createResponse.feeBps,
+        BigInt(createResponse.deadline),
+        BigInt(createResponse.escrowDuration),
         createResponse.serverSignature,
         ZERO_PERMIT
       );
@@ -233,7 +235,7 @@ describe('SDK Integration', () => {
 
       const forwarder = getContract(forwarderAddress, ERC2771ForwarderABI);
       const nonce = await forwarder.nonces(payerAddress);
-      const deadline = getDeadline(1);
+      const forwardDeadline = getDeadline(1);
       const data = encodePayFunctionData(
         paymentId,
         token.address,
@@ -241,6 +243,8 @@ describe('SDK Integration', () => {
         recipientAddress,
         respMerchantId,
         feeBps,
+        BigInt(createResponse.deadline),
+        BigInt(createResponse.escrowDuration),
         serverSignature
       );
 
@@ -250,7 +254,7 @@ describe('SDK Integration', () => {
         value: 0n,
         gas: 500000n,
         nonce,
-        deadline,
+        deadline: forwardDeadline,
         data,
       };
 
@@ -305,7 +309,7 @@ describe('SDK Integration', () => {
 
       const forwarder = getContract(forwarderAddress, ERC2771ForwarderABI);
       const nonce = await forwarder.nonces(payerAddress);
-      const deadline = getDeadline(1);
+      const forwardDeadline = getDeadline(1);
       const data = encodePayFunctionData(
         createResponse.paymentId,
         token.address,
@@ -313,6 +317,8 @@ describe('SDK Integration', () => {
         recipientAddress,
         respMerchantId,
         feeBps,
+        BigInt(createResponse.deadline),
+        BigInt(createResponse.escrowDuration),
         serverSignature
       );
 
@@ -322,7 +328,7 @@ describe('SDK Integration', () => {
         value: 0n,
         gas: 500000n,
         nonce,
-        deadline,
+        deadline: forwardDeadline,
         data,
       };
 

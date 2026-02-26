@@ -30,7 +30,7 @@ export const TEST_MERCHANTS: Record<string, MerchantFixture> = {
     networkId: 31337,
     webhookUrl: 'https://webhook.site/demo',
     publicKey: 'pk_test_demo',
-    origin: 'http://localhost:3000',
+    origin: process.env.ALLOWED_WIDGET_ORIGIN || undefined,
   },
   // MetaStar Merchant (id=2) - Amoy chain (chain_id=3, network_id=80002)
   metastar: {

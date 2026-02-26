@@ -16,12 +16,14 @@ import {
   generatePaymentId,
   signPaymentRequest,
   signRefundRequest,
+  signFinalizeRequest,
   signForwardRequest,
   encodeRefundFunctionData,
   buildForwardRequestData,
   merchantKeyToId,
   getDeadline,
   ZERO_PERMIT,
+  DEFAULT_ESCROW_DURATION,
   type PaymentParams,
   type RefundParams,
   type ForwardRequest,
@@ -54,8 +56,8 @@ describe('Refund Flow Integration', () => {
   }
 
   /**
-   * Helper: Execute a payment (payer -> recipient) and return the paymentId.
-   * The contract uses safeTransferFrom(payer, recipient, amount).
+   * Helper: Execute a payment (payer -> escrow -> finalize -> recipient) and return the paymentId.
+   * All payments go through escrow, then finalize to release to recipient.
    */
   async function executePayment(
     orderId: string,
@@ -64,6 +66,7 @@ describe('Refund Flow Integration', () => {
   ): Promise<string> {
     const paymentId = generatePaymentId(orderId);
 
+    const deadline = getDeadline(1);
     const paymentParams: PaymentParams = {
       paymentId,
       tokenAddress: token.address,
@@ -71,6 +74,8 @@ describe('Refund Flow Integration', () => {
       recipientAddress,
       merchantId,
       feeBps,
+      deadline,
+      escrowDuration: DEFAULT_ESCROW_DURATION,
     };
     const serverSignature = await signPaymentRequest(paymentParams, signerPrivateKey);
 
@@ -85,10 +90,19 @@ describe('Refund Flow Integration', () => {
       recipientAddress,
       merchantId,
       feeBps,
+      deadline,
+      DEFAULT_ESCROW_DURATION,
       serverSignature,
       ZERO_PERMIT
     );
     await tx.wait();
+
+    // Finalize the payment so it can be refunded (server calls finalize)
+    const signerWallet = getWallet(signerPrivateKey);
+    const gatewayAsSigner = getContract(gatewayAddress, PaymentGatewayABI, signerWallet);
+    const finalizeSignature = await signFinalizeRequest(paymentId, signerPrivateKey);
+    const finalizeTx = await gatewayAsSigner.finalize(paymentId, finalizeSignature);
+    await finalizeTx.wait();
 
     return paymentId;
   }
@@ -165,7 +179,7 @@ describe('Refund Flow Integration', () => {
 
       // Verify refund is recorded on-chain
       const gateway = getContract(gatewayAddress, PaymentGatewayABI);
-      const isRefunded = await gateway.refundedPayments(paymentId);
+      const isRefunded = await gateway.isPaymentRefunded(paymentId);
       expect(isRefunded).toBe(true);
 
       // Verify balance changes: recipient -> payer
@@ -464,7 +478,7 @@ describe('Refund Flow Integration', () => {
 
       // Verify refund completed
       const gateway = getContract(gatewayAddress, PaymentGatewayABI);
-      const isRefunded = await gateway.refundedPayments(paymentId);
+      const isRefunded = await gateway.isPaymentRefunded(paymentId);
       expect(isRefunded).toBe(true);
 
       // Verify payer got tokens back
@@ -482,10 +496,10 @@ describe('Refund Flow Integration', () => {
       const initialPayerBalance = await getTokenBalance(token.address, payerAddress);
       const initialRecipientBalance = await getTokenBalance(token.address, recipientAddress);
 
-      // Step 1: Execute payment (payer -> recipient)
+      // Step 1: Execute payment (payer -> escrow -> finalize -> recipient)
       const paymentId = await executePayment(`ORDER_LIFECYCLE_${Date.now()}`, amount);
 
-      // Verify payment deducted from payer, sent to recipient
+      // Verify payment deducted from payer, sent to recipient (after finalize)
       const afterPaymentPayerBalance = await getTokenBalance(token.address, payerAddress);
       const afterPaymentRecipientBalance = await getTokenBalance(token.address, recipientAddress);
       expect(afterPaymentPayerBalance).toBe(initialPayerBalance - amount);
@@ -507,7 +521,7 @@ describe('Refund Flow Integration', () => {
 
       // Verify on-chain state
       const gateway = getContract(gatewayAddress, PaymentGatewayABI);
-      const isRefunded = await gateway.refundedPayments(paymentId);
+      const isRefunded = await gateway.isPaymentRefunded(paymentId);
       expect(isRefunded).toBe(true);
     });
   });

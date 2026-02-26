@@ -3,6 +3,11 @@ import { CONTRACT_ADDRESSES, TEST_CHAIN_ID, HARDHAT_ACCOUNTS } from '../setup/wa
 import { PaymentGatewayABI, getProvider } from './blockchain';
 
 /**
+ * Default escrow duration for tests (1 day in seconds)
+ */
+export const DEFAULT_ESCROW_DURATION = 86400;
+
+/**
  * Zero permit signature for skipping permit and using traditional approve flow
  */
 export const ZERO_PERMIT = {
@@ -39,6 +44,8 @@ export interface PaymentParams {
   recipientAddress: string;
   merchantId: string;
   feeBps: number;
+  deadline: bigint;
+  escrowDuration: number;
 }
 
 const FORWARD_REQUEST_TYPES = {
@@ -61,6 +68,8 @@ const PAYMENT_REQUEST_TYPES = {
     { name: 'recipientAddress', type: 'address' },
     { name: 'merchantId', type: 'bytes32' },
     { name: 'feeBps', type: 'uint16' },
+    { name: 'deadline', type: 'uint256' },
+    { name: 'escrowDuration', type: 'uint256' },
   ],
 };
 
@@ -130,6 +139,8 @@ export async function signPaymentRequest(
     recipientAddress: params.recipientAddress,
     merchantId: params.merchantId,
     feeBps: params.feeBps,
+    deadline: params.deadline,
+    escrowDuration: params.escrowDuration,
   };
 
   const signature = await wallet.signTypedData(domain, PAYMENT_REQUEST_TYPES, message);
@@ -150,6 +161,8 @@ export function encodePayFunctionData(
   recipientAddress: string,
   merchantId: string,
   feeBps: number,
+  deadline: bigint,
+  escrowDuration: number,
   serverSignature: string
 ): string {
   const iface = new Interface(PaymentGatewayABI);
@@ -160,6 +173,8 @@ export function encodePayFunctionData(
     recipientAddress,
     merchantId,
     feeBps,
+    deadline,
+    escrowDuration,
     serverSignature,
     ZERO_PERMIT,
   ]);
@@ -247,4 +262,40 @@ export function encodeRefundFunctionData(
     serverSignature,
     ZERO_PERMIT,
   ]);
+}
+
+// --- Finalize / Cancel ---
+
+const FINALIZE_REQUEST_TYPES = {
+  FinalizeRequest: [{ name: 'paymentId', type: 'bytes32' }],
+};
+
+const CANCEL_REQUEST_TYPES = {
+  CancelRequest: [{ name: 'paymentId', type: 'bytes32' }],
+};
+
+export async function signFinalizeRequest(
+  paymentId: string,
+  signerPrivateKey: string = HARDHAT_ACCOUNTS.signer.privateKey,
+  gatewayAddress: string = CONTRACT_ADDRESSES.paymentGateway,
+  chainId: number = TEST_CHAIN_ID
+): Promise<string> {
+  const provider = getProvider();
+  const wallet = new Wallet(signerPrivateKey, provider);
+  const domain = getPaymentGatewayDomain(gatewayAddress, chainId);
+
+  return wallet.signTypedData(domain, FINALIZE_REQUEST_TYPES, { paymentId });
+}
+
+export async function signCancelRequest(
+  paymentId: string,
+  signerPrivateKey: string = HARDHAT_ACCOUNTS.signer.privateKey,
+  gatewayAddress: string = CONTRACT_ADDRESSES.paymentGateway,
+  chainId: number = TEST_CHAIN_ID
+): Promise<string> {
+  const provider = getProvider();
+  const wallet = new Wallet(signerPrivateKey, provider);
+  const domain = getPaymentGatewayDomain(gatewayAddress, chainId);
+
+  return wallet.signTypedData(domain, CANCEL_REQUEST_TYPES, { paymentId });
 }

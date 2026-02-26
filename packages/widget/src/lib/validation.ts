@@ -46,6 +46,12 @@ export function validateWidgetUrlParams(
 
   if (!orderId || orderId.trim() === '') {
     errors.push('orderId is required');
+  } else if (orderId.length > 255) {
+    errors.push('orderId must be 255 characters or less');
+  } else if (!/^[a-zA-Z0-9_\-.:]+$/.test(orderId)) {
+    errors.push(
+      'orderId must contain only alphanumeric characters, hyphens, underscores, dots, and colons'
+    );
   }
 
   if (!amount || amount.trim() === '') {

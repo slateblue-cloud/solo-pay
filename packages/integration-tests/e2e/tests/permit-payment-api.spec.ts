@@ -29,7 +29,7 @@ const MOCK_ERC20_ABI = [
 ];
 
 const PAYMENT_GATEWAY_ABI = [
-  'function pay(bytes32 paymentId, address tokenAddress, uint256 amount, address recipientAddress, bytes32 merchantId, uint16 feeBps, bytes serverSignature, tuple(uint256 deadline, uint8 v, bytes32 r, bytes32 s) permit)',
+  'function pay(bytes32 paymentId, address tokenAddress, uint256 amount, address recipientAddress, bytes32 merchantId, uint16 feeBps, uint256 deadline, bytes serverSignature, tuple(uint256 deadline, uint8 v, bytes32 r, bytes32 s) permit)',
   'function processedPayments(bytes32 paymentId) view returns (bool)',
 ];
 
@@ -68,6 +68,7 @@ test.describe('Permit Payment (API + Chain)', () => {
       recipientAddress: string;
       merchantId: string;
       feeBps: number;
+      deadline: string;
       amount: string;
     };
 
@@ -128,6 +129,7 @@ test.describe('Permit Payment (API + Chain)', () => {
     // 3. Call pay() with permit
     const gateway = new ethers.Contract(gatewayAddress, PAYMENT_GATEWAY_ABI, payer);
 
+    const payDeadline = BigInt(paymentData.deadline ?? Math.floor(Date.now() / 1000) + 3600);
     const tx = await gateway.pay(
       paymentId,
       tokenAddress,
@@ -135,6 +137,7 @@ test.describe('Permit Payment (API + Chain)', () => {
       recipientAddress,
       merchantId,
       feeBps,
+      payDeadline,
       serverSignature,
       { deadline, v, r, s }
     );
