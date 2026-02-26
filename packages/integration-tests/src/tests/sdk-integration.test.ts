@@ -385,7 +385,6 @@ describe('SDK Integration', () => {
 
       await expect(client.getPaymentStatus(fakePaymentId)).rejects.toThrow();
     });
-
   });
 
   describe('Merchant-Chain Binding', () => {
