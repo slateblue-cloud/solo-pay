@@ -25,7 +25,6 @@ import {
   ZERO_PERMIT,
   DEFAULT_ESCROW_DURATION,
   type PaymentParams,
-  type RefundParams,
   type ForwardRequest,
 } from '../helpers/signature';
 
@@ -109,18 +108,11 @@ describe('Refund Flow Integration', () => {
 
   /**
    * Helper: Execute a refund from recipient (merchant) to payer.
-   * The contract uses safeTransferFrom(msg.sender=recipient, payerAddress, amount).
-   * Recipient must approve the gateway before calling refund.
+   * Refund reads token, amount, payer from on-chain storage.
+   * Recipient must approve the gateway for the full payment amount.
    */
   async function executeRefund(paymentId: string, amount: bigint): Promise<void> {
-    const refundParams: RefundParams = {
-      originalPaymentId: paymentId,
-      tokenAddress: token.address,
-      amount,
-      payerAddress,
-      merchantId,
-    };
-    const refundSignature = await signRefundRequest(refundParams, signerPrivateKey);
+    const refundSignature = await signRefundRequest(paymentId, signerPrivateKey);
 
     // Recipient approves gateway to spend tokens for the refund
     await approveToken(token.address, gatewayAddress, amount, recipientPrivateKey);
@@ -129,15 +121,7 @@ describe('Refund Flow Integration', () => {
     const recipientWallet = getWallet(recipientPrivateKey);
     const gateway = getContract(gatewayAddress, PaymentGatewayABI, recipientWallet);
 
-    const tx = await gateway.refund(
-      paymentId,
-      token.address,
-      amount,
-      payerAddress,
-      merchantId,
-      refundSignature,
-      ZERO_PERMIT
-    );
+    const tx = await gateway.refund(paymentId, refundSignature, ZERO_PERMIT);
     await tx.wait();
   }
 
@@ -216,31 +200,14 @@ describe('Refund Flow Integration', () => {
       await executeRefund(paymentId, amount);
 
       // Second refund with same paymentId should revert
-      const refundParams: RefundParams = {
-        originalPaymentId: paymentId,
-        tokenAddress: token.address,
-        amount,
-        payerAddress,
-        merchantId,
-      };
-      const refundSignature = await signRefundRequest(refundParams, signerPrivateKey);
+      const refundSignature = await signRefundRequest(paymentId, signerPrivateKey);
 
       await approveToken(token.address, gatewayAddress, amount, recipientPrivateKey);
 
       const recipientWallet = getWallet(recipientPrivateKey);
       const gateway = getContract(gatewayAddress, PaymentGatewayABI, recipientWallet);
 
-      await expect(
-        gateway.refund(
-          paymentId,
-          token.address,
-          amount,
-          payerAddress,
-          merchantId,
-          refundSignature,
-          ZERO_PERMIT
-        )
-      ).rejects.toThrow();
+      await expect(gateway.refund(paymentId, refundSignature, ZERO_PERMIT)).rejects.toThrow();
     });
   });
 
@@ -251,17 +218,9 @@ describe('Refund Flow Integration', () => {
       const amount = parseUnits('50', token.decimals);
       const paymentId = await executePayment(`ORDER_REFUND_BADSIG_${Date.now()}`, amount);
 
-      const refundParams: RefundParams = {
-        originalPaymentId: paymentId,
-        tokenAddress: token.address,
-        amount,
-        payerAddress,
-        merchantId,
-      };
-
       // Sign with wrong key (relayer instead of signer)
       const wrongSignature = await signRefundRequest(
-        refundParams,
+        paymentId,
         HARDHAT_ACCOUNTS.relayer.privateKey
       );
 
@@ -270,17 +229,7 @@ describe('Refund Flow Integration', () => {
       const recipientWallet = getWallet(recipientPrivateKey);
       const gateway = getContract(gatewayAddress, PaymentGatewayABI, recipientWallet);
 
-      await expect(
-        gateway.refund(
-          paymentId,
-          token.address,
-          amount,
-          payerAddress,
-          merchantId,
-          wrongSignature,
-          ZERO_PERMIT
-        )
-      ).rejects.toThrow();
+      await expect(gateway.refund(paymentId, wrongSignature, ZERO_PERMIT)).rejects.toThrow();
     });
   });
 
@@ -289,126 +238,28 @@ describe('Refund Flow Integration', () => {
       if (!blockchainRunning) return;
 
       const fakePaymentId = generatePaymentId(`ORDER_FAKE_${Date.now()}`);
-      const amount = parseUnits('50', token.decimals);
 
-      const refundParams: RefundParams = {
-        originalPaymentId: fakePaymentId,
-        tokenAddress: token.address,
-        amount,
-        payerAddress,
-        merchantId,
-      };
-      const refundSignature = await signRefundRequest(refundParams, signerPrivateKey);
+      const refundSignature = await signRefundRequest(fakePaymentId, signerPrivateKey);
 
       const recipientWallet = getWallet(recipientPrivateKey);
       const gateway = getContract(gatewayAddress, PaymentGatewayABI, recipientWallet);
 
-      await expect(
-        gateway.refund(
-          fakePaymentId,
-          token.address,
-          amount,
-          payerAddress,
-          merchantId,
-          refundSignature,
-          ZERO_PERMIT
-        )
-      ).rejects.toThrow();
+      await expect(gateway.refund(fakePaymentId, refundSignature, ZERO_PERMIT)).rejects.toThrow();
     });
 
-    it('should reject refund with zero amount', async () => {
+    it('should reject refund from non-recipient', async () => {
       if (!blockchainRunning) return;
 
       const amount = parseUnits('50', token.decimals);
-      const paymentId = await executePayment(`ORDER_REFUND_ZERO_${Date.now()}`, amount);
+      const paymentId = await executePayment(`ORDER_REFUND_NOTRECIP_${Date.now()}`, amount);
 
-      const refundParams: RefundParams = {
-        originalPaymentId: paymentId,
-        tokenAddress: token.address,
-        amount: 0n,
-        payerAddress,
-        merchantId,
-      };
-      const refundSignature = await signRefundRequest(refundParams, signerPrivateKey);
+      const refundSignature = await signRefundRequest(paymentId, signerPrivateKey);
 
-      const recipientWallet = getWallet(recipientPrivateKey);
-      const gateway = getContract(gatewayAddress, PaymentGatewayABI, recipientWallet);
+      // Payer (not recipient) tries to call refund
+      const payerWallet = getWallet(payerPrivateKey);
+      const gateway = getContract(gatewayAddress, PaymentGatewayABI, payerWallet);
 
-      await expect(
-        gateway.refund(
-          paymentId,
-          token.address,
-          0n,
-          payerAddress,
-          merchantId,
-          refundSignature,
-          ZERO_PERMIT
-        )
-      ).rejects.toThrow();
-    });
-
-    it('should reject refund with zero token address', async () => {
-      if (!blockchainRunning) return;
-
-      const amount = parseUnits('50', token.decimals);
-      const paymentId = await executePayment(`ORDER_REFUND_ZEROTOKEN_${Date.now()}`, amount);
-      const zeroAddress = '0x0000000000000000000000000000000000000000';
-
-      const refundParams: RefundParams = {
-        originalPaymentId: paymentId,
-        tokenAddress: zeroAddress,
-        amount,
-        payerAddress,
-        merchantId,
-      };
-      const refundSignature = await signRefundRequest(refundParams, signerPrivateKey);
-
-      const recipientWallet = getWallet(recipientPrivateKey);
-      const gateway = getContract(gatewayAddress, PaymentGatewayABI, recipientWallet);
-
-      await expect(
-        gateway.refund(
-          paymentId,
-          zeroAddress,
-          amount,
-          payerAddress,
-          merchantId,
-          refundSignature,
-          ZERO_PERMIT
-        )
-      ).rejects.toThrow();
-    });
-
-    it('should reject refund with zero payer address', async () => {
-      if (!blockchainRunning) return;
-
-      const amount = parseUnits('50', token.decimals);
-      const paymentId = await executePayment(`ORDER_REFUND_ZEROPAYER_${Date.now()}`, amount);
-      const zeroAddress = '0x0000000000000000000000000000000000000000';
-
-      const refundParams: RefundParams = {
-        originalPaymentId: paymentId,
-        tokenAddress: token.address,
-        amount,
-        payerAddress: zeroAddress,
-        merchantId,
-      };
-      const refundSignature = await signRefundRequest(refundParams, signerPrivateKey);
-
-      const recipientWallet = getWallet(recipientPrivateKey);
-      const gateway = getContract(gatewayAddress, PaymentGatewayABI, recipientWallet);
-
-      await expect(
-        gateway.refund(
-          paymentId,
-          token.address,
-          amount,
-          zeroAddress,
-          merchantId,
-          refundSignature,
-          ZERO_PERMIT
-        )
-      ).rejects.toThrow();
+      await expect(gateway.refund(paymentId, refundSignature, ZERO_PERMIT)).rejects.toThrow();
     });
   });
 
@@ -421,28 +272,14 @@ describe('Refund Flow Integration', () => {
 
       const initialPayerBalance = await getTokenBalance(token.address, payerAddress);
 
-      const refundParams: RefundParams = {
-        originalPaymentId: paymentId,
-        tokenAddress: token.address,
-        amount,
-        payerAddress,
-        merchantId,
-      };
-      const refundSignature = await signRefundRequest(refundParams, signerPrivateKey);
+      const refundSignature = await signRefundRequest(paymentId, signerPrivateKey);
 
       // Recipient (merchant) approves gateway for the refund amount
       // In meta-tx, _msgSender() = recipient (from ForwardRequest.from)
       await approveToken(token.address, gatewayAddress, amount, recipientPrivateKey);
 
       // Encode refund calldata
-      const refundCalldata = encodeRefundFunctionData(
-        paymentId,
-        token.address,
-        amount,
-        payerAddress,
-        merchantId,
-        refundSignature
-      );
+      const refundCalldata = encodeRefundFunctionData(paymentId, refundSignature);
 
       // Build ForwardRequest - from = recipient (merchant)
       // The forwarder will set _msgSender() to recipientAddress

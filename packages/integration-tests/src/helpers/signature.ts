@@ -5,7 +5,7 @@ import { PaymentGatewayABI, getProvider } from './blockchain';
 /**
  * Default escrow duration for tests (1 day in seconds)
  */
-export const DEFAULT_ESCROW_DURATION = 86400;
+export const DEFAULT_ESCROW_DURATION = 86400n;
 
 /**
  * Zero permit signature for skipping permit and using traditional approve flow
@@ -45,7 +45,7 @@ export interface PaymentParams {
   merchantId: string;
   feeBps: number;
   deadline: bigint;
-  escrowDuration: number;
+  escrowDuration: bigint;
 }
 
 const FORWARD_REQUEST_TYPES = {
@@ -162,7 +162,7 @@ export function encodePayFunctionData(
   merchantId: string,
   feeBps: number,
   deadline: bigint,
-  escrowDuration: number,
+  escrowDuration: bigint,
   serverSignature: string
 ): string {
   const iface = new Interface(PaymentGatewayABI);
@@ -205,26 +205,12 @@ export function getDeadline(hoursFromNow: number = 1): bigint {
 
 // --- Refund ---
 
-export interface RefundParams {
-  originalPaymentId: string;
-  tokenAddress: string;
-  amount: bigint;
-  payerAddress: string;
-  merchantId: string;
-}
-
 const REFUND_REQUEST_TYPES = {
-  RefundRequest: [
-    { name: 'originalPaymentId', type: 'bytes32' },
-    { name: 'tokenAddress', type: 'address' },
-    { name: 'amount', type: 'uint256' },
-    { name: 'payerAddress', type: 'address' },
-    { name: 'merchantId', type: 'bytes32' },
-  ],
+  RefundRequest: [{ name: 'paymentId', type: 'bytes32' }],
 };
 
 export async function signRefundRequest(
-  params: RefundParams,
+  paymentId: string,
   signerPrivateKey: string = HARDHAT_ACCOUNTS.signer.privateKey,
   gatewayAddress: string = CONTRACT_ADDRESSES.paymentGateway,
   chainId: number = TEST_CHAIN_ID
@@ -233,35 +219,15 @@ export async function signRefundRequest(
   const wallet = new Wallet(signerPrivateKey, provider);
   const domain = getPaymentGatewayDomain(gatewayAddress, chainId);
 
-  const message = {
-    originalPaymentId: params.originalPaymentId,
-    tokenAddress: params.tokenAddress,
-    amount: params.amount,
-    payerAddress: params.payerAddress,
-    merchantId: params.merchantId,
-  };
-
-  return wallet.signTypedData(domain, REFUND_REQUEST_TYPES, message);
+  return wallet.signTypedData(domain, REFUND_REQUEST_TYPES, { paymentId });
 }
 
 export function encodeRefundFunctionData(
   originalPaymentId: string,
-  tokenAddress: string,
-  amount: bigint,
-  payerAddress: string,
-  merchantId: string,
   serverSignature: string
 ): string {
   const iface = new Interface(PaymentGatewayABI);
-  return iface.encodeFunctionData('refund', [
-    originalPaymentId,
-    tokenAddress,
-    amount,
-    payerAddress,
-    merchantId,
-    serverSignature,
-    ZERO_PERMIT,
-  ]);
+  return iface.encodeFunctionData('refund', [originalPaymentId, serverSignature, ZERO_PERMIT]);
 }
 
 // --- Finalize / Cancel ---

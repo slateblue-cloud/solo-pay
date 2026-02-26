@@ -33,11 +33,7 @@ interface CancelRequest {
  * EIP-712 RefundRequest type for server signing
  */
 interface RefundRequest {
-  originalPaymentId: Hex;
-  tokenAddress: Address;
-  amount: bigint;
-  payerAddress: Address;
-  merchantId: Hex;
+  paymentId: Hex;
 }
 
 /**
@@ -213,40 +209,18 @@ export class ServerSigningService {
    */
   getRefundRequestTypes() {
     return {
-      RefundRequest: [
-        { name: 'originalPaymentId', type: 'bytes32' },
-        { name: 'tokenAddress', type: 'address' },
-        { name: 'amount', type: 'uint256' },
-        { name: 'payerAddress', type: 'address' },
-        { name: 'merchantId', type: 'bytes32' },
-      ],
+      RefundRequest: [{ name: 'paymentId', type: 'bytes32' }],
     } as const;
   }
 
   /**
    * Sign a refund request
    *
-   * @param originalPaymentId - Original payment identifier (bytes32)
-   * @param tokenAddress - ERC20 token address
-   * @param amount - Refund amount in wei
-   * @param payerAddress - Payer address (refund recipient)
-   * @param merchantId - Merchant identifier (bytes32)
+   * @param paymentId - Original payment identifier (bytes32)
    * @returns EIP-712 signature
    */
-  async signRefundRequest(
-    originalPaymentId: Hex,
-    tokenAddress: Address,
-    amount: bigint,
-    payerAddress: Address,
-    merchantId: Hex
-  ): Promise<Hex> {
-    const message: RefundRequest = {
-      originalPaymentId,
-      tokenAddress,
-      amount,
-      payerAddress,
-      merchantId,
-    };
+  async signRefundRequest(paymentId: Hex): Promise<Hex> {
+    const message: RefundRequest = { paymentId };
 
     const signature = await this.account.signTypedData({
       domain: this.getDomain(),

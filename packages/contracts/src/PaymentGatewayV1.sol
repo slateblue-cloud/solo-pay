@@ -44,9 +44,9 @@ contract PaymentGatewayV1 is
     0xd40604ddffff25a50a3648340d94a679a11c014c58d5eebd06ef46a1b15bf815;
 
   /// @notice EIP-712 typehash for RefundRequest
-  /// @dev keccak256("RefundRequest(bytes32 originalPaymentId,address tokenAddress,uint256 amount,address payerAddress,bytes32 merchantId)")
+  /// @dev keccak256("RefundRequest(bytes32 paymentId)")
   bytes32 public constant REFUND_REQUEST_TYPEHASH =
-    0x598c2433ebfb69460ac5996ae20431ae5372d75ec981feb369353efa8899a0eb;
+    0xa7a07684522dbe178ba65248f3194c7b61eb09fe0c9bd07ba4f8b26601440dd4;
 
   /// @notice EIP-712 typehash for FinalizeRequest
   /// @dev keccak256("FinalizeRequest(bytes32 paymentId)")
@@ -472,59 +472,40 @@ contract PaymentGatewayV1 is
   // ============ Refund Functions ============
 
   /**
-   * @notice Refund a finalized payment - merchant sends tokens back to payer
-   * @dev Only callable after finalization. Merchant must approve gateway first.
+   * @notice Refund a finalized payment - merchant sends full amount back to payer
+   * @dev Only callable by original recipient (merchant) after finalization.
+   *      All refund data (token, amount, payer) is read from on-chain storage.
    *      Uses _msgSender() to support both direct calls and meta-transactions
    *      Supports ERC20 Permit for gasless token approval
    * @param originalPaymentId The finalized payment ID to refund
-   * @param tokenAddress Address of the ERC20 token to refund
-   * @param amount Amount to refund (in token's smallest unit)
-   * @param payerAddress Address to receive the refund (original payer)
-   * @param merchantId Merchant identifier (from server signature)
    * @param serverSignature Server's EIP-712 signature
    * @param permit Permit signature for gasless token approval (deadline=0 to skip)
    */
   function refund(
     bytes32 originalPaymentId,
-    address tokenAddress,
-    uint256 amount,
-    address payerAddress,
-    bytes32 merchantId,
     bytes calldata serverSignature,
     IPaymentGateway.PermitSignature calldata permit
   ) external nonReentrant {
-    address merchantAddress = _msgSender();
-
-    _tryPermit(tokenAddress, merchantAddress, amount, permit);
-
     require(paymentStatus[originalPaymentId] == PaymentStatus.Finalized, "PG: not finalized");
-    require(amount > 0, "PG: amount must be > 0");
-    require(tokenAddress != address(0), "PG: invalid token");
-    require(payerAddress != address(0), "PG: invalid payer");
 
-    require(
-      _verifyRefundSignature(
-        originalPaymentId,
-        tokenAddress,
-        amount,
-        payerAddress,
-        merchantId,
-        serverSignature
-      ),
-      "PG: invalid signature"
-    );
+    Payment storage p = payments[originalPaymentId];
+    address merchantAddress = _msgSender();
+    require(merchantAddress == p.recipient, "PG: not recipient");
+
+    _tryPermit(p.token, merchantAddress, p.amount, permit);
+    require(_verifyRefundSignature(originalPaymentId, serverSignature), "PG: invalid signature");
 
     paymentStatus[originalPaymentId] = PaymentStatus.Refunded;
 
-    IERC20(tokenAddress).safeTransferFrom(merchantAddress, payerAddress, amount);
+    IERC20(p.token).safeTransferFrom(merchantAddress, p.payer, p.amount);
 
     emit RefundCompleted(
       originalPaymentId,
-      merchantId,
-      payerAddress,
+      p.merchantId,
+      p.payer,
       merchantAddress,
-      tokenAddress,
-      amount,
+      p.token,
+      p.amount,
       block.timestamp
     );
   }
@@ -532,31 +513,14 @@ contract PaymentGatewayV1 is
   /**
    * @notice Internal function to verify refund server signature
    * @param originalPaymentId Original payment identifier
-   * @param tokenAddress Token address
-   * @param amount Refund amount
-   * @param payerAddress Payer address (refund recipient)
-   * @param merchantId Merchant identifier
    * @param signature Server signature
    * @return True if signature is valid
    */
   function _verifyRefundSignature(
     bytes32 originalPaymentId,
-    address tokenAddress,
-    uint256 amount,
-    address payerAddress,
-    bytes32 merchantId,
     bytes calldata signature
   ) internal view returns (bool) {
-    bytes32 structHash = keccak256(
-      abi.encode(
-        REFUND_REQUEST_TYPEHASH,
-        originalPaymentId,
-        tokenAddress,
-        amount,
-        payerAddress,
-        merchantId
-      )
-    );
+    bytes32 structHash = keccak256(abi.encode(REFUND_REQUEST_TYPEHASH, originalPaymentId));
     bytes32 hash = _hashTypedDataV4(structHash);
     address recoveredSigner = hash.recover(signature);
     return recoveredSigner == signerAddress;
@@ -610,7 +574,9 @@ contract PaymentGatewayV1 is
   // ============ ERC2771 Overrides ============
 
   /**
+   * @notice Get the message sender address
    * @dev Override _msgSender to support meta-transactions
+   * @return The sender address (original sender in meta-tx)
    */
   function _msgSender()
     internal
@@ -622,7 +588,9 @@ contract PaymentGatewayV1 is
   }
 
   /**
+   * @notice Get the message data
    * @dev Override _msgData to support meta-transactions
+   * @return The message data (stripped of suffix in meta-tx)
    */
   function _msgData()
     internal
@@ -634,7 +602,9 @@ contract PaymentGatewayV1 is
   }
 
   /**
+   * @notice Get the context suffix length
    * @dev Override _contextSuffixLength for ERC2771
+   * @return The context suffix length
    */
   function _contextSuffixLength()
     internal

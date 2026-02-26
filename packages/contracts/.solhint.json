@@ -3,6 +3,7 @@
   "rules": {
     "compiler-version": ["error", "^0.8.20"],
     "func-visibility": ["warn", { "ignoreConstructors": true }],
+    "use-natspec": "warn",
     "no-empty-blocks": "off",
     "reason-string": "off",
     "no-inline-assembly": "off",

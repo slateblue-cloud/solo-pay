@@ -48,7 +48,7 @@ describe('Cancel Flow Integration', () => {
     orderId: string,
     amount: bigint,
     feeBps: number = 0,
-    escrowDuration: number = DEFAULT_ESCROW_DURATION
+    escrowDuration: bigint = DEFAULT_ESCROW_DURATION
   ): Promise<string> {
     const paymentId = generatePaymentId(orderId);
     const deadline = getDeadline(1);
@@ -187,7 +187,7 @@ describe('Cancel Flow Integration', () => {
   describe('Cancel After Deadline (Permissionless)', () => {
     it('should allow permissionless cancel after escrow deadline', async () => {
       const amount = parseUnits('100', token.decimals);
-      const shortEscrow = 60; // 60 seconds
+      const shortEscrow = 60n; // 60 seconds
       const initialPayerBalance = await getTokenBalance(token.address, payerAddress);
 
       const paymentId = await escrowPayment(
@@ -198,7 +198,7 @@ describe('Cancel Flow Integration', () => {
       );
 
       // Advance time past escrow deadline
-      await increaseTime(shortEscrow + 1);
+      await increaseTime(Number(shortEscrow) + 1);
 
       // Anyone can cancel without valid signature (use relayer account)
       const otherWallet = getWallet(HARDHAT_ACCOUNTS.relayer.privateKey);
@@ -213,7 +213,7 @@ describe('Cancel Flow Integration', () => {
 
     it('should reject finalize after escrow deadline', async () => {
       const amount = parseUnits('50', token.decimals);
-      const shortEscrow = 60;
+      const shortEscrow = 60n;
 
       const paymentId = await escrowPayment(
         `ORDER_FINALIZE_EXPIRED_${Date.now()}`,
@@ -223,7 +223,7 @@ describe('Cancel Flow Integration', () => {
       );
 
       // Advance time past escrow deadline
-      await increaseTime(shortEscrow + 1);
+      await increaseTime(Number(shortEscrow) + 1);
 
       // Finalize should fail after deadline
       const finalizeSignature = await signFinalizeRequest(paymentId, signerPrivateKey);

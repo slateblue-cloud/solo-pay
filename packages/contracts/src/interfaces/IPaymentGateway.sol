@@ -139,20 +139,12 @@ interface IPaymentGateway {
   /// @param serverSignature Server's EIP-712 CancelRequest signature
   function cancel(bytes32 paymentId, bytes calldata serverSignature) external;
 
-  /// @notice Refund a finalized payment
+  /// @notice Refund a finalized payment - full amount returned from merchant to payer
   /// @param originalPaymentId The finalized payment ID
-  /// @param tokenAddress Address of the ERC20 token
-  /// @param amount Refund amount
-  /// @param payerAddress Address to receive the refund
-  /// @param merchantId Merchant identifier
   /// @param serverSignature Server's EIP-712 signature
   /// @param permit Permit signature for gasless token approval
   function refund(
     bytes32 originalPaymentId,
-    address tokenAddress,
-    uint256 amount,
-    address payerAddress,
-    bytes32 merchantId,
     bytes calldata serverSignature,
     PermitSignature calldata permit
   ) external;
