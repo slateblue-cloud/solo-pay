@@ -7,153 +7,173 @@ pragma solidity ^0.8.24;
  * @notice Interface for the PaymentGateway contract
  */
 interface IPaymentGateway {
-    /**
-     * @notice ERC20 Permit signature data for gasless approval
-     * @dev If deadline is 0, permit is skipped and traditional approve is used
-     */
-    struct PermitSignature {
-        uint256 deadline;
-        uint8 v;
-        bytes32 r;
-        bytes32 s;
-    }
-    /**
-     * @notice Event emitted when the treasury address is changed
-     * @param oldTreasuryAddress Previous treasury address
-     * @param newTreasuryAddress New treasury address
-     */
-    event TreasuryChanged(address indexed oldTreasuryAddress, address indexed newTreasuryAddress);
+  struct PermitSignature {
+    uint256 deadline;
+    uint8 v;
+    bytes32 r;
+    bytes32 s;
+  }
 
-    /**
-     * @notice Emitted when a payment is completed
-     * @param paymentId Unique identifier for the payment
-     * @param merchantId Merchant identifier (from server signature)
-     * @param payerAddress Address of the user who paid
-     * @param recipientAddress Address that received the payment (merchant's wallet)
-     * @param tokenAddress Address of the ERC20 token used
-     * @param amount Total amount transferred
-     * @param fee Fee amount (sent to treasury)
-     * @param timestamp Block timestamp when payment was processed
-     */
-    event PaymentCompleted(
-        bytes32 indexed paymentId,
-        bytes32 indexed merchantId,
-        address indexed payerAddress,
-        address recipientAddress,
-        address tokenAddress,
-        uint256 amount,
-        uint256 fee,
-        uint256 timestamp
-    );
+  // ============ Events ============
 
-    /**
-     * @notice Emitted when token support status changes
-     * @param tokenAddress Address of the token
-     * @param supported Whether the token is now supported
-     */
-    event TokenSupportChanged(address indexed tokenAddress, bool indexed supported);
+  /// @notice Emitted when the treasury address is changed
+  /// @param oldTreasuryAddress The previous treasury address
+  /// @param newTreasuryAddress The new treasury address
+  event TreasuryChanged(address indexed oldTreasuryAddress, address indexed newTreasuryAddress);
 
-    /**
-     * @notice Emitted when server signer is changed
-     * @param oldSigner Previous signer address
-     * @param newSigner New signer address
-     */
-    event SignerChanged(address indexed oldSigner, address indexed newSigner);
+  /// @notice Emitted when the server signer address is changed
+  /// @param oldSigner The previous signer address
+  /// @param newSigner The new signer address
+  event SignerChanged(address indexed oldSigner, address indexed newSigner);
 
-    /**
-     * @notice Emitted when a refund is completed
-     * @param originalPaymentId The original payment ID being refunded
-     * @param merchantId Merchant identifier
-     * @param payerAddress Address receiving the refund (original payer)
-     * @param merchantAddress Address of the merchant who initiated refund
-     * @param tokenAddress Address of the ERC20 token refunded
-     * @param amount Refund amount
-     * @param timestamp Block timestamp when refund was processed
-     */
-    event RefundCompleted(
-        bytes32 indexed originalPaymentId,
-        bytes32 indexed merchantId,
-        address indexed payerAddress,
-        address merchantAddress,
-        address tokenAddress,
-        uint256 amount,
-        uint256 timestamp
-    );
+  /// @notice Emitted when a token's whitelist status is changed
+  /// @param tokenAddress The token address
+  /// @param supported Whether the token is now supported
+  event TokenSupportChanged(address indexed tokenAddress, bool indexed supported);
 
-    /**
-     * @notice Process a payment with server signature verification
-     * @param paymentId Unique identifier for this payment
-     * @param tokenAddress Address of the ERC20 token to transfer
-     * @param amount Amount to transfer (in token's smallest unit)
-     * @param recipientAddress Address to receive the payment (merchant's wallet)
-     * @param merchantId Merchant identifier (from server signature)
-     * @param feeBps Fee percentage in basis points (from server signature)
-     * @param serverSignature Server's EIP-712 signature
-     * @param permit Permit signature for gasless token approval (deadline=0 to skip)
-     */
-    function pay(
-        bytes32 paymentId,
-        address tokenAddress,
-        uint256 amount,
-        address recipientAddress,
-        bytes32 merchantId,
-        uint16 feeBps,
-        bytes calldata serverSignature,
-        PermitSignature calldata permit
-    ) external;
+  /// @notice Emitted when a payment is escrowed
+  /// @param paymentId Unique payment identifier
+  /// @param merchantId Merchant identifier
+  /// @param payerAddress Address of the payer
+  /// @param recipientAddress Address of the recipient
+  /// @param tokenAddress Address of the ERC20 token
+  /// @param amount Payment amount
+  /// @param escrowDeadline Escrow deadline timestamp
+  /// @param timestamp Block timestamp
+  event PaymentEscrowed(
+    bytes32 indexed paymentId,
+    bytes32 indexed merchantId,
+    address indexed payerAddress,
+    address recipientAddress,
+    address tokenAddress,
+    uint256 amount,
+    uint256 escrowDeadline,
+    uint256 timestamp
+  );
 
-    /**
-     * @notice Check if a payment has been processed
-     * @param paymentId The payment ID to check
-     * @return True if the payment has been processed
-     */
-    function processedPayments(bytes32 paymentId) external view returns (bool);
+  /// @notice Emitted when an escrowed payment is finalized
+  /// @param paymentId Unique payment identifier
+  /// @param merchantId Merchant identifier
+  /// @param recipientAddress Address of the recipient
+  /// @param tokenAddress Address of the ERC20 token
+  /// @param amount Payment amount
+  /// @param fee Fee amount sent to treasury
+  /// @param timestamp Block timestamp
+  event PaymentFinalized(
+    bytes32 indexed paymentId,
+    bytes32 indexed merchantId,
+    address recipientAddress,
+    address tokenAddress,
+    uint256 amount,
+    uint256 fee,
+    uint256 timestamp
+  );
 
-    /**
-     * @notice Check if a token is supported
-     * @param tokenAddress The token address to check
-     * @return True if the token is supported
-     */
-    function supportedTokens(address tokenAddress) external view returns (bool);
+  /// @notice Emitted when an escrowed payment is cancelled
+  /// @param paymentId Unique payment identifier
+  /// @param merchantId Merchant identifier
+  /// @param payerAddress Address of the payer (refund recipient)
+  /// @param tokenAddress Address of the ERC20 token
+  /// @param amount Refunded amount
+  /// @param timestamp Block timestamp
+  event PaymentCancelled(
+    bytes32 indexed paymentId,
+    bytes32 indexed merchantId,
+    address indexed payerAddress,
+    address tokenAddress,
+    uint256 amount,
+    uint256 timestamp
+  );
 
-    /**
-     * @notice Set whether a token is supported (admin only)
-     * @param tokenAddress The token address
-     * @param supported Whether the token should be supported
-     */
-    function setSupportedToken(address tokenAddress, bool supported) external;
+  /// @notice Emitted when a finalized payment is refunded
+  /// @param originalPaymentId Original payment identifier
+  /// @param merchantId Merchant identifier
+  /// @param payerAddress Address of the payer (refund recipient)
+  /// @param merchantAddress Address of the merchant (refund sender)
+  /// @param tokenAddress Address of the ERC20 token
+  /// @param amount Refunded amount
+  /// @param timestamp Block timestamp
+  event RefundCompleted(
+    bytes32 indexed originalPaymentId,
+    bytes32 indexed merchantId,
+    address indexed payerAddress,
+    address merchantAddress,
+    address tokenAddress,
+    uint256 amount,
+    uint256 timestamp
+  );
 
-    /**
-     * @notice Process a refund with server signature verification
-     * @param originalPaymentId The original payment ID to refund
-     * @param tokenAddress Address of the ERC20 token to refund
-     * @param amount Amount to refund (in token's smallest unit)
-     * @param payerAddress Address to receive the refund (original payer)
-     * @param merchantId Merchant identifier (from server signature)
-     * @param serverSignature Server's EIP-712 signature
-     * @param permit Permit signature for gasless token approval (deadline=0 to skip)
-     */
-    function refund(
-        bytes32 originalPaymentId,
-        address tokenAddress,
-        uint256 amount,
-        address payerAddress,
-        bytes32 merchantId,
-        bytes calldata serverSignature,
-        PermitSignature calldata permit
-    ) external;
+  // ============ Functions ============
 
-    /**
-     * @notice Check if a payment has been refunded (mapping getter)
-     * @param paymentId The payment ID to check
-     * @return True if the payment has been refunded
-     */
-    function refundedPayments(bytes32 paymentId) external view returns (bool);
+  /// @notice Pay into escrow with server signature verification
+  /// @param paymentId Unique payment identifier
+  /// @param tokenAddress ERC20 token address
+  /// @param amount Payment amount
+  /// @param recipientAddress Merchant's wallet address
+  /// @param merchantId Merchant identifier
+  /// @param feeBps Fee in basis points
+  /// @param deadline Server signature expiration timestamp
+  /// @param escrowDuration Escrow duration in seconds
+  /// @param serverSignature Server's EIP-712 signature
+  /// @param permit ERC20 Permit signature (deadline=0 to skip)
+  function pay(
+    bytes32 paymentId,
+    address tokenAddress,
+    uint256 amount,
+    address recipientAddress,
+    bytes32 merchantId,
+    uint16 feeBps,
+    uint256 deadline,
+    uint256 escrowDuration,
+    bytes calldata serverSignature,
+    PermitSignature calldata permit
+  ) external;
 
-    /**
-     * @notice Check if a payment has been refunded (convenience function)
-     * @param paymentId The payment ID to check
-     * @return True if the payment has been refunded
-     */
-    function isPaymentRefunded(bytes32 paymentId) external view returns (bool);
+  /// @notice Finalize an escrowed payment
+  /// @param paymentId The escrowed payment ID
+  /// @param serverSignature Server's EIP-712 FinalizeRequest signature
+  function finalize(bytes32 paymentId, bytes calldata serverSignature) external;
+
+  /// @notice Cancel an escrowed payment
+  /// @param paymentId The escrowed payment ID
+  /// @param serverSignature Server's EIP-712 CancelRequest signature
+  function cancel(bytes32 paymentId, bytes calldata serverSignature) external;
+
+  /// @notice Refund a finalized payment
+  /// @param originalPaymentId The finalized payment ID
+  /// @param tokenAddress Address of the ERC20 token
+  /// @param amount Refund amount
+  /// @param payerAddress Address to receive the refund
+  /// @param merchantId Merchant identifier
+  /// @param serverSignature Server's EIP-712 signature
+  /// @param permit Permit signature for gasless token approval
+  function refund(
+    bytes32 originalPaymentId,
+    address tokenAddress,
+    uint256 amount,
+    address payerAddress,
+    bytes32 merchantId,
+    bytes calldata serverSignature,
+    PermitSignature calldata permit
+  ) external;
+
+  /// @notice Set whether a token is supported
+  /// @param tokenAddress The token address
+  /// @param supported Whether the token should be supported
+  function setSupportedToken(address tokenAddress, bool supported) external;
+
+  /// @notice Check if a token is supported
+  /// @param tokenAddress The token address to check
+  /// @return True if the token is supported
+  function supportedTokens(address tokenAddress) external view returns (bool);
+
+  /// @notice Check if a payment has been processed
+  /// @param paymentId The payment ID to check
+  /// @return True if the payment has been processed
+  function isPaymentProcessed(bytes32 paymentId) external view returns (bool);
+
+  /// @notice Check if a payment has been refunded
+  /// @param paymentId The payment ID to check
+  /// @return True if the payment has been refunded
+  function isPaymentRefunded(bytes32 paymentId) external view returns (bool);
 }

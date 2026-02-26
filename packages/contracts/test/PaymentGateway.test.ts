@@ -12,8 +12,22 @@ const ZERO_PERMIT = {
   s: ethers.ZeroHash,
 };
 
+// Default escrow duration for tests (1 day)
+const ESCROW_DURATION = 86400;
+
+// PaymentStatus enum values matching contract
+const Status = {
+  None: 0n,
+  Escrowed: 1n,
+  Finalized: 2n,
+  Cancelled: 3n,
+  Refunded: 4n,
+};
+
 describe('PaymentGatewayV1', function () {
-  // Helper function to create server signature
+  const paymentDeadline = BigInt(Math.floor(Date.now() / 1000) + 3600);
+
+  // Helper: create server signature (includes escrowDuration)
   async function createServerSignature(
     signer: HardhatEthersSigner,
     gateway: PaymentGatewayV1,
@@ -22,7 +36,9 @@ describe('PaymentGatewayV1', function () {
     amount: bigint,
     recipientAddress: string,
     merchantId: string,
-    feeBps: number
+    feeBps: number,
+    deadline: bigint,
+    escrowDuration: number
   ) {
     const domain = {
       name: 'SoloPayGateway',
@@ -39,6 +55,8 @@ describe('PaymentGatewayV1', function () {
         { name: 'recipientAddress', type: 'address' },
         { name: 'merchantId', type: 'bytes32' },
         { name: 'feeBps', type: 'uint16' },
+        { name: 'deadline', type: 'uint256' },
+        { name: 'escrowDuration', type: 'uint256' },
       ],
     };
 
@@ -49,12 +67,54 @@ describe('PaymentGatewayV1', function () {
       recipientAddress,
       merchantId,
       feeBps,
+      deadline,
+      escrowDuration,
     };
 
     return signer.signTypedData(domain, types, message);
   }
 
-  // Helper function to create refund server signature
+  // Helper: create FinalizeRequest signature
+  async function createFinalizeSignature(
+    signer: HardhatEthersSigner,
+    gateway: PaymentGatewayV1,
+    paymentId: string
+  ) {
+    const domain = {
+      name: 'SoloPayGateway',
+      version: '1',
+      chainId: (await ethers.provider.getNetwork()).chainId,
+      verifyingContract: await gateway.getAddress(),
+    };
+
+    const types = {
+      FinalizeRequest: [{ name: 'paymentId', type: 'bytes32' }],
+    };
+
+    return signer.signTypedData(domain, types, { paymentId });
+  }
+
+  // Helper: create CancelRequest signature
+  async function createCancelSignature(
+    signer: HardhatEthersSigner,
+    gateway: PaymentGatewayV1,
+    paymentId: string
+  ) {
+    const domain = {
+      name: 'SoloPayGateway',
+      version: '1',
+      chainId: (await ethers.provider.getNetwork()).chainId,
+      verifyingContract: await gateway.getAddress(),
+    };
+
+    const types = {
+      CancelRequest: [{ name: 'paymentId', type: 'bytes32' }],
+    };
+
+    return signer.signTypedData(domain, types, { paymentId });
+  }
+
+  // Helper: create refund server signature
   async function createRefundSignature(
     signer: HardhatEthersSigner,
     gateway: PaymentGatewayV1,
@@ -92,7 +152,7 @@ describe('PaymentGatewayV1', function () {
     return signer.signTypedData(domain, types, message);
   }
 
-  // Helper function to create ERC20 Permit signature
+  // Helper: create ERC20 Permit signature
   async function createPermitSignature(
     token: MockERC20,
     owner: HardhatEthersSigner,
@@ -141,25 +201,21 @@ describe('PaymentGatewayV1', function () {
     };
   }
 
-  // Test fixtures
+  // Test fixture: deploy contracts
   async function deployFixture() {
     const [owner, treasury, payer, other, signer, merchantRecipient] = await ethers.getSigners();
 
-    // Deploy mock ERC20 token
     const MockToken = await ethers.getContractFactory('MockERC20');
     const token = (await MockToken.deploy('Test Token', 'TEST', 18)) as unknown as MockERC20;
     await token.waitForDeployment();
 
-    // Mint tokens to payer
-    const mintAmount = ethers.parseEther('1000');
+    const mintAmount = ethers.parseEther('10000');
     await token.mint(payer.address, mintAmount);
 
-    // Deploy ERC2771Forwarder
     const Forwarder = await ethers.getContractFactory('ERC2771Forwarder');
     const forwarder = (await Forwarder.deploy('SoloForwarder')) as unknown as ERC2771Forwarder;
     await forwarder.waitForDeployment();
 
-    // Deploy PaymentGatewayV1 via proxy (owner, treasury, signer)
     const PaymentGateway = await ethers.getContractFactory('PaymentGatewayV1');
     const gateway = (await upgrades.deployProxy(
       PaymentGateway,
@@ -172,7 +228,6 @@ describe('PaymentGatewayV1', function () {
     )) as unknown as PaymentGatewayV1;
     await gateway.waitForDeployment();
 
-    // Create a test merchant ID
     const merchantId = ethers.id('MERCHANT_001');
 
     return {
@@ -188,6 +243,96 @@ describe('PaymentGatewayV1', function () {
       merchantId,
     };
   }
+
+  // Helper fixture: make an escrowed payment (for finalize/cancel tests)
+  async function makePaymentFixture() {
+    const fixture = await loadFixture(deployFixture);
+    const { gateway, token, payer, signer, merchantRecipient, merchantId } = fixture;
+
+    const paymentId = ethers.id('ESCROW_PAYMENT_001');
+    const amount = ethers.parseEther('100');
+    const feeBps = 500; // 5%
+
+    const signature = await createServerSignature(
+      signer,
+      gateway,
+      paymentId,
+      await token.getAddress(),
+      amount,
+      merchantRecipient.address,
+      merchantId,
+      feeBps,
+      paymentDeadline,
+      ESCROW_DURATION
+    );
+
+    await token.connect(payer).approve(await gateway.getAddress(), amount);
+
+    await gateway
+      .connect(payer)
+      .pay(
+        paymentId,
+        await token.getAddress(),
+        amount,
+        merchantRecipient.address,
+        merchantId,
+        feeBps,
+        paymentDeadline,
+        ESCROW_DURATION,
+        signature,
+        ZERO_PERMIT
+      );
+
+    return { ...fixture, paymentId, amount, feeBps };
+  }
+
+  // Helper fixture: make a finalized payment (for refund tests)
+  async function makeFinalizedPaymentFixture() {
+    const fixture = await loadFixture(deployFixture);
+    const { gateway, token, payer, signer, merchantRecipient, merchantId } = fixture;
+
+    const paymentId = ethers.id('FINALIZED_PAYMENT_001');
+    const amount = ethers.parseEther('100');
+    const feeBps = 0; // no fee for simplicity
+
+    const signature = await createServerSignature(
+      signer,
+      gateway,
+      paymentId,
+      await token.getAddress(),
+      amount,
+      merchantRecipient.address,
+      merchantId,
+      feeBps,
+      paymentDeadline,
+      ESCROW_DURATION
+    );
+
+    await token.connect(payer).approve(await gateway.getAddress(), amount);
+
+    await gateway
+      .connect(payer)
+      .pay(
+        paymentId,
+        await token.getAddress(),
+        amount,
+        merchantRecipient.address,
+        merchantId,
+        feeBps,
+        paymentDeadline,
+        ESCROW_DURATION,
+        signature,
+        ZERO_PERMIT
+      );
+
+    // Finalize the payment
+    const finalizeSignature = await createFinalizeSignature(signer, gateway, paymentId);
+    await gateway.finalize(paymentId, finalizeSignature);
+
+    return { ...fixture, paymentId, amount, feeBps };
+  }
+
+  // ============ Deployment ============
 
   describe('Deployment', function () {
     it('Should set the correct owner', async function () {
@@ -211,16 +356,17 @@ describe('PaymentGatewayV1', function () {
     });
   });
 
-  describe('Direct Payment', function () {
-    it('Should process payment successfully', async function () {
-      const { gateway, token, treasury, payer, signer, merchantRecipient, merchantId } =
+  // ============ Payment (Escrow Creation) ============
+
+  describe('Payment', function () {
+    it('Should create escrow correctly (tokens held in contract, event emitted, status set)', async function () {
+      const { gateway, token, payer, signer, merchantRecipient, merchantId } =
         await loadFixture(deployFixture);
 
       const paymentId = ethers.id('ORDER_001');
       const amount = ethers.parseEther('100');
       const feeBps = 0;
 
-      // Create server signature
       const signature = await createServerSignature(
         signer,
         gateway,
@@ -229,13 +375,16 @@ describe('PaymentGatewayV1', function () {
         amount,
         merchantRecipient.address,
         merchantId,
-        feeBps
+        feeBps,
+        paymentDeadline,
+        ESCROW_DURATION
       );
 
-      // Approve token spending
       await token.connect(payer).approve(await gateway.getAddress(), amount);
 
-      // Make payment
+      const payerBalanceBefore = await token.balanceOf(payer.address);
+      const contractBalanceBefore = await token.balanceOf(await gateway.getAddress());
+
       await expect(
         gateway
           .connect(payer)
@@ -246,11 +395,13 @@ describe('PaymentGatewayV1', function () {
             merchantRecipient.address,
             merchantId,
             feeBps,
+            paymentDeadline,
+            ESCROW_DURATION,
             signature,
             ZERO_PERMIT
           )
       )
-        .to.emit(gateway, 'PaymentCompleted')
+        .to.emit(gateway, 'PaymentEscrowed')
         .withArgs(
           paymentId,
           merchantId,
@@ -258,15 +409,31 @@ describe('PaymentGatewayV1', function () {
           merchantRecipient.address,
           await token.getAddress(),
           amount,
-          0n, // fee is 0
+          (escrowDeadline: bigint) => escrowDeadline > 0n,
           (timestamp: bigint) => timestamp > 0n
         );
 
-      expect(await gateway.processedPayments(paymentId)).to.equal(true);
+      // Tokens should be held in the contract (escrow)
+      expect(await token.balanceOf(payer.address)).to.equal(payerBalanceBefore - amount);
+      expect(await token.balanceOf(await gateway.getAddress())).to.equal(
+        contractBalanceBefore + amount
+      );
+      // Recipient should NOT have tokens yet
+      expect(await token.balanceOf(merchantRecipient.address)).to.equal(0n);
 
-      // Verify token transfer to recipient (no fee)
-      expect(await token.balanceOf(merchantRecipient.address)).to.equal(amount);
-      expect(await token.balanceOf(treasury.address)).to.equal(0n);
+      // Payment status should be Escrowed
+      expect(await gateway.paymentStatus(paymentId)).to.equal(Status.Escrowed);
+      expect(await gateway.isPaymentProcessed(paymentId)).to.equal(true);
+
+      // Payment struct should be populated
+      const payment = await gateway.getPayment(paymentId);
+      expect(payment.payer).to.equal(payer.address);
+      expect(payment.token).to.equal(await token.getAddress());
+      expect(payment.amount).to.equal(amount);
+      expect(payment.recipient).to.equal(merchantRecipient.address);
+      expect(payment.merchantId).to.equal(merchantId);
+      expect(payment.feeBps).to.equal(feeBps);
+      expect(payment.escrowDeadline).to.be.gt(0n);
     });
 
     it('Should reject duplicate payment ID', async function () {
@@ -285,7 +452,9 @@ describe('PaymentGatewayV1', function () {
         amount,
         merchantRecipient.address,
         merchantId,
-        feeBps
+        feeBps,
+        paymentDeadline,
+        ESCROW_DURATION
       );
 
       await token.connect(payer).approve(await gateway.getAddress(), amount * 2n);
@@ -300,6 +469,8 @@ describe('PaymentGatewayV1', function () {
           merchantRecipient.address,
           merchantId,
           feeBps,
+          paymentDeadline,
+          ESCROW_DURATION,
           signature,
           ZERO_PERMIT
         );
@@ -315,6 +486,8 @@ describe('PaymentGatewayV1', function () {
             merchantRecipient.address,
             merchantId,
             feeBps,
+            paymentDeadline,
+            ESCROW_DURATION,
             signature,
             ZERO_PERMIT
           )
@@ -336,7 +509,9 @@ describe('PaymentGatewayV1', function () {
         0n,
         merchantRecipient.address,
         merchantId,
-        feeBps
+        feeBps,
+        paymentDeadline,
+        ESCROW_DURATION
       );
 
       await expect(
@@ -349,6 +524,8 @@ describe('PaymentGatewayV1', function () {
             merchantRecipient.address,
             merchantId,
             feeBps,
+            paymentDeadline,
+            ESCROW_DURATION,
             signature,
             ZERO_PERMIT
           )
@@ -371,7 +548,9 @@ describe('PaymentGatewayV1', function () {
         amount,
         merchantRecipient.address,
         merchantId,
-        feeBps
+        feeBps,
+        paymentDeadline,
+        ESCROW_DURATION
       );
 
       await expect(
@@ -384,6 +563,8 @@ describe('PaymentGatewayV1', function () {
             merchantRecipient.address,
             merchantId,
             feeBps,
+            paymentDeadline,
+            ESCROW_DURATION,
             signature,
             ZERO_PERMIT
           )
@@ -407,7 +588,9 @@ describe('PaymentGatewayV1', function () {
         amount,
         merchantRecipient.address,
         merchantId,
-        feeBps
+        feeBps,
+        paymentDeadline,
+        ESCROW_DURATION
       );
 
       await token.connect(payer).approve(await gateway.getAddress(), amount);
@@ -422,6 +605,8 @@ describe('PaymentGatewayV1', function () {
             merchantRecipient.address,
             merchantId,
             feeBps,
+            paymentDeadline,
+            ESCROW_DURATION,
             signature,
             ZERO_PERMIT
           )
@@ -444,7 +629,9 @@ describe('PaymentGatewayV1', function () {
         amount,
         merchantRecipient.address,
         merchantId,
-        feeBps
+        feeBps,
+        paymentDeadline,
+        ESCROW_DURATION
       );
 
       await token.connect(payer).approve(await gateway.getAddress(), amount);
@@ -459,20 +646,307 @@ describe('PaymentGatewayV1', function () {
             merchantRecipient.address,
             merchantId,
             feeBps,
+            paymentDeadline,
+            ESCROW_DURATION,
             signature,
             ZERO_PERMIT
           )
       ).to.be.revertedWith('PG: fee too high');
     });
+
+    it('Should reject zero escrowDuration', async function () {
+      const { gateway, token, payer, signer, merchantRecipient, merchantId } =
+        await loadFixture(deployFixture);
+
+      const paymentId = ethers.id('ESCROW_ZERO_DURATION');
+      const amount = ethers.parseEther('10');
+      const feeBps = 0;
+
+      const signature = await createServerSignature(
+        signer,
+        gateway,
+        paymentId,
+        await token.getAddress(),
+        amount,
+        merchantRecipient.address,
+        merchantId,
+        feeBps,
+        paymentDeadline,
+        0 // zero escrowDuration
+      );
+
+      await token.connect(payer).approve(await gateway.getAddress(), amount);
+
+      await expect(
+        gateway
+          .connect(payer)
+          .pay(
+            paymentId,
+            await token.getAddress(),
+            amount,
+            merchantRecipient.address,
+            merchantId,
+            feeBps,
+            paymentDeadline,
+            0,
+            signature,
+            ZERO_PERMIT
+          )
+      ).to.be.revertedWith('PG: invalid escrowDuration');
+    });
+
+    it('Should reject escrowDuration exceeding MAX_ESCROW_DURATION', async function () {
+      const { gateway, token, payer, signer, merchantRecipient, merchantId } =
+        await loadFixture(deployFixture);
+
+      const paymentId = ethers.id('ESCROW_LONG_DURATION');
+      const amount = ethers.parseEther('10');
+      const feeBps = 0;
+      const tooLongDuration = 2592001; // MAX_ESCROW_DURATION + 1
+
+      const signature = await createServerSignature(
+        signer,
+        gateway,
+        paymentId,
+        await token.getAddress(),
+        amount,
+        merchantRecipient.address,
+        merchantId,
+        feeBps,
+        paymentDeadline,
+        tooLongDuration
+      );
+
+      await token.connect(payer).approve(await gateway.getAddress(), amount);
+
+      await expect(
+        gateway
+          .connect(payer)
+          .pay(
+            paymentId,
+            await token.getAddress(),
+            amount,
+            merchantRecipient.address,
+            merchantId,
+            feeBps,
+            paymentDeadline,
+            tooLongDuration,
+            signature,
+            ZERO_PERMIT
+          )
+      ).to.be.revertedWith('PG: invalid escrowDuration');
+    });
   });
 
+  // ============ Finalize ============
+
+  describe('Finalize', function () {
+    it('Should finalize escrow: fee to treasury, remainder to recipient, event emitted', async function () {
+      const {
+        gateway,
+        token,
+        treasury,
+        merchantRecipient,
+        signer,
+        merchantId,
+        paymentId,
+        amount,
+        feeBps,
+      } = await makePaymentFixture();
+
+      const finalizeSignature = await createFinalizeSignature(signer, gateway, paymentId);
+
+      const expectedFee = (amount * BigInt(feeBps)) / 10000n;
+      const expectedRecipientAmount = amount - expectedFee;
+
+      const treasuryBalanceBefore = await token.balanceOf(treasury.address);
+      const recipientBalanceBefore = await token.balanceOf(merchantRecipient.address);
+      const contractBalanceBefore = await token.balanceOf(await gateway.getAddress());
+
+      await expect(gateway.finalize(paymentId, finalizeSignature))
+        .to.emit(gateway, 'PaymentFinalized')
+        .withArgs(
+          paymentId,
+          merchantId,
+          merchantRecipient.address,
+          await token.getAddress(),
+          amount,
+          expectedFee,
+          (timestamp: bigint) => timestamp > 0n
+        );
+
+      // Verify balances
+      expect(await token.balanceOf(treasury.address)).to.equal(treasuryBalanceBefore + expectedFee);
+      expect(await token.balanceOf(merchantRecipient.address)).to.equal(
+        recipientBalanceBefore + expectedRecipientAmount
+      );
+      expect(await token.balanceOf(await gateway.getAddress())).to.equal(
+        contractBalanceBefore - amount
+      );
+
+      // Verify status
+      expect(await gateway.paymentStatus(paymentId)).to.equal(Status.Finalized);
+    });
+
+    it('Should revert after deadline expired', async function () {
+      const { gateway, signer, paymentId } = await makePaymentFixture();
+
+      // Advance time past the escrow deadline
+      await time.increase(ESCROW_DURATION + 1);
+
+      const finalizeSignature = await createFinalizeSignature(signer, gateway, paymentId);
+
+      await expect(gateway.finalize(paymentId, finalizeSignature)).to.be.revertedWith(
+        'PG: escrow expired'
+      );
+    });
+
+    it('Should revert with invalid signature', async function () {
+      const { gateway, other, paymentId } = await makePaymentFixture();
+
+      // Sign with wrong signer
+      const invalidSignature = await createFinalizeSignature(other, gateway, paymentId);
+
+      await expect(gateway.finalize(paymentId, invalidSignature)).to.be.revertedWith(
+        'PG: invalid signature'
+      );
+    });
+
+    it('Should revert on already finalized escrow', async function () {
+      const { gateway, signer, paymentId } = await makePaymentFixture();
+
+      const finalizeSignature = await createFinalizeSignature(signer, gateway, paymentId);
+
+      // Finalize first time
+      await gateway.finalize(paymentId, finalizeSignature);
+
+      // Try to finalize again
+      await expect(gateway.finalize(paymentId, finalizeSignature)).to.be.revertedWith(
+        'PG: not escrowed'
+      );
+    });
+
+    it('Should revert on cancelled escrow', async function () {
+      const { gateway, signer, paymentId } = await makePaymentFixture();
+
+      // Cancel first
+      const cancelSignature = await createCancelSignature(signer, gateway, paymentId);
+      await gateway.cancel(paymentId, cancelSignature);
+
+      // Try to finalize
+      const finalizeSignature = await createFinalizeSignature(signer, gateway, paymentId);
+      await expect(gateway.finalize(paymentId, finalizeSignature)).to.be.revertedWith(
+        'PG: not escrowed'
+      );
+    });
+  });
+
+  // ============ Cancel ============
+
+  describe('Cancel', function () {
+    it('Should cancel with server signature before deadline: refund to payer, event emitted', async function () {
+      const { gateway, token, payer, signer, merchantId, paymentId, amount } =
+        await makePaymentFixture();
+
+      const cancelSignature = await createCancelSignature(signer, gateway, paymentId);
+
+      const payerBalanceBefore = await token.balanceOf(payer.address);
+      const contractBalanceBefore = await token.balanceOf(await gateway.getAddress());
+
+      await expect(gateway.cancel(paymentId, cancelSignature))
+        .to.emit(gateway, 'PaymentCancelled')
+        .withArgs(
+          paymentId,
+          merchantId,
+          payer.address,
+          await token.getAddress(),
+          amount,
+          (timestamp: bigint) => timestamp > 0n
+        );
+
+      // Payer should get full refund
+      expect(await token.balanceOf(payer.address)).to.equal(payerBalanceBefore + amount);
+
+      // Contract balance should decrease by amount
+      expect(await token.balanceOf(await gateway.getAddress())).to.equal(
+        contractBalanceBefore - amount
+      );
+
+      // Status should be Cancelled
+      expect(await gateway.paymentStatus(paymentId)).to.equal(Status.Cancelled);
+    });
+
+    it('Should allow permissionless cancel after deadline expired', async function () {
+      const { gateway, token, payer, other, paymentId, amount } = await makePaymentFixture();
+
+      // Advance time past the escrow deadline
+      await time.increase(ESCROW_DURATION + 1);
+
+      const payerBalanceBefore = await token.balanceOf(payer.address);
+      const contractBalanceBefore = await token.balanceOf(await gateway.getAddress());
+
+      // Anyone can cancel after deadline with empty signature
+      await expect(gateway.connect(other).cancel(paymentId, '0x')).to.emit(
+        gateway,
+        'PaymentCancelled'
+      );
+
+      expect(await token.balanceOf(payer.address)).to.equal(payerBalanceBefore + amount);
+      expect(await token.balanceOf(await gateway.getAddress())).to.equal(
+        contractBalanceBefore - amount
+      );
+
+      expect(await gateway.paymentStatus(paymentId)).to.equal(Status.Cancelled);
+    });
+
+    it('Should revert with invalid signature before deadline', async function () {
+      const { gateway, other, paymentId } = await makePaymentFixture();
+
+      // Sign with wrong signer
+      const invalidSignature = await createCancelSignature(other, gateway, paymentId);
+
+      await expect(gateway.cancel(paymentId, invalidSignature)).to.be.revertedWith(
+        'PG: invalid signature'
+      );
+    });
+
+    it('Should revert on already cancelled escrow', async function () {
+      const { gateway, signer, paymentId } = await makePaymentFixture();
+
+      const cancelSignature = await createCancelSignature(signer, gateway, paymentId);
+
+      // Cancel first time
+      await gateway.cancel(paymentId, cancelSignature);
+
+      // Try to cancel again
+      await expect(gateway.cancel(paymentId, cancelSignature)).to.be.revertedWith(
+        'PG: not escrowed'
+      );
+    });
+
+    it('Should revert on finalized escrow', async function () {
+      const { gateway, signer, paymentId } = await makePaymentFixture();
+
+      // Finalize first
+      const finalizeSignature = await createFinalizeSignature(signer, gateway, paymentId);
+      await gateway.finalize(paymentId, finalizeSignature);
+
+      // Try to cancel
+      const cancelSignature = await createCancelSignature(signer, gateway, paymentId);
+      await expect(gateway.cancel(paymentId, cancelSignature)).to.be.revertedWith(
+        'PG: not escrowed'
+      );
+    });
+  });
+
+  // ============ Fee Mechanism ============
+
   describe('Fee Mechanism', function () {
-    it('Should split payment: fee to treasury, rest to recipient', async function () {
+    it('Should split payment on finalize: fee to treasury, rest to recipient', async function () {
       const { gateway, token, treasury, payer, signer, merchantRecipient, merchantId } =
         await loadFixture(deployFixture);
 
       const feeBps = 500; // 5%
-
       const paymentId = ethers.id('FEE_ORDER_001');
       const amount = ethers.parseEther('100');
 
@@ -484,33 +958,40 @@ describe('PaymentGatewayV1', function () {
         amount,
         merchantRecipient.address,
         merchantId,
-        feeBps
+        feeBps,
+        paymentDeadline,
+        ESCROW_DURATION
       );
 
       await token.connect(payer).approve(await gateway.getAddress(), amount);
 
+      // Pay into escrow
+      await gateway
+        .connect(payer)
+        .pay(
+          paymentId,
+          await token.getAddress(),
+          amount,
+          merchantRecipient.address,
+          merchantId,
+          feeBps,
+          paymentDeadline,
+          ESCROW_DURATION,
+          signature,
+          ZERO_PERMIT
+        );
+
+      // Finalize to release funds with fee split
+      const finalizeSignature = await createFinalizeSignature(signer, gateway, paymentId);
+
       const expectedFee = (amount * BigInt(feeBps)) / 10000n;
       const expectedRecipientAmount = amount - expectedFee;
 
-      await expect(
-        gateway
-          .connect(payer)
-          .pay(
-            paymentId,
-            await token.getAddress(),
-            amount,
-            merchantRecipient.address,
-            merchantId,
-            feeBps,
-            signature,
-            ZERO_PERMIT
-          )
-      )
-        .to.emit(gateway, 'PaymentCompleted')
+      await expect(gateway.finalize(paymentId, finalizeSignature))
+        .to.emit(gateway, 'PaymentFinalized')
         .withArgs(
           paymentId,
           merchantId,
-          payer.address,
           merchantRecipient.address,
           await token.getAddress(),
           amount,
@@ -539,42 +1020,85 @@ describe('PaymentGatewayV1', function () {
         amount,
         merchantRecipient.address,
         merchantId,
-        feeBps
+        feeBps,
+        paymentDeadline,
+        ESCROW_DURATION
       );
 
       await token.connect(payer).approve(await gateway.getAddress(), amount);
 
-      await expect(
-        gateway
-          .connect(payer)
-          .pay(
-            paymentId,
-            await token.getAddress(),
-            amount,
-            merchantRecipient.address,
-            merchantId,
-            feeBps,
-            signature,
-            ZERO_PERMIT
-          )
-      )
-        .to.emit(gateway, 'PaymentCompleted')
-        .withArgs(
+      await gateway
+        .connect(payer)
+        .pay(
           paymentId,
-          merchantId,
-          payer.address,
-          merchantRecipient.address,
           await token.getAddress(),
           amount,
-          0n, // fee is 0
-          (timestamp: bigint) => timestamp > 0n
+          merchantRecipient.address,
+          merchantId,
+          feeBps,
+          paymentDeadline,
+          ESCROW_DURATION,
+          signature,
+          ZERO_PERMIT
         );
+
+      // Finalize
+      const finalizeSignature = await createFinalizeSignature(signer, gateway, paymentId);
+      await gateway.finalize(paymentId, finalizeSignature);
 
       // Full amount goes to recipient, nothing to treasury
       expect(await token.balanceOf(merchantRecipient.address)).to.equal(amount);
       expect(await token.balanceOf(treasury.address)).to.equal(0n);
     });
+
+    it('Should handle maximum fee (10000 bps = 100%) correctly', async function () {
+      const { gateway, token, payer, treasury, signer, merchantRecipient, merchantId } =
+        await loadFixture(deployFixture);
+
+      const paymentId = ethers.id('MAX_FEE_ORDER');
+      const amount = ethers.parseEther('100');
+      const feeBps = 10000; // 100%
+
+      const signature = await createServerSignature(
+        signer,
+        gateway,
+        paymentId,
+        await token.getAddress(),
+        amount,
+        merchantRecipient.address,
+        merchantId,
+        feeBps,
+        paymentDeadline,
+        ESCROW_DURATION
+      );
+
+      await token.connect(payer).approve(await gateway.getAddress(), amount);
+
+      await gateway
+        .connect(payer)
+        .pay(
+          paymentId,
+          await token.getAddress(),
+          amount,
+          merchantRecipient.address,
+          merchantId,
+          feeBps,
+          paymentDeadline,
+          ESCROW_DURATION,
+          signature,
+          ZERO_PERMIT
+        );
+
+      const finalizeSignature = await createFinalizeSignature(signer, gateway, paymentId);
+      await gateway.finalize(paymentId, finalizeSignature);
+
+      // All fee to treasury, nothing to recipient
+      expect(await token.balanceOf(treasury.address)).to.equal(amount);
+      expect(await token.balanceOf(merchantRecipient.address)).to.equal(0n);
+    });
   });
+
+  // ============ Token Whitelist ============
 
   describe('Token Whitelist', function () {
     it('Should allow owner to set supported token', async function () {
@@ -614,7 +1138,9 @@ describe('PaymentGatewayV1', function () {
         amount,
         merchantRecipient.address,
         merchantId,
-        feeBps
+        feeBps,
+        paymentDeadline,
+        ESCROW_DURATION
       );
 
       await token.connect(payer).approve(await gateway.getAddress(), amount);
@@ -630,6 +1156,8 @@ describe('PaymentGatewayV1', function () {
             merchantRecipient.address,
             merchantId,
             feeBps,
+            paymentDeadline,
+            ESCROW_DURATION,
             signature,
             ZERO_PERMIT
           )
@@ -649,10 +1177,12 @@ describe('PaymentGatewayV1', function () {
             merchantRecipient.address,
             merchantId,
             feeBps,
+            paymentDeadline,
+            ESCROW_DURATION,
             signature,
             ZERO_PERMIT
           )
-      ).to.emit(gateway, 'PaymentCompleted');
+      ).to.emit(gateway, 'PaymentEscrowed');
     });
 
     it('Should batch set supported tokens', async function () {
@@ -668,8 +1198,10 @@ describe('PaymentGatewayV1', function () {
     });
   });
 
+  // ============ Meta Transaction ============
+
   describe('Meta Transaction', function () {
-    it('Should process meta-transaction via forwarder', async function () {
+    it('Should process meta-transaction payment via forwarder', async function () {
       const { gateway, forwarder, token, payer, signer, merchantRecipient, merchantId } =
         await loadFixture(deployFixture);
 
@@ -686,13 +1218,15 @@ describe('PaymentGatewayV1', function () {
         amount,
         merchantRecipient.address,
         merchantId,
-        feeBps
+        feeBps,
+        paymentDeadline,
+        ESCROW_DURATION
       );
 
       // Approve token spending
       await token.connect(payer).approve(await gateway.getAddress(), amount);
 
-      // Encode the pay function call
+      // Encode the pay function call (single pay, no overload disambiguation needed)
       const data = gateway.interface.encodeFunctionData('pay', [
         paymentId,
         await token.getAddress(),
@@ -700,15 +1234,17 @@ describe('PaymentGatewayV1', function () {
         merchantRecipient.address,
         merchantId,
         feeBps,
+        paymentDeadline,
+        ESCROW_DURATION,
         serverSignature,
         ZERO_PERMIT,
       ]);
 
       // Get nonce for payer (OZ v5 format)
       const nonce = await forwarder.nonces(payer.address);
-      const forwarderDeadline = BigInt(Math.floor(Date.now() / 1000) + 3600); // 1 hour from now
+      const forwarderDeadline = BigInt(Math.floor(Date.now() / 1000) + 3600);
 
-      // Sign the request using EIP-712 (OZ v5 format - nonce is included in signing but not in struct)
+      // Sign the request using EIP-712 (OZ v5 format)
       const domain = {
         name: 'SoloForwarder',
         version: '1',
@@ -752,21 +1288,24 @@ describe('PaymentGatewayV1', function () {
       };
 
       // Execute via forwarder (anyone can submit)
-      await expect(forwarder.execute(requestData)).to.emit(gateway, 'PaymentCompleted');
+      await expect(forwarder.execute(requestData)).to.emit(gateway, 'PaymentEscrowed');
 
-      expect(await gateway.processedPayments(paymentId)).to.equal(true);
-      expect(await token.balanceOf(merchantRecipient.address)).to.equal(amount);
+      expect(await gateway.isPaymentProcessed(paymentId)).to.equal(true);
+      expect(await gateway.paymentStatus(paymentId)).to.equal(Status.Escrowed);
+
+      // Tokens should be held in contract (escrow)
+      expect(await token.balanceOf(await gateway.getAddress())).to.equal(amount);
     });
   });
+
+  // ============ Upgrade ============
 
   describe('Upgrade', function () {
     it('Should allow owner to upgrade', async function () {
       const { gateway, forwarder } = await loadFixture(deployFixture);
 
-      // Deploy V2 (same contract for testing)
       const PaymentGatewayV2 = await ethers.getContractFactory('PaymentGatewayV1');
 
-      // This should not revert (constructorArgs needed for new implementation)
       await expect(
         upgrades.upgradeProxy(await gateway.getAddress(), PaymentGatewayV2, {
           kind: 'uups',
@@ -789,6 +1328,8 @@ describe('PaymentGatewayV1', function () {
     });
   });
 
+  // ============ View Functions ============
+
   describe('View Functions', function () {
     it('Should return correct payment status', async function () {
       const { gateway, token, payer, signer, merchantRecipient, merchantId } =
@@ -799,6 +1340,7 @@ describe('PaymentGatewayV1', function () {
       const feeBps = 0;
 
       expect(await gateway.isPaymentProcessed(paymentId)).to.equal(false);
+      expect(await gateway.paymentStatus(paymentId)).to.equal(Status.None);
 
       const signature = await createServerSignature(
         signer,
@@ -808,7 +1350,9 @@ describe('PaymentGatewayV1', function () {
         amount,
         merchantRecipient.address,
         merchantId,
-        feeBps
+        feeBps,
+        paymentDeadline,
+        ESCROW_DURATION
       );
 
       await token.connect(payer).approve(await gateway.getAddress(), amount);
@@ -821,11 +1365,39 @@ describe('PaymentGatewayV1', function () {
           merchantRecipient.address,
           merchantId,
           feeBps,
+          paymentDeadline,
+          ESCROW_DURATION,
           signature,
           ZERO_PERMIT
         );
 
       expect(await gateway.isPaymentProcessed(paymentId)).to.equal(true);
+      expect(await gateway.paymentStatus(paymentId)).to.equal(Status.Escrowed);
+    });
+
+    it('Should return correct payment data via getPayment', async function () {
+      const { gateway, token, payer, merchantRecipient, merchantId, paymentId, amount, feeBps } =
+        await makePaymentFixture();
+
+      const payment = await gateway.getPayment(paymentId);
+
+      expect(payment.payer).to.equal(payer.address);
+      expect(payment.token).to.equal(await token.getAddress());
+      expect(payment.amount).to.equal(amount);
+      expect(payment.recipient).to.equal(merchantRecipient.address);
+      expect(payment.merchantId).to.equal(merchantId);
+      expect(payment.feeBps).to.equal(feeBps);
+      expect(payment.escrowDeadline).to.be.gt(0n);
+    });
+
+    it('Should return empty payment for non-existent ID', async function () {
+      const { gateway } = await loadFixture(deployFixture);
+
+      const nonExistentId = ethers.id('NON_EXISTENT');
+      const payment = await gateway.getPayment(nonExistentId);
+
+      expect(payment.payer).to.equal(ethers.ZeroAddress);
+      expect(payment.amount).to.equal(0n);
     });
 
     it('Should return treasury address', async function () {
@@ -834,6 +1406,8 @@ describe('PaymentGatewayV1', function () {
       expect(await gateway.treasuryAddress()).to.equal(treasury.address);
     });
   });
+
+  // ============ Admin Functions ============
 
   describe('Admin Functions', function () {
     it('Should allow owner to set server signer', async function () {
@@ -885,53 +1459,15 @@ describe('PaymentGatewayV1', function () {
     });
   });
 
+  // ============ Refund ============
+
   describe('Refund', function () {
-    // Helper to make a payment first (needed for refund tests)
-    async function makePaymentFixture() {
-      const fixture = await loadFixture(deployFixture);
-      const { gateway, token, payer, signer, merchantRecipient, merchantId } = fixture;
-
-      const paymentId = ethers.id('REFUND_TEST_PAYMENT');
-      const amount = ethers.parseEther('100');
-      const feeBps = 0;
-
-      const signature = await createServerSignature(
-        signer,
-        gateway,
-        paymentId,
-        await token.getAddress(),
-        amount,
-        merchantRecipient.address,
-        merchantId,
-        feeBps
-      );
-
-      await token.connect(payer).approve(await gateway.getAddress(), amount);
-
-      await gateway
-        .connect(payer)
-        .pay(
-          paymentId,
-          await token.getAddress(),
-          amount,
-          merchantRecipient.address,
-          merchantId,
-          feeBps,
-          signature,
-          ZERO_PERMIT
-        );
-
-      return { ...fixture, paymentId, amount };
-    }
-
     it('Should process refund successfully', async function () {
       const { gateway, token, payer, signer, merchantRecipient, merchantId, paymentId, amount } =
-        await makePaymentFixture();
+        await makeFinalizedPaymentFixture();
 
-      // Merchant needs to approve the gateway to spend tokens for refund
+      // Merchant approves the gateway for refund
       await token.connect(merchantRecipient).approve(await gateway.getAddress(), amount);
-
-      // Note: merchantRecipient already has the tokens from the payment
 
       const refundSignature = await createRefundSignature(
         signer,
@@ -970,7 +1506,7 @@ describe('PaymentGatewayV1', function () {
         );
 
       // Verify refund status
-      expect(await gateway.refundedPayments(paymentId)).to.equal(true);
+      expect(await gateway.paymentStatus(paymentId)).to.equal(Status.Refunded);
       expect(await gateway.isPaymentRefunded(paymentId)).to.equal(true);
 
       // Verify payer received tokens back
@@ -1007,12 +1543,44 @@ describe('PaymentGatewayV1', function () {
             refundSignature,
             ZERO_PERMIT
           )
-      ).to.be.revertedWith('PG: payment not found');
+      ).to.be.revertedWith('PG: not finalized');
+    });
+
+    it('Should reject refund for escrowed (not finalized) payment', async function () {
+      const { gateway, token, payer, signer, merchantRecipient, merchantId, paymentId, amount } =
+        await makePaymentFixture();
+
+      const refundSignature = await createRefundSignature(
+        signer,
+        gateway,
+        paymentId,
+        await token.getAddress(),
+        amount,
+        payer.address,
+        merchantId
+      );
+
+      await token.mint(merchantRecipient.address, amount);
+      await token.connect(merchantRecipient).approve(await gateway.getAddress(), amount);
+
+      await expect(
+        gateway
+          .connect(merchantRecipient)
+          .refund(
+            paymentId,
+            await token.getAddress(),
+            amount,
+            payer.address,
+            merchantId,
+            refundSignature,
+            ZERO_PERMIT
+          )
+      ).to.be.revertedWith('PG: not finalized');
     });
 
     it('Should reject duplicate refund', async function () {
       const { gateway, token, payer, signer, merchantRecipient, merchantId, paymentId, amount } =
-        await makePaymentFixture();
+        await makeFinalizedPaymentFixture();
 
       // Mint extra tokens to merchant for second refund attempt
       await token.mint(merchantRecipient.address, amount);
@@ -1041,7 +1609,7 @@ describe('PaymentGatewayV1', function () {
           ZERO_PERMIT
         );
 
-      // Second refund should fail
+      // Second refund should fail (status is now Refunded, not Finalized)
       await expect(
         gateway
           .connect(merchantRecipient)
@@ -1054,12 +1622,12 @@ describe('PaymentGatewayV1', function () {
             refundSignature,
             ZERO_PERMIT
           )
-      ).to.be.revertedWith('PG: already refunded');
+      ).to.be.revertedWith('PG: not finalized');
     });
 
     it('Should reject refund with invalid signature', async function () {
       const { gateway, token, payer, other, merchantRecipient, merchantId, paymentId, amount } =
-        await makePaymentFixture();
+        await makeFinalizedPaymentFixture();
 
       await token.connect(merchantRecipient).approve(await gateway.getAddress(), amount);
 
@@ -1091,7 +1659,7 @@ describe('PaymentGatewayV1', function () {
 
     it('Should reject refund with zero amount', async function () {
       const { gateway, token, payer, signer, merchantRecipient, merchantId, paymentId } =
-        await makePaymentFixture();
+        await makeFinalizedPaymentFixture();
 
       const refundSignature = await createRefundSignature(
         signer,
@@ -1120,7 +1688,7 @@ describe('PaymentGatewayV1', function () {
 
     it('Should reject refund with zero token address', async function () {
       const { gateway, payer, signer, merchantRecipient, merchantId, paymentId, amount } =
-        await makePaymentFixture();
+        await makeFinalizedPaymentFixture();
 
       const refundSignature = await createRefundSignature(
         signer,
@@ -1149,7 +1717,7 @@ describe('PaymentGatewayV1', function () {
 
     it('Should reject refund with zero payer address', async function () {
       const { gateway, token, signer, merchantRecipient, merchantId, paymentId, amount } =
-        await makePaymentFixture();
+        await makeFinalizedPaymentFixture();
 
       await token.connect(merchantRecipient).approve(await gateway.getAddress(), amount);
 
@@ -1189,7 +1757,7 @@ describe('PaymentGatewayV1', function () {
         merchantId,
         paymentId,
         amount,
-      } = await makePaymentFixture();
+      } = await makeFinalizedPaymentFixture();
 
       // Merchant approves gateway
       await token.connect(merchantRecipient).approve(await gateway.getAddress(), amount);
@@ -1273,6 +1841,8 @@ describe('PaymentGatewayV1', function () {
     });
   });
 
+  // ============ ERC20 Permit Support ============
+
   describe('ERC20 Permit Support', function () {
     it('Should accept payment with valid permit signature', async function () {
       const { gateway, token, payer, signer, merchantRecipient, merchantId } =
@@ -1282,7 +1852,6 @@ describe('PaymentGatewayV1', function () {
       const amount = ethers.parseEther('50');
       const feeBps = 0;
 
-      // Create server signature
       const serverSignature = await createServerSignature(
         signer,
         gateway,
@@ -1291,11 +1860,13 @@ describe('PaymentGatewayV1', function () {
         amount,
         merchantRecipient.address,
         merchantId,
-        feeBps
+        feeBps,
+        paymentDeadline,
+        ESCROW_DURATION
       );
 
       // Create permit signature (no approve needed!)
-      const deadline = BigInt(Math.floor(Date.now() / 1000) + 3600); // 1 hour from now
+      const deadline = BigInt(Math.floor(Date.now() / 1000) + 3600);
       const permit = await createPermitSignature(
         token,
         payer,
@@ -1315,11 +1886,13 @@ describe('PaymentGatewayV1', function () {
             merchantRecipient.address,
             merchantId,
             feeBps,
+            paymentDeadline,
+            ESCROW_DURATION,
             serverSignature,
             permit
           )
       )
-        .to.emit(gateway, 'PaymentCompleted')
+        .to.emit(gateway, 'PaymentEscrowed')
         .withArgs(
           paymentId,
           merchantId,
@@ -1327,15 +1900,16 @@ describe('PaymentGatewayV1', function () {
           merchantRecipient.address,
           await token.getAddress(),
           amount,
-          0n,
+          (escrowDeadline: bigint) => escrowDeadline > 0n,
           (timestamp: bigint) => timestamp > 0n
         );
 
-      expect(await gateway.processedPayments(paymentId)).to.equal(true);
-      expect(await token.balanceOf(merchantRecipient.address)).to.equal(amount);
+      expect(await gateway.isPaymentProcessed(paymentId)).to.equal(true);
+      // Tokens held in contract (escrow)
+      expect(await token.balanceOf(await gateway.getAddress())).to.equal(amount);
     });
 
-    it('Should reject payment with expired permit', async function () {
+    it('Should silently ignore expired permit and fail on insufficient allowance', async function () {
       const { gateway, token, payer, signer, merchantRecipient, merchantId } =
         await loadFixture(deployFixture);
 
@@ -1351,7 +1925,9 @@ describe('PaymentGatewayV1', function () {
         amount,
         merchantRecipient.address,
         merchantId,
-        feeBps
+        feeBps,
+        paymentDeadline,
+        ESCROW_DURATION
       );
 
       // Create permit with past deadline
@@ -1364,6 +1940,8 @@ describe('PaymentGatewayV1', function () {
         expiredDeadline
       );
 
+      // With try/catch permit pattern, expired permit is silently ignored.
+      // Without prior approve, transferFrom fails with ERC20InsufficientAllowance.
       await expect(
         gateway
           .connect(payer)
@@ -1374,10 +1952,12 @@ describe('PaymentGatewayV1', function () {
             merchantRecipient.address,
             merchantId,
             feeBps,
+            paymentDeadline,
+            ESCROW_DURATION,
             serverSignature,
             permit
           )
-      ).to.be.revertedWith('PG: permit expired');
+      ).to.be.revertedWithCustomError(token, 'ERC20InsufficientAllowance');
     });
 
     it('Should allow traditional approve flow when permit deadline is 0', async function () {
@@ -1396,7 +1976,9 @@ describe('PaymentGatewayV1', function () {
         amount,
         merchantRecipient.address,
         merchantId,
-        feeBps
+        feeBps,
+        paymentDeadline,
+        ESCROW_DURATION
       );
 
       // Traditional approve
@@ -1413,19 +1995,21 @@ describe('PaymentGatewayV1', function () {
             merchantRecipient.address,
             merchantId,
             feeBps,
+            paymentDeadline,
+            ESCROW_DURATION,
             serverSignature,
             ZERO_PERMIT
           )
-      ).to.emit(gateway, 'PaymentCompleted');
+      ).to.emit(gateway, 'PaymentEscrowed');
 
-      expect(await gateway.processedPayments(paymentId)).to.equal(true);
+      expect(await gateway.isPaymentProcessed(paymentId)).to.equal(true);
     });
 
     it('Should work with permit for refund', async function () {
       const { gateway, token, payer, signer, merchantRecipient, merchantId } =
         await loadFixture(deployFixture);
 
-      // First make a payment
+      // First make an escrow payment and finalize it
       const paymentId = ethers.id('REFUND_PERMIT_001');
       const amount = ethers.parseEther('100');
       const feeBps = 0;
@@ -1438,7 +2022,9 @@ describe('PaymentGatewayV1', function () {
         amount,
         merchantRecipient.address,
         merchantId,
-        feeBps
+        feeBps,
+        paymentDeadline,
+        ESCROW_DURATION
       );
 
       await token.connect(payer).approve(await gateway.getAddress(), amount);
@@ -1451,12 +2037,15 @@ describe('PaymentGatewayV1', function () {
           merchantRecipient.address,
           merchantId,
           feeBps,
+          paymentDeadline,
+          ESCROW_DURATION,
           paymentSignature,
           ZERO_PERMIT
         );
 
-      // Mint tokens to merchant for refund
-      await token.mint(merchantRecipient.address, amount);
+      // Finalize the payment (merchant receives tokens)
+      const finalizeSignature = await createFinalizeSignature(signer, gateway, paymentId);
+      await gateway.finalize(paymentId, finalizeSignature);
 
       // Create refund signature
       const refundSignature = await createRefundSignature(
