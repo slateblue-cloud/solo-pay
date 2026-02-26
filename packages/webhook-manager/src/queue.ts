@@ -2,16 +2,31 @@ import { Queue, Worker, type Job } from 'bullmq';
 import type { Redis } from 'ioredis';
 import type { WebhookJobData } from './types';
 import { sendWebhook } from './send';
-import { WEBHOOK_QUEUE_NAME, JOB_NAME_PAYMENT_CONFIRMED } from './types';
+import {
+  WEBHOOK_QUEUE_NAME,
+  JOB_NAME_PAYMENT_CONFIRMED,
+  JOB_NAME_PAYMENT_ESCROWED,
+  JOB_NAME_PAYMENT_FINALIZED,
+  JOB_NAME_PAYMENT_CANCELLED,
+} from './types';
 
 export type { WebhookJobData };
-export { WEBHOOK_QUEUE_NAME, JOB_NAME_PAYMENT_CONFIRMED };
+export {
+  WEBHOOK_QUEUE_NAME,
+  JOB_NAME_PAYMENT_CONFIRMED,
+  JOB_NAME_PAYMENT_ESCROWED,
+  JOB_NAME_PAYMENT_FINALIZED,
+  JOB_NAME_PAYMENT_CANCELLED,
+};
 
 /**
  * Create queue for adding webhook jobs (use in gateway).
  * Pass the same Redis client used for cache, or a dedicated connection.
  */
 export function createWebhookQueue(redis: Redis): {
+  /** Generic method — enqueue any payment event */
+  addPaymentEvent: (jobName: string, data: WebhookJobData) => Promise<void>;
+  /** @deprecated Use addPaymentEvent(JOB_NAME_PAYMENT_CONFIRMED, data) */
   addPaymentConfirmed: (data: WebhookJobData) => Promise<void>;
   close: () => Promise<void>;
 } {
@@ -23,11 +38,16 @@ export function createWebhookQueue(redis: Redis): {
     },
   });
 
+  async function addPaymentEvent(jobName: string, data: WebhookJobData): Promise<void> {
+    await queue.add(jobName, data, {
+      jobId: undefined,
+    });
+  }
+
   return {
+    addPaymentEvent,
     async addPaymentConfirmed(data: WebhookJobData): Promise<void> {
-      await queue.add(JOB_NAME_PAYMENT_CONFIRMED, data, {
-        jobId: undefined,
-      });
+      await addPaymentEvent(JOB_NAME_PAYMENT_CONFIRMED, data);
     },
     async close(): Promise<void> {
       await queue.close();

@@ -2,7 +2,7 @@ import { TypedDataDomain, Hex, Address, keccak256, encodePacked } from 'viem';
 import { privateKeyToAccount, PrivateKeyAccount } from 'viem/accounts';
 
 /**
- * EIP-712 PaymentRequest type for server signing
+ * EIP-712 PaymentRequest type for server signing (V2 — includes escrowDuration)
  */
 interface PaymentRequest {
   paymentId: Hex;
@@ -11,6 +11,22 @@ interface PaymentRequest {
   recipientAddress: Address;
   merchantId: Hex;
   feeBps: number;
+  deadline: bigint;
+  escrowDuration: bigint;
+}
+
+/**
+ * EIP-712 FinalizeRequest type for server signing
+ */
+interface FinalizeRequest {
+  paymentId: Hex;
+}
+
+/**
+ * EIP-712 CancelRequest type for server signing
+ */
+interface CancelRequest {
+  paymentId: Hex;
 }
 
 /**
@@ -77,7 +93,27 @@ export class ServerSigningService {
         { name: 'recipientAddress', type: 'address' },
         { name: 'merchantId', type: 'bytes32' },
         { name: 'feeBps', type: 'uint16' },
+        { name: 'deadline', type: 'uint256' },
+        { name: 'escrowDuration', type: 'uint256' },
       ],
+    } as const;
+  }
+
+  /**
+   * Get FinalizeRequest type definition
+   */
+  getFinalizeRequestTypes() {
+    return {
+      FinalizeRequest: [{ name: 'paymentId', type: 'bytes32' }],
+    } as const;
+  }
+
+  /**
+   * Get CancelRequest type definition
+   */
+  getCancelRequestTypes() {
+    return {
+      CancelRequest: [{ name: 'paymentId', type: 'bytes32' }],
     } as const;
   }
 
@@ -98,7 +134,9 @@ export class ServerSigningService {
     amount: bigint,
     recipientAddress: Address,
     merchantId: Hex,
-    feeBps: number
+    feeBps: number,
+    deadline: bigint,
+    escrowDuration: bigint
   ): Promise<Hex> {
     const message: PaymentRequest = {
       paymentId,
@@ -107,12 +145,46 @@ export class ServerSigningService {
       recipientAddress,
       merchantId,
       feeBps,
+      deadline,
+      escrowDuration,
     };
 
     const signature = await this.account.signTypedData({
       domain: this.getDomain(),
       types: this.getPaymentRequestTypes(),
       primaryType: 'PaymentRequest',
+      message,
+    });
+
+    return signature;
+  }
+
+  /**
+   * Sign a finalize request
+   */
+  async signFinalizeRequest(paymentId: Hex): Promise<Hex> {
+    const message: FinalizeRequest = { paymentId };
+
+    const signature = await this.account.signTypedData({
+      domain: this.getDomain(),
+      types: this.getFinalizeRequestTypes(),
+      primaryType: 'FinalizeRequest',
+      message,
+    });
+
+    return signature;
+  }
+
+  /**
+   * Sign a cancel request
+   */
+  async signCancelRequest(paymentId: Hex): Promise<Hex> {
+    const message: CancelRequest = { paymentId };
+
+    const signature = await this.account.signTypedData({
+      domain: this.getDomain(),
+      types: this.getCancelRequestTypes(),
+      primaryType: 'CancelRequest',
       message,
     });
 

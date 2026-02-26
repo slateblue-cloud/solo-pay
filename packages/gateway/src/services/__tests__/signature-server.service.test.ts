@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { recoverTypedDataAddress, keccak256, encodePacked } from 'viem';
+import { recoverTypedDataAddress, keccak256, encodePacked, Hex } from 'viem';
 import { ServerSigningService } from '../signature-server.service';
 
 describe('ServerSigningService', () => {
@@ -94,6 +94,8 @@ describe('ServerSigningService', () => {
       expect(fieldNames).toContain('recipientAddress');
       expect(fieldNames).toContain('merchantId');
       expect(fieldNames).toContain('feeBps');
+      expect(fieldNames).toContain('deadline');
+      expect(fieldNames).toContain('escrowDuration');
     });
 
     it('should have correct types for each field', () => {
@@ -108,6 +110,8 @@ describe('ServerSigningService', () => {
       expect(fieldMap.recipientAddress).toBe('address');
       expect(fieldMap.merchantId).toBe('bytes32');
       expect(fieldMap.feeBps).toBe('uint16');
+      expect(fieldMap.deadline).toBe('uint256');
+      expect(fieldMap.escrowDuration).toBe('uint256');
     });
   });
 
@@ -156,6 +160,8 @@ describe('ServerSigningService', () => {
   });
 
   describe('signPaymentRequest', () => {
+    const testDeadline = BigInt(Math.floor(Date.now() / 1000) + 3600);
+    const testEscrowDuration = 300n;
     const validPaymentRequest = {
       paymentId: '0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef' as const,
       tokenAddress: '0x0000000000000000000000000000000000000001' as const,
@@ -163,6 +169,8 @@ describe('ServerSigningService', () => {
       recipientAddress: '0x0000000000000000000000000000000000000002' as const,
       merchantId: '0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890' as const,
       feeBps: 100,
+      deadline: testDeadline,
+      escrowDuration: testEscrowDuration,
     };
 
     it('should return a valid signature', async () => {
@@ -172,7 +180,9 @@ describe('ServerSigningService', () => {
         validPaymentRequest.amount,
         validPaymentRequest.recipientAddress,
         validPaymentRequest.merchantId,
-        validPaymentRequest.feeBps
+        validPaymentRequest.feeBps,
+        validPaymentRequest.deadline,
+        validPaymentRequest.escrowDuration
       );
 
       expect(signature).toBeDefined();
@@ -186,7 +196,9 @@ describe('ServerSigningService', () => {
         validPaymentRequest.amount,
         validPaymentRequest.recipientAddress,
         validPaymentRequest.merchantId,
-        validPaymentRequest.feeBps
+        validPaymentRequest.feeBps,
+        validPaymentRequest.deadline,
+        validPaymentRequest.escrowDuration
       );
 
       const recoveredAddress = await recoverTypedDataAddress({
@@ -209,7 +221,9 @@ describe('ServerSigningService', () => {
         validPaymentRequest.amount,
         validPaymentRequest.recipientAddress,
         validPaymentRequest.merchantId,
-        validPaymentRequest.feeBps
+        validPaymentRequest.feeBps,
+        validPaymentRequest.deadline,
+        validPaymentRequest.escrowDuration
       );
 
       const differentPaymentId =
@@ -220,7 +234,9 @@ describe('ServerSigningService', () => {
         validPaymentRequest.amount,
         validPaymentRequest.recipientAddress,
         validPaymentRequest.merchantId,
-        validPaymentRequest.feeBps
+        validPaymentRequest.feeBps,
+        validPaymentRequest.deadline,
+        validPaymentRequest.escrowDuration
       );
 
       expect(signature1).not.toBe(signature2);
@@ -233,7 +249,9 @@ describe('ServerSigningService', () => {
         validPaymentRequest.amount,
         validPaymentRequest.recipientAddress,
         validPaymentRequest.merchantId,
-        validPaymentRequest.feeBps
+        validPaymentRequest.feeBps,
+        validPaymentRequest.deadline,
+        validPaymentRequest.escrowDuration
       );
 
       const signature2 = await serverSigningService.signPaymentRequest(
@@ -242,7 +260,9 @@ describe('ServerSigningService', () => {
         2000000n, // Different amount
         validPaymentRequest.recipientAddress,
         validPaymentRequest.merchantId,
-        validPaymentRequest.feeBps
+        validPaymentRequest.feeBps,
+        validPaymentRequest.deadline,
+        validPaymentRequest.escrowDuration
       );
 
       expect(signature1).not.toBe(signature2);
@@ -255,7 +275,9 @@ describe('ServerSigningService', () => {
         validPaymentRequest.amount,
         validPaymentRequest.recipientAddress,
         validPaymentRequest.merchantId,
-        100 // 1%
+        100, // 1%
+        testDeadline,
+        testEscrowDuration
       );
 
       const signature2 = await serverSigningService.signPaymentRequest(
@@ -264,7 +286,9 @@ describe('ServerSigningService', () => {
         validPaymentRequest.amount,
         validPaymentRequest.recipientAddress,
         validPaymentRequest.merchantId,
-        200 // 2%
+        200, // 2%
+        testDeadline,
+        testEscrowDuration
       );
 
       expect(signature1).not.toBe(signature2);
@@ -277,7 +301,9 @@ describe('ServerSigningService', () => {
         validPaymentRequest.amount,
         validPaymentRequest.recipientAddress,
         validPaymentRequest.merchantId,
-        validPaymentRequest.feeBps
+        validPaymentRequest.feeBps,
+        validPaymentRequest.deadline,
+        validPaymentRequest.escrowDuration
       );
 
       const signature2 = await serverSigningService.signPaymentRequest(
@@ -286,10 +312,136 @@ describe('ServerSigningService', () => {
         validPaymentRequest.amount,
         '0x0000000000000000000000000000000000000003' as const,
         validPaymentRequest.merchantId,
-        validPaymentRequest.feeBps
+        validPaymentRequest.feeBps,
+        validPaymentRequest.deadline,
+        validPaymentRequest.escrowDuration
       );
 
       expect(signature1).not.toBe(signature2);
+    });
+  });
+
+  describe('signFinalizeRequest', () => {
+    const testPaymentId =
+      '0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef' as Hex;
+
+    it('should return a valid signature', async () => {
+      const signature = await serverSigningService.signFinalizeRequest(testPaymentId);
+
+      expect(signature).toBeDefined();
+      expect(signature).toMatch(/^0x[a-fA-F0-9]{130}$/); // 65 bytes = 130 hex chars
+    });
+
+    it('should produce a signature recoverable to the correct signer', async () => {
+      const signature = await serverSigningService.signFinalizeRequest(testPaymentId);
+
+      const recoveredAddress = await recoverTypedDataAddress({
+        domain: serverSigningService.getDomain(),
+        types: serverSigningService.getFinalizeRequestTypes(),
+        primaryType: 'FinalizeRequest',
+        message: { paymentId: testPaymentId },
+        signature,
+      });
+
+      expect(recoveredAddress.toLowerCase()).toBe(
+        serverSigningService.getSignerAddress().toLowerCase()
+      );
+    });
+
+    it('should produce different signatures for different payment IDs', async () => {
+      const signature1 = await serverSigningService.signFinalizeRequest(testPaymentId);
+
+      const differentPaymentId =
+        '0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890' as Hex;
+      const signature2 = await serverSigningService.signFinalizeRequest(differentPaymentId);
+
+      expect(signature1).not.toBe(signature2);
+    });
+  });
+
+  describe('signCancelRequest', () => {
+    const testPaymentId =
+      '0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef' as Hex;
+
+    it('should return a valid signature', async () => {
+      const signature = await serverSigningService.signCancelRequest(testPaymentId);
+
+      expect(signature).toBeDefined();
+      expect(signature).toMatch(/^0x[a-fA-F0-9]{130}$/);
+    });
+
+    it('should produce a signature recoverable to the correct signer', async () => {
+      const signature = await serverSigningService.signCancelRequest(testPaymentId);
+
+      const recoveredAddress = await recoverTypedDataAddress({
+        domain: serverSigningService.getDomain(),
+        types: serverSigningService.getCancelRequestTypes(),
+        primaryType: 'CancelRequest',
+        message: { paymentId: testPaymentId },
+        signature,
+      });
+
+      expect(recoveredAddress.toLowerCase()).toBe(
+        serverSigningService.getSignerAddress().toLowerCase()
+      );
+    });
+
+    it('should produce different signatures for different payment IDs', async () => {
+      const signature1 = await serverSigningService.signCancelRequest(testPaymentId);
+
+      const differentPaymentId =
+        '0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890' as Hex;
+      const signature2 = await serverSigningService.signCancelRequest(differentPaymentId);
+
+      expect(signature1).not.toBe(signature2);
+    });
+  });
+
+  describe('getFinalizeRequestTypes', () => {
+    it('should return FinalizeRequest type definition', () => {
+      const types = serverSigningService.getFinalizeRequestTypes();
+
+      expect(types).toBeDefined();
+      expect(types.FinalizeRequest).toBeDefined();
+      expect(Array.isArray(types.FinalizeRequest)).toBe(true);
+    });
+
+    it('should include paymentId field with bytes32 type', () => {
+      const types = serverSigningService.getFinalizeRequestTypes();
+      const fieldMap = Object.fromEntries(
+        types.FinalizeRequest.map((field) => [field.name, field.type])
+      );
+
+      expect(fieldMap.paymentId).toBe('bytes32');
+    });
+
+    it('should have exactly one field', () => {
+      const types = serverSigningService.getFinalizeRequestTypes();
+      expect(types.FinalizeRequest).toHaveLength(1);
+    });
+  });
+
+  describe('getCancelRequestTypes', () => {
+    it('should return CancelRequest type definition', () => {
+      const types = serverSigningService.getCancelRequestTypes();
+
+      expect(types).toBeDefined();
+      expect(types.CancelRequest).toBeDefined();
+      expect(Array.isArray(types.CancelRequest)).toBe(true);
+    });
+
+    it('should include paymentId field with bytes32 type', () => {
+      const types = serverSigningService.getCancelRequestTypes();
+      const fieldMap = Object.fromEntries(
+        types.CancelRequest.map((field) => [field.name, field.type])
+      );
+
+      expect(fieldMap.paymentId).toBe('bytes32');
+    });
+
+    it('should have exactly one field', () => {
+      const types = serverSigningService.getCancelRequestTypes();
+      expect(types.CancelRequest).toHaveLength(1);
     });
   });
 });

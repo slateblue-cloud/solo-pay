@@ -7,6 +7,7 @@ const mockPaymentService = {
   findByHash: vi.fn(),
   updateStatusByHash: vi.fn(),
   updatePayerAddress: vi.fn(),
+  getTokenPermitSupported: vi.fn().mockResolvedValue(false),
 };
 
 const mockBlockchainService = {
@@ -50,6 +51,7 @@ describe('GET /payments/:id', () => {
         id: 1,
         payment_hash: paymentHash,
         merchant_id: 1,
+        payment_method_id: 1,
         network_id: 31337,
         token_symbol: 'USDC',
         amount: new Decimal('1000000'),
@@ -76,6 +78,39 @@ describe('GET /payments/:id', () => {
       expect(body.data.status).toBe('CREATED');
     });
 
+    it('should return tokenPermitSupported in response', async () => {
+      const paymentHash = '0x' + 'z'.repeat(64);
+      const mockPayment = {
+        id: 10,
+        payment_hash: paymentHash,
+        merchant_id: 1,
+        payment_method_id: 5,
+        network_id: 31337,
+        token_symbol: 'USDC',
+        amount: new Decimal('1000000'),
+        status: 'CREATED',
+      };
+
+      mockPaymentService.findByHash.mockResolvedValue(mockPayment);
+      mockPaymentService.getTokenPermitSupported.mockResolvedValue(true);
+      mockBlockchainService.isChainSupported.mockReturnValue(true);
+      mockBlockchainService.getPaymentStatus.mockResolvedValue({
+        status: 'pending',
+        transactionHash: null,
+      });
+
+      const response = await app.inject({
+        method: 'GET',
+        url: `/payments/${paymentHash}`,
+        headers: { 'x-public-key': 'pk_test_123' },
+      });
+
+      expect(response.statusCode).toBe(200);
+      const body = JSON.parse(response.payload);
+      expect(body.data.tokenPermitSupported).toBe(true);
+      expect(mockPaymentService.getTokenPermitSupported).toHaveBeenCalledWith(5);
+    });
+
     it('should update status to CONFIRMED when on-chain status is completed', async () => {
       const paymentHash = '0x' + 'b'.repeat(64);
       const txHash = '0x' + 'c'.repeat(64);
@@ -83,6 +118,7 @@ describe('GET /payments/:id', () => {
         id: 2,
         payment_hash: paymentHash,
         merchant_id: 1,
+        payment_method_id: 1,
         network_id: 31337,
         token_symbol: 'USDT',
         amount: new Decimal('2000000'),
@@ -138,6 +174,7 @@ describe('GET /payments/:id', () => {
         id: 3,
         payment_hash: '0x' + 'e'.repeat(64),
         merchant_id: 1,
+        payment_method_id: 1,
         network_id: 99999,
         token_symbol: 'USDC',
         amount: new Decimal('1000000'),
@@ -163,6 +200,7 @@ describe('GET /payments/:id', () => {
         id: 4,
         payment_hash: '0x' + 'g'.repeat(64),
         merchant_id: 1,
+        payment_method_id: 1,
         network_id: 31337,
         token_symbol: 'USDC',
         amount: new Decimal('1000000'),
@@ -187,6 +225,7 @@ describe('GET /payments/:id', () => {
         id: 5,
         payment_hash: '0x' + 'h'.repeat(64),
         merchant_id: 1,
+        payment_method_id: 1,
         network_id: 31337,
         token_symbol: 'USDC',
         amount: new Decimal('1000000'),
@@ -233,6 +272,7 @@ describe('GET /payments/:id', () => {
         id: 6,
         payment_hash: '0x' + 'k'.repeat(64),
         merchant_id: 999,
+        payment_method_id: 1,
         network_id: 31337,
         token_symbol: 'USDC',
         amount: new Decimal('1000000'),

@@ -22,6 +22,9 @@ export type {
   UpdatePaymentMethodResponse,
   DeletePaymentMethodResponse,
   MerchantPaymentDetailResponse,
+  PaymentStatus,
+  FinalizePaymentResponse,
+  CancelPaymentResponse,
   // Refund types
   CreateRefundParams,
   CreateRefundResponse,

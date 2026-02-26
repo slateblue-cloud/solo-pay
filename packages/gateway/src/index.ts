@@ -31,6 +31,8 @@ import { RefundService } from './services/refund.service';
 import { createRefundRoute } from './routes/refunds/create';
 import { getRefundStatusRoute } from './routes/refunds/status';
 import { getRefundListRoute } from './routes/refunds/list';
+import { finalizePaymentRoute } from './routes/payments/finalize';
+import { cancelPaymentRoute } from './routes/payments/cancel';
 
 const server = Fastify({
   logger: true,
@@ -180,6 +182,20 @@ const registerRoutes = async () => {
         paymentMethodService,
         tokenService,
         chainService
+      );
+      await finalizePaymentRoute(
+        scope,
+        merchantService,
+        paymentService,
+        blockchainService,
+        signingServices
+      );
+      await cancelPaymentRoute(
+        scope,
+        merchantService,
+        paymentService,
+        blockchainService,
+        signingServices
       );
       await createRefundRoute(
         scope,

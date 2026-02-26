@@ -68,8 +68,14 @@ export interface CreatePaymentResponse {
   recipientAddress: string;
   merchantId: string;
   feeBps: number;
+  /** Payment deadline (unix timestamp) included in server signature */
+  deadline: string;
+  /** Escrow duration (seconds) included in server signature */
+  escrowDuration: string;
   /** ERC2771Forwarder address for gasless payments */
   forwarderAddress?: string;
+  /** Whether the token supports EIP-2612 permit (gasless approval) */
+  tokenPermitSupported: boolean;
   /** Fiat currency code used for conversion */
   currency?: string;
   /** Original fiat amount before conversion */
@@ -98,6 +104,8 @@ export interface PaymentStatusResponse {
     payment_hash: string;
     network_id: number;
     token_symbol: string;
+    /** Whether the token supports EIP-2612 permit (gasless approval) */
+    tokenPermitSupported: boolean;
   };
 }
 
@@ -205,11 +213,24 @@ export interface DeletePaymentMethodResponse {
   message: string;
 }
 
+/** All possible payment statuses */
+export type PaymentStatus =
+  | 'CREATED'
+  | 'PENDING'
+  | 'CONFIRMED'
+  | 'FAILED'
+  | 'EXPIRED'
+  | 'ESCROWED'
+  | 'FINALIZE_SUBMITTED'
+  | 'CANCEL_SUBMITTED'
+  | 'FINALIZED'
+  | 'CANCELLED';
+
 /** Response from GET /merchant/payments (by orderId) and GET /merchant/payments/:id */
 export interface MerchantPaymentDetailResponse {
   paymentId: string;
   orderId?: string;
-  status: 'CREATED' | 'PENDING' | 'CONFIRMED' | 'FAILED' | 'EXPIRED';
+  status: PaymentStatus;
   amount: string;
   tokenSymbol: string;
   tokenDecimals: number;
@@ -218,6 +239,33 @@ export interface MerchantPaymentDetailResponse {
   createdAt: string;
   confirmedAt?: string;
   expiresAt: string;
+  escrowDeadline?: string;
+  finalizedAt?: string;
+  cancelledAt?: string;
+  /** Whether the token supports EIP-2612 permit (gasless approval) */
+  tokenPermitSupported: boolean;
+}
+
+/** Response from POST /payments/:id/finalize */
+export interface FinalizePaymentResponse {
+  success: true;
+  data: {
+    paymentId: string;
+    serverSignature: string;
+    gatewayAddress: string;
+    chainId: number;
+  };
+}
+
+/** Response from POST /payments/:id/cancel */
+export interface CancelPaymentResponse {
+  success: true;
+  data: {
+    paymentId: string;
+    serverSignature: string;
+    gatewayAddress: string;
+    chainId: number;
+  };
 }
 
 // ============================================================================
