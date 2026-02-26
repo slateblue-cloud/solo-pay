@@ -65,6 +65,7 @@ const PAYMENT_GATEWAY_ABI = [
       { name: 'merchantId', type: 'bytes32' },
       { name: 'feeBps', type: 'uint16' },
       { name: 'deadline', type: 'uint256' },
+      { name: 'escrowDuration', type: 'uint256' },
       { name: 'serverSignature', type: 'bytes' },
       {
         name: 'permit',
@@ -386,6 +387,7 @@ export function PaymentModal({ product, onClose, onSuccess }: PaymentModalProps)
           serverConfig.merchantId as `0x${string}`,
           serverConfig.feeBps ?? 0,
           BigInt(serverConfig.deadline ?? Math.floor(Date.now() / 1000) + 3600),
+          BigInt(serverConfig.escrowDuration ?? 86400),
           serverConfig.serverSignature as `0x${string}`,
           EMPTY_PERMIT,
         ],
@@ -453,6 +455,7 @@ export function PaymentModal({ product, onClose, onSuccess }: PaymentModalProps)
           serverConfig.merchantId as `0x${string}`,
           serverConfig.feeBps ?? 0,
           BigInt(serverConfig.deadline ?? Math.floor(Date.now() / 1000) + 3600),
+          BigInt(serverConfig.escrowDuration ?? 86400),
           serverConfig.serverSignature as `0x${string}`,
           EMPTY_PERMIT,
         ],
