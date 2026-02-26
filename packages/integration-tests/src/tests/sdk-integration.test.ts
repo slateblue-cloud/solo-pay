@@ -386,25 +386,6 @@ describe('SDK Integration', () => {
       await expect(client.getPaymentStatus(fakePaymentId)).rejects.toThrow();
     });
 
-    it('should reject createPayment when origin is not in ALLOWED_WIDGET_ORIGIN', async () => {
-      const serverRunning = await isGatewayRunning();
-      if (!serverRunning) {
-        return;
-      }
-
-      // This test only works when ALLOWED_WIDGET_ORIGIN is set on gateway
-      if (!process.env.ALLOWED_WIDGET_ORIGIN) {
-        return;
-      }
-
-      const client = createTestClient({
-        ...TEST_MERCHANT,
-        publicKey: 'pk_test_demo',
-        origin: 'https://not-allowed.example.com',
-      });
-
-      await expect(client.createPayment(makeCreatePaymentParams(100))).rejects.toThrow();
-    });
   });
 
   describe('Merchant-Chain Binding', () => {

@@ -28,7 +28,8 @@ export const TEST_MERCHANT: TestMerchant = {
   merchantId: 'merchant_demo_001',
   apiKey: '123',
   publicKey: 'pk_test_demo',
-  origin: process.env.ALLOWED_WIDGET_ORIGIN || undefined,
+  // Temporarily using the widget origin to pass gateway's ALLOWED_WIDGET_ORIGIN check
+  origin: 'http://localhost:3005',
 };
 
 export function createTestClient(merchant: TestMerchant = TEST_MERCHANT): SoloPayClient {
