@@ -9,6 +9,7 @@ import { useWallet } from '../../hooks/useWallet';
 import { useToken } from '../../hooks/useToken';
 import { useGaslessPayment } from '../../hooks/useGaslessPayment';
 import { ConnectWalletButton } from '../ConnectWalletButton';
+import LoadingSpinner from '../common/LoadingSpinner';
 import { useLocale } from '../../context/LocaleContext';
 import type { TranslationKeys } from '../../lib/i18n';
 import type { PaymentStepType, WidgetUrlParams } from '../../types/index';
@@ -174,8 +175,9 @@ export default function PaymentStep({ urlParams }: PaymentStepProps) {
 
   // Auto-switch chain and advance when wallet connects
   useEffect(() => {
+    if (currentStep !== 'wallet-connect') return;
     if (!isConnected || !address || !paymentDetails) return;
-    if (userRequestedWalletChange.current && currentStep === 'wallet-connect') return;
+    if (userRequestedWalletChange.current) return;
 
     const targetChainId = paymentDetails.chainId;
     const needsSwitch = chain?.id !== targetChainId;
@@ -388,12 +390,7 @@ export default function PaymentStep({ urlParams }: PaymentStepProps) {
 
   // Loading state (skip when walletOnly — no API call)
   if (!urlParams?.walletOnly && isLoading) {
-    return (
-      <div className="text-center py-8">
-        <div className="animate-spin w-8 h-8 border-2 border-blue-600 border-t-transparent rounded-full mx-auto mb-4" />
-        <p className="text-sm text-gray-600">{t('error.loadingPayment')}</p>
-      </div>
-    );
+    return <LoadingSpinner />;
   }
 
   // API Error state (skip when walletOnly)
@@ -443,11 +440,7 @@ export default function PaymentStep({ urlParams }: PaymentStepProps) {
 
   // No payment details yet (skip when walletOnly — we never fetch payment)
   if (!urlParams?.walletOnly && !paymentDetails) {
-    return (
-      <div className="text-center py-8">
-        <p className="text-sm text-gray-600">{t('error.initializingPayment')}</p>
-      </div>
-    );
+    return <LoadingSpinner />;
   }
 
   // Wallet-only mode: show connect, then "Wallet connected" with redirect to successUrl
@@ -526,12 +519,11 @@ export default function PaymentStep({ urlParams }: PaymentStepProps) {
         }
         if (isConnected && paymentDetails) {
           return (
-            <div className="text-center py-8">
-              <div className="animate-spin w-8 h-8 border-2 border-blue-600 border-t-transparent rounded-full mx-auto mb-4" />
-              <p className="text-sm text-gray-600">
-                {isCheckingPermit ? t('error.checkingTokenSupport') : t('error.loadingPayment')}
-              </p>
-            </div>
+            <LoadingSpinner
+              message={
+                isCheckingPermit ? t('error.checkingTokenSupport') : t('error.loadingPayment')
+              }
+            />
           );
         }
         return <ConnectWalletButton onConnectorClick={clearWalletChangeIntent} />;

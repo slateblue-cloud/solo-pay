@@ -46,10 +46,6 @@ export default function PaymentConfirm({
 
         <div className="space-y-1.5 sm:space-y-2">
           <div className="flex items-center justify-between">
-            <span className="text-xs sm:text-sm text-gray-500">{t('confirm.product')}</span>
-            <span className="text-xs sm:text-sm font-medium text-gray-900">{product}</span>
-          </div>
-          <div className="flex items-center justify-between">
             <span className="text-xs sm:text-sm text-gray-500">{t('confirm.network')}</span>
             <span className="text-xs sm:text-sm font-medium text-gray-900">{network}</span>
           </div>

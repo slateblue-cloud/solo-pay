@@ -5,21 +5,9 @@ import { useState, useEffect, useMemo } from 'react';
 import { validateWidgetUrlParams } from '../../lib/validation';
 import type { UrlParamsValidationResult } from '../../types';
 import PaymentStep from '../../components/payment/PaymentStep';
+import LoadingSpinner from '../../components/common/LoadingSpinner';
 import { LocaleProvider, useLocale } from '../../context/LocaleContext';
 import { parseLocale, SUPPORTED_LOCALES } from '../../lib/i18n';
-
-/**
- * Loading spinner component
- */
-function LoadingSpinner() {
-  const { t } = useLocale();
-  return (
-    <div className="text-center py-8">
-      <div className="animate-spin w-8 h-8 border-2 border-blue-600 border-t-transparent rounded-full mx-auto mb-4" />
-      <p className="text-sm text-gray-600">{t('common.loading')}</p>
-    </div>
-  );
-}
 
 /**
  * Payment content component
@@ -116,7 +104,8 @@ function WidgetLayout() {
         <PaymentContent />
       </div>
       <p className="shrink-0 text-center text-xs pt-4 sm:pt-6 text-gray-400">
-        {t('app.poweredBy')}
+        <span className="block text-xs">Copyright © 2026 Solo Pay</span>
+        <span className="block text-[10px] mt-0.5">All rights reserved</span>
       </p>
     </>
   );

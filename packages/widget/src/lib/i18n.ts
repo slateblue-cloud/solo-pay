@@ -16,10 +16,8 @@ const translations = {
     // App / layout
     'app.title': 'Solo Pay',
     'app.tagline': 'Secure Blockchain Payment',
-    'app.poweredBy': 'Powered by Solo Pay',
 
     // Common
-    'common.loading': 'Loading...',
     'common.continue': 'Continue',
     'common.cancel': 'Cancel',
     'common.change': 'Change',
@@ -34,7 +32,6 @@ const translations = {
     'error.paymentError': 'Payment Error',
     'error.loadingPayment': 'Loading payment...',
     'error.checkingTokenSupport': 'Checking token support...',
-    'error.initializingPayment': 'Initializing payment...',
     'error.configMissingSignature':
       'Payment configuration error: Missing server signature. Please contact support.',
     'error.configMissingRecipient':
@@ -84,7 +81,6 @@ const translations = {
     'confirm.title': 'Confirm Payment',
     'confirm.reviewDetails': 'Please review your payment details',
     'confirm.paymentDetails': 'Payment Details',
-    'confirm.product': 'Product',
     'confirm.network': 'Network',
     'confirm.payingFrom': 'Paying from',
     'confirm.gasFee': 'Gas Fee',
@@ -112,9 +108,7 @@ const translations = {
   ko: {
     'app.title': 'Solo Pay',
     'app.tagline': '안전한 블록체인 결제',
-    'app.poweredBy': 'Powered by Solo Pay',
 
-    'common.loading': '로딩 중...',
     'common.continue': '계속',
     'common.cancel': '취소',
     'common.change': '변경',
@@ -128,7 +122,6 @@ const translations = {
     'error.paymentError': '결제 오류',
     'error.loadingPayment': '결제 정보 불러오는 중...',
     'error.checkingTokenSupport': '토큰 지원 확인 중...',
-    'error.initializingPayment': '결제 초기화 중...',
     'error.configMissingSignature': '결제 설정 오류: 서버 서명이 없습니다. 고객센터에 문의하세요.',
     'error.configMissingRecipient':
       '결제 설정 오류: 수신자 정보가 없습니다. 고객센터에 문의하세요.',
@@ -172,7 +165,6 @@ const translations = {
     'confirm.title': '결제 확인',
     'confirm.reviewDetails': '결제 정보를 확인해 주세요',
     'confirm.paymentDetails': '결제 정보',
-    'confirm.product': '상품',
     'confirm.network': '네트워크',
     'confirm.payingFrom': '결제 지갑',
     'confirm.gasFee': '가스 수수료',

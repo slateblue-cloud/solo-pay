@@ -198,7 +198,9 @@ export function usePermit({
     },
   });
 
-  const isCheckingPermit = isNonceLoading || isDomainLoading;
+  // Permit check can only run when both tokenAddress and userAddress are available
+  const isPermitEnabled = !!tokenAddress && !!userAddress;
+  const isCheckingPermit = !isPermitEnabled || isNonceLoading || isDomainLoading;
 
   // Token supports permit if both nonces and DOMAIN_SEPARATOR calls succeed
   const isPermitSupported = isCheckingPermit
