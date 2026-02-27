@@ -51,8 +51,11 @@ export function LocaleProvider({ children, locale, onLocaleChange }: LocaleProvi
         onLocaleChange(next);
         return;
       }
-      const query = { ...router.query, lang: next };
-      router.replace({ pathname: router.pathname, query }, undefined, { shallow: true });
+      // Read from window.location (not router.query) because PaymentStep
+      // may have replaced the URL via history.replaceState, leaving router.query stale.
+      const url = new URL(window.location.href);
+      url.searchParams.set('lang', next);
+      router.replace(url.pathname + url.search, undefined, { shallow: true });
     },
     [locale, onLocaleChange, router]
   );

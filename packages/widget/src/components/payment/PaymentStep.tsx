@@ -106,7 +106,13 @@ export default function PaymentStep({ urlParams }: PaymentStepProps) {
   const [isSwitchingChain, setIsSwitchingChain] = useState(false);
 
   // API hook for payment operations
-  const { payment: paymentDetails, isLoading, error: apiError, createPayment } = usePaymentApi();
+  const {
+    payment: paymentDetails,
+    isLoading,
+    error: apiError,
+    createPayment,
+    fetchPayment,
+  } = usePaymentApi();
 
   // Token operations (balance, allowance, approve)
   const {
@@ -146,13 +152,33 @@ export default function PaymentStep({ urlParams }: PaymentStepProps) {
 
   const [buttonConnectClicked, setButtonConnectClicked] = useState(false);
 
-  // Create payment on mount when urlParams is available (skip when walletOnly — no gateway API)
+  // Determine mode: resume (paymentId present) vs creation (all params present)
+  const isResumeMode = !!urlParams?.paymentId;
+
+  // Create payment on mount (creation mode) or fetch existing payment (resume mode)
+  // Skip when walletOnly — no gateway API
   useEffect(() => {
-    if (urlParams && !urlParams.walletOnly && !isInitialized.current) {
-      isInitialized.current = true;
-      createPayment(urlParams);
+    if (!urlParams || urlParams.walletOnly || isInitialized.current) return;
+    isInitialized.current = true;
+
+    if (isResumeMode) {
+      // Resume mode: fetch existing payment details from server
+      fetchPayment(urlParams.paymentId!, urlParams.pk);
+    } else {
+      // Creation mode: create new payment, then replace URL
+      createPayment(urlParams).then((result) => {
+        if (result && typeof window !== 'undefined') {
+          const url = new URL(window.location.href);
+          const lang = url.searchParams.get('lang');
+          url.search = '';
+          url.searchParams.set('pk', urlParams.pk);
+          url.searchParams.set('paymentId', result.paymentId);
+          if (lang) url.searchParams.set('lang', lang);
+          window.history.replaceState({}, '', url.toString());
+        }
+      });
     }
-  }, [urlParams, createPayment]);
+  }, [urlParams, isResumeMode, createPayment, fetchPayment]);
 
   // Fresh wallet session: if we're connected without user clicking connect (e.g. cached), disconnect and lock
   useEffect(() => {
@@ -169,12 +195,13 @@ export default function PaymentStep({ urlParams }: PaymentStepProps) {
 
   // Human-readable amount (for display)
   // When currency conversion is used, show the converted token amount instead of the fiat input
+  // In resume mode urlParams.amount is empty, so always derive from paymentDetails when available
   const displayAmount = paymentDetails?.currency
     ? formatUnits(BigInt(paymentDetails.amount), paymentDetails.tokenDecimals)
-    : (urlParams?.amount ??
+    : urlParams?.amount ||
       (paymentDetails
         ? formatUnits(BigInt(paymentDetails.amount), paymentDetails.tokenDecimals)
-        : '0'));
+        : '0');
 
   // Payment amount in wei (bigint)
   const paymentAmountWei = paymentDetails ? BigInt(paymentDetails.amount) : BigInt(0);
@@ -385,21 +412,23 @@ export default function PaymentStep({ urlParams }: PaymentStepProps) {
   }, [paymentDetails?.successUrl, isPopup]);
 
   // Cancel/fail redirect handler
+  // In resume mode, failUrl comes from paymentDetails (server) instead of URL params
+  const effectiveFailUrl = urlParams?.failUrl || paymentDetails?.failUrl;
   const handleCancel = useCallback(() => {
-    if (urlParams?.failUrl) {
+    if (effectiveFailUrl) {
       allowUnloadRef.current = true;
-      const targetOrigin = new URL(urlParams.failUrl).origin;
+      const targetOrigin = new URL(effectiveFailUrl).origin;
       if (isPopup && window.opener) {
         window.opener.postMessage(
-          { type: 'payment_complete', status: 'fail', failUrl: urlParams.failUrl },
+          { type: 'payment_complete', status: 'fail', failUrl: effectiveFailUrl },
           targetOrigin
         );
         window.close();
       } else {
-        window.location.href = urlParams.failUrl;
+        window.location.href = effectiveFailUrl;
       }
     }
-  }, [urlParams?.failUrl, isPopup]);
+  }, [effectiveFailUrl, isPopup]);
 
   // Loading state (skip when walletOnly — no API call)
   if (!urlParams?.walletOnly && isLoading) {
@@ -427,21 +456,9 @@ export default function PaymentStep({ urlParams }: PaymentStepProps) {
           <p className="font-medium">{t('error.paymentError')}</p>
         </div>
         <p className="text-sm text-gray-600 mb-4">{apiError}</p>
-        {urlParams?.failUrl && (
+        {effectiveFailUrl && (
           <button
-            onClick={() => {
-              allowUnloadRef.current = true;
-              if (isPopup && window.opener) {
-                const targetOrigin = new URL(urlParams.failUrl!).origin;
-                window.opener.postMessage(
-                  { type: 'payment_complete', status: 'fail', failUrl: urlParams.failUrl },
-                  targetOrigin
-                );
-                window.close();
-              } else {
-                window.location.href = urlParams.failUrl!;
-              }
-            }}
+            onClick={handleCancel}
             className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm hover:bg-gray-200"
           >
             {t('common.goBack')}
@@ -454,6 +471,59 @@ export default function PaymentStep({ urlParams }: PaymentStepProps) {
   // No payment details yet (skip when walletOnly — we never fetch payment)
   if (!urlParams?.walletOnly && !paymentDetails) {
     return <LoadingSpinner />;
+  }
+
+  // Resume mode: handle terminal statuses returned by the server
+  if (isResumeMode && !urlParams?.walletOnly && paymentDetails?.status) {
+    const successStatuses = ['CONFIRMED', 'FINALIZED'];
+    const errorStatuses = ['EXPIRED', 'FAILED', 'CANCELLED'];
+
+    if (successStatuses.includes(paymentDetails.status) && currentStep !== 'payment-complete') {
+      return (
+        <PaymentComplete
+          amount={displayAmount}
+          token={paymentDetails.tokenSymbol}
+          date=""
+          txHash=""
+          onConfirm={handleConfirm}
+        />
+      );
+    }
+
+    if (errorStatuses.includes(paymentDetails.status)) {
+      return (
+        <div className="text-center py-8">
+          <div className="text-red-500 mb-4">
+            <svg
+              className="w-12 h-12 mx-auto mb-2"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+              />
+            </svg>
+            <p className="font-medium">
+              {paymentDetails.status === 'EXPIRED'
+                ? t('error.paymentExpired')
+                : t('error.paymentError')}
+            </p>
+          </div>
+          {effectiveFailUrl && (
+            <button
+              onClick={handleCancel}
+              className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm hover:bg-gray-200"
+            >
+              {t('common.goBack')}
+            </button>
+          )}
+        </div>
+      );
+    }
   }
 
   // Wallet-only mode: show connect, then "Wallet connected" with redirect to successUrl
@@ -546,7 +616,7 @@ export default function PaymentStep({ urlParams }: PaymentStepProps) {
             token={paymentDetails.tokenSymbol}
             onApprove={handleApprove}
             onDisconnect={handleDisconnect}
-            onCancel={urlParams?.failUrl ? handleCancel : undefined}
+            onCancel={effectiveFailUrl ? handleCancel : undefined}
             isApproving={isApproving || isApprovalConfirming}
             needsApproval={needsApproval}
             error={
@@ -581,7 +651,7 @@ export default function PaymentStep({ urlParams }: PaymentStepProps) {
             }
             onPay={handlePay}
             onChangeWallet={handleDisconnect}
-            onCancel={urlParams?.failUrl ? handleCancel : undefined}
+            onCancel={effectiveFailUrl ? handleCancel : undefined}
           />
         );
 
@@ -591,7 +661,7 @@ export default function PaymentStep({ urlParams }: PaymentStepProps) {
             amount={displayAmount}
             token={paymentDetails.tokenSymbol}
             onRetry={handleRetryPayment}
-            onCancel={urlParams?.failUrl ? handleCancel : undefined}
+            onCancel={effectiveFailUrl ? handleCancel : undefined}
             isPending={isPayingGasless || isRelayConfirming}
             error={parseErrorMessage(gaslessError?.message, t)}
           />

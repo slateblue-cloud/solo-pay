@@ -2,6 +2,7 @@ import { useState, useCallback } from 'react';
 import type { WidgetUrlParams, PaymentDetails } from '../types';
 import {
   createPaymentFromUrlParams,
+  getPaymentDetails,
   getPaymentStatus,
   pollPaymentStatus,
   PaymentApiError,
@@ -22,6 +23,7 @@ export interface UsePaymentApiState {
 
 export interface UsePaymentApiActions {
   createPayment: (urlParams: WidgetUrlParams) => Promise<PaymentDetails | null>;
+  fetchPayment: (paymentId: string, pk: string) => Promise<PaymentDetails | null>;
   checkStatus: (paymentId: string) => Promise<PaymentStatusResponse | null>;
   waitForConfirmation: (
     paymentId: string,
@@ -63,6 +65,34 @@ export function usePaymentApi(): UsePaymentApiReturn {
           setErrorCode(err.code);
         } else {
           setError(err instanceof Error ? err.message : 'Failed to create payment');
+          setErrorCode('UNKNOWN_ERROR');
+        }
+        return null;
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    []
+  );
+
+  const fetchPayment = useCallback(
+    async (paymentId: string, pk: string): Promise<PaymentDetails | null> => {
+      setIsLoading(true);
+      setError(null);
+      setErrorCode(null);
+
+      try {
+        const result = await getPaymentDetails(paymentId, pk);
+        setPayment(result);
+        setPublicKey(pk);
+        return result;
+      } catch (err) {
+        console.error(err);
+        if (err instanceof PaymentApiError) {
+          setError(err.message);
+          setErrorCode(err.code);
+        } else {
+          setError(err instanceof Error ? err.message : 'Failed to fetch payment details');
           setErrorCode('UNKNOWN_ERROR');
         }
         return null;
@@ -155,6 +185,7 @@ export function usePaymentApi(): UsePaymentApiReturn {
     error,
     errorCode,
     createPayment,
+    fetchPayment,
     checkStatus,
     waitForConfirmation,
     clearError,

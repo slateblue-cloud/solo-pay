@@ -131,13 +131,13 @@ const Home: NextPage = () => {
         <div className="w-full sm:max-w-[520px] h-screen sm:h-[820px] bg-white p-6 py-10 sm:p-8 flex flex-col overflow-hidden sm:rounded-2xl sm:shadow-xl sm:border sm:border-gray-200">
           <LocaleProvider
             locale={locale}
-            onLocaleChange={(loc) =>
-              router.replace(
-                { pathname: router.pathname, query: { ...router.query, lang: loc } },
-                undefined,
-                { shallow: true }
-              )
-            }
+            onLocaleChange={(loc) => {
+              // Read from window.location (not router.query) because PaymentStep
+              // may have replaced the URL via history.replaceState, leaving router.query stale.
+              const url = new URL(window.location.href);
+              url.searchParams.set('lang', loc);
+              router.replace(url.pathname + url.search, undefined, { shallow: true });
+            }}
           >
             <WidgetLayout />
           </LocaleProvider>

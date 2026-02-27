@@ -117,6 +117,46 @@ export async function createPaymentFromUrlParams(
 }
 
 // ============================================================================
+// Payment Details (Resume Mode)
+// ============================================================================
+
+/**
+ * Get full payment details by paymentId (GET /payments/:id/details).
+ * Used to resume a payment flow after page refresh or when opening
+ * a widget link with only pk and paymentId.
+ */
+export async function getPaymentDetails(
+  paymentId: string,
+  publicKey: string
+): Promise<PaymentDetails> {
+  const apiBase = getGatewayApiBase();
+
+  const response = await fetch(`${apiBase}/payments/${paymentId}/details`, {
+    headers: { 'x-public-key': publicKey },
+    cache: 'no-store',
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    const error = data as ErrorResponse;
+    throw new PaymentApiError(
+      error.code || 'UNKNOWN_ERROR',
+      error.message || 'Failed to get payment details',
+      response.status,
+      error.details
+    );
+  }
+
+  if (data && typeof data === 'object' && 'success' in data) {
+    const { success: _success, ...rest } = data as Record<string, unknown>;
+    return rest as unknown as PaymentDetails;
+  }
+
+  return data as PaymentDetails;
+}
+
+// ============================================================================
 // Payment Status
 // ============================================================================
 
