@@ -264,11 +264,8 @@ For non-terminal statuses, a fresh server signature with a new deadline is gener
           data: {
             ...paymentStatus,
             paymentId: paymentData.payment_hash,
-            payment_hash: paymentData.payment_hash,
             chainId: paymentData.network_id,
-            network_id: paymentData.network_id,
             tokenSymbol: paymentData.token_symbol,
-            token_symbol: paymentData.token_symbol,
             status: finalStatus,
             tokenPermitSupported,
             ...detailsFields,
