@@ -355,8 +355,16 @@ describe('SDK Integration', () => {
       expect(statusResponse.success).toBe(true);
       expect(statusResponse.data?.paymentId).toBe(paymentId);
       expect([
-        'CREATED', 'PENDING', 'CONFIRMED', 'FAILED', 'EXPIRED',
-        'ESCROWED', 'FINALIZE_SUBMITTED', 'CANCEL_SUBMITTED', 'FINALIZED', 'CANCELLED',
+        'CREATED',
+        'PENDING',
+        'CONFIRMED',
+        'FAILED',
+        'EXPIRED',
+        'ESCROWED',
+        'FINALIZE_SUBMITTED',
+        'CANCEL_SUBMITTED',
+        'FINALIZED',
+        'CANCELLED',
       ]).toContain(statusResponse.data?.status);
     });
   });
