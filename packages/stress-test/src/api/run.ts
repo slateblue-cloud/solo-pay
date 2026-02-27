@@ -269,8 +269,10 @@ async function main() {
   console.log(`   First: ${wallets[0].address}`);
   console.log(`   Last:  ${wallets[wallets.length - 1].address}`);
 
-  console.log('\nExecuting payments...');
+  console.log('\nExecuting payments...\n');
+  printProgress('Payments', 0, wallets.length);
   const startTime = Date.now();
+  const errors: string[] = [];
   const results = await executePaymentsParallel(
     wallets,
     config,
@@ -278,12 +280,13 @@ async function main() {
     options.concurrency,
     (done, total, result) => {
       if (result && !result.success) {
-        console.log('');
-        console.log(`  Wallet ${result.walletIndex}: ${(result.error || 'Unknown').slice(0, 100)}`);
+        errors.push(`  Wallet ${result.walletIndex}: ${(result.error || 'Unknown').slice(0, 120)}`);
       }
       printProgress('Payments', done, total);
     }
   );
+  process.stdout.write('\n');
+  errors.forEach((line) => console.log(line));
   printSummary(results, Date.now() - startTime);
 }
 

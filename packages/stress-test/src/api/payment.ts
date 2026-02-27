@@ -466,7 +466,8 @@ export async function executePayment(
 }
 
 /**
- * Execute payments in parallel with concurrency limit
+ * Execute payments in parallel with concurrency limit.
+ * Calls onProgress as each payment completes (not only after full batch).
  */
 export async function executePaymentsParallel(
   wallets: TestAccount[],
@@ -477,18 +478,21 @@ export async function executePaymentsParallel(
 ): Promise<PaymentResult[]> {
   const results: PaymentResult[] = [];
   let completedCount = 0;
+  const total = wallets.length;
 
-  // Process in batches
   for (let i = 0; i < wallets.length; i += concurrency) {
     const batch = wallets.slice(i, i + concurrency);
     const batchResults = await Promise.all(
-      batch.map((wallet) => executePayment(wallet, config, paymentAmount))
+      batch.map((wallet) =>
+        executePayment(wallet, config, paymentAmount).then((result) => {
+          completedCount++;
+          onProgress?.(completedCount, total, result);
+          return result;
+        })
+      )
     );
-
     for (const result of batchResults) {
       results.push(result);
-      completedCount++;
-      onProgress?.(completedCount, wallets.length, result);
     }
   }
 
