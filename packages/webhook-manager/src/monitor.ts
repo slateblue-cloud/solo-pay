@@ -75,6 +75,9 @@ function buildWebhookBody(
  *
  *   Monitored transitions:
  *     CREATED/PENDING      → on-chain Escrowed  → DB ESCROWED   + webhook
+ *     ESCROWED             → re-send ESCROWED webhook (merchant retry)
+ *                          → on-chain Finalized → DB FINALIZED  + webhook
+ *                          → on-chain Cancelled → DB CANCELLED  + webhook
  *     FINALIZE_SUBMITTED   → on-chain Finalized → DB FINALIZED  + webhook
  *     CANCEL_SUBMITTED     → on-chain Cancelled → DB CANCELLED  + webhook
  */
@@ -149,6 +152,10 @@ export function startPaymentMonitor(options: MonitorOptions): { stop: () => Prom
           await handleCreatedPending(data, onChainStatus, details);
           break;
 
+        case 'ESCROWED':
+          await handleEscrowed(data, onChainStatus, details);
+          break;
+
         case 'FINALIZE_SUBMITTED':
           await handleFinalizeSubmitted(data, onChainStatus, details);
           break;
@@ -220,6 +227,87 @@ export function startPaymentMonitor(options: MonitorOptions): { stop: () => Prom
       console.log('[monitor] escrowed payment=%s tx=%s', data.paymentHash, details.transactionHash);
 
       await enqueueWebhook(data, JOB_NAME_PAYMENT_ESCROWED, 'ESCROWED', details.transactionHash);
+    }
+  }
+
+  // ── ESCROWED → re-send webhook / detect finalize or cancel ─────────
+  async function handleEscrowed(
+    data: MonitorJobData,
+    onChainStatus: number,
+    details: import('./blockchain').OnChainPaymentDetails | null
+  ): Promise<void> {
+    // On-chain already finalized → update DB directly (covers direct contract calls)
+    if (onChainStatus === OnChainPaymentStatus.Finalized) {
+      const txHash = details?.transactionHash ?? null;
+      const updated = await prisma.payment.updateMany({
+        where: {
+          payment_hash: data.paymentHash,
+          status: 'ESCROWED',
+        },
+        data: {
+          status: 'FINALIZED',
+          finalized_at: new Date(),
+          ...(txHash && { release_tx_hash: txHash }),
+        },
+      });
+      if (updated.count === 0) return;
+
+      await prisma.paymentEvent.create({
+        data: {
+          payment_id: data.paymentId,
+          event_type: 'FINALIZE_CONFIRMED',
+          old_status: 'ESCROWED',
+          new_status: 'FINALIZED',
+        },
+      });
+
+      console.log(
+        '[monitor] escrowed→finalized payment=%s release_tx=%s',
+        data.paymentHash,
+        txHash
+      );
+      await enqueueWebhook(data, JOB_NAME_PAYMENT_FINALIZED, 'FINALIZED', data.txHash, txHash);
+      return;
+    }
+
+    // On-chain already cancelled → update DB directly
+    if (onChainStatus === OnChainPaymentStatus.Cancelled) {
+      const txHash = details?.transactionHash ?? null;
+      const updated = await prisma.payment.updateMany({
+        where: {
+          payment_hash: data.paymentHash,
+          status: 'ESCROWED',
+        },
+        data: {
+          status: 'CANCELLED',
+          cancelled_at: new Date(),
+          ...(txHash && { release_tx_hash: txHash }),
+        },
+      });
+      if (updated.count === 0) return;
+
+      await prisma.paymentEvent.create({
+        data: {
+          payment_id: data.paymentId,
+          event_type: 'CANCEL_CONFIRMED',
+          old_status: 'ESCROWED',
+          new_status: 'CANCELLED',
+        },
+      });
+
+      console.log(
+        '[monitor] escrowed→cancelled payment=%s release_tx=%s',
+        data.paymentHash,
+        txHash
+      );
+      await enqueueWebhook(data, JOB_NAME_PAYMENT_CANCELLED, 'CANCELLED', data.txHash, txHash);
+      return;
+    }
+
+    // Still ESCROWED on-chain → re-send ESCROWED webhook so merchant can retry finalize/cancel
+    if (onChainStatus >= OnChainPaymentStatus.Escrowed) {
+      console.log('[monitor] re-sending escrowed webhook payment=%s', data.paymentHash);
+      await enqueueWebhook(data, JOB_NAME_PAYMENT_ESCROWED, 'ESCROWED', data.txHash);
     }
   }
 
@@ -317,7 +405,9 @@ export function startPaymentMonitor(options: MonitorOptions): { stop: () => Prom
       const cutoff = new Date(Date.now() - timeoutMs);
       const payments = await prisma.payment.findMany({
         where: {
-          status: { in: ['CREATED', 'PENDING', 'FINALIZE_SUBMITTED', 'CANCEL_SUBMITTED'] },
+          status: {
+            in: ['CREATED', 'PENDING', 'ESCROWED', 'FINALIZE_SUBMITTED', 'CANCEL_SUBMITTED'],
+          },
           created_at: { gt: cutoff },
         },
         orderBy: { created_at: 'asc' },

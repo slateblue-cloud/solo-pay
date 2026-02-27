@@ -255,6 +255,7 @@ export default function PaymentStep({ urlParams }: PaymentStepProps) {
     isSwitchingChain,
     switchChainAsync,
     currentStep,
+    lockReconnect,
   ]);
 
   // Fallback: if still on wallet-connect after connecting (e.g. Trust Wallet chain/switch delay), advance after 4s
