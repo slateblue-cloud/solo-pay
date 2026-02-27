@@ -73,3 +73,37 @@ export function generateAccounts(
   }
   return generateDeterministicAccounts(count, options.mnemonic, options.startIndex);
 }
+
+/**
+ * Derive a single account by index (same derivation as generateDeterministicAccounts).
+ * Use for workers that only need a range of wallets without holding the full list.
+ */
+export function getAccountAtIndex(
+  index: number,
+  mnemonic: string = DEFAULT_MNEMONIC,
+  startIndex: number = 10
+): TestAccount {
+  const path = `m/44'/60'/0'/0/${startIndex + index}`;
+  const wallet = HDNodeWallet.fromMnemonic(Wallet.fromPhrase(mnemonic).mnemonic!, path);
+  return {
+    index,
+    address: wallet.address,
+    privateKey: wallet.privateKey,
+  };
+}
+
+/**
+ * Derive accounts for index range [start, end) without building the full count list.
+ */
+export function getAccountsRange(
+  start: number,
+  end: number,
+  mnemonic: string = DEFAULT_MNEMONIC,
+  pathStartIndex: number = 10
+): TestAccount[] {
+  const accounts: TestAccount[] = [];
+  for (let i = start; i < end; i++) {
+    accounts.push(getAccountAtIndex(i, mnemonic, pathStartIndex));
+  }
+  return accounts;
+}

@@ -14,9 +14,12 @@ export interface NetworkConfig {
   tokenSymbol: string;
   merchantPublicKey: string;
   merchantOrigin: string;
+  merchantUrl: string;
   funding: {
     method: 'mint' | 'transfer';
     sourcePrivateKey?: string;
+    /** Use Multicall3 to batch many mints/transfers per tx. Saves gas and time for large account counts. Requires Multicall3 at MULTICALL3_ADDRESS (Amoy has it; Hardhat usually does not). */
+    useMulticall?: boolean;
   };
 }
 
@@ -33,27 +36,31 @@ export const NETWORKS: Record<string, NetworkConfig> = {
     tokenSymbol: 'TEST',
     merchantPublicKey: 'pk_test_demo',
     merchantOrigin: 'http://localhost:3005',
+    merchantUrl: process.env.MERCHANT_URL || 'http://localhost:3004',
     funding: {
       method: 'mint',
-      // Hardhat account #0 (deployer)
       sourcePrivateKey: '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80',
+      useMulticall: false,
     },
   },
   amoy: {
     name: 'Polygon Amoy Testnet',
     chainId: 80002,
-    rpcUrl: process.env.RPC_URL || 'https://rpc-amoy.polygon.technology',
-    gatewayUrl: process.env.GATEWAY_URL || 'https://gateway.example.com',
-    paymentGatewayAddress: '0x2e1fAFd7d30FD625a546f0221705baE97a925a6C',
+    rpcUrl: process.env.RPC_URL || 'https://polygon-amoy-bor-rpc.publicnode.com',
+    gatewayUrl: process.env.GATEWAY_URL || 'https://gateway-dev.home201.com',
+    paymentGatewayAddress: '0x3a88752837ccA9e5195d7175bbc926CB9C14c994',
     forwarderAddress: '0xE8a3C8e530dddd14e02DA1C81Df6a15f41ad78DE',
-    tokenAddress: process.env.TOKEN_ADDRESS || '0xE4C687167705Abf55d709395f92e254bdF5825a2',
+    tokenAddress: process.env.TOKEN_ADDRESS || '0x54F609AC69E3766a17c055c440A4c24B59e769e1',
     tokenDecimals: 18,
-    tokenSymbol: 'SUT',
-    merchantPublicKey: process.env.MERCHANT_PUBLIC_KEY || '',
-    merchantOrigin: process.env.MERCHANT_ORIGIN || '',
+    tokenSymbol: 'DST',
+    merchantPublicKey:
+      process.env.MERCHANT_PUBLIC_KEY || 'pk_live_xqKZ6PpVdfUaaVBJhS6qI8RbUbZUbvSq',
+    merchantOrigin: process.env.MERCHANT_ORIGIN || 'https://widget-dev.home201.com',
+    merchantUrl: process.env.MERCHANT_URL || 'https://sample-merchant-dev.home201.com',
     funding: {
       method: 'transfer',
       sourcePrivateKey: process.env.AMOY_MASTER_PRIVATE_KEY,
+      useMulticall: true,
     },
   },
 };

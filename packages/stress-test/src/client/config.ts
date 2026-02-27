@@ -40,7 +40,7 @@ export function getClientConfig(): ClientConfig {
   }
 
   return {
-    merchantUrl: process.env.MERCHANT_URL || 'http://localhost:3004',
+    merchantUrl: process.env.MERCHANT_URL || networkConfig.merchantUrl,
     rpcUrl: networkConfig.rpcUrl,
     chainId: networkConfig.chainId,
     tokenAddress: networkConfig.tokenAddress,
