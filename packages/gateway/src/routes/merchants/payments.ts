@@ -7,9 +7,10 @@ import { MerchantService } from '../../services/merchant.service';
 import { ErrorResponseSchema } from '../../docs/schemas';
 
 /**
- * Syncs payment status from blockchain: if on-chain status is completed and DB status is
- * CREATED or PENDING, updates DB to CONFIRMED and mutates the payment object in place.
- * @returns true if status was updated to CONFIRMED (caller may enqueue webhook).
+ * Syncs payment status from blockchain based on on-chain state.
+ * Handles: CREATED/PENDING→ESCROWED, ESCROWED/FINALIZE_SUBMITTED→FINALIZED,
+ *          ESCROWED/CANCEL_SUBMITTED→CANCELLED.
+ * Mutates the payment object in place. Returns true if DB status was updated.
  */
 async function syncPaymentStatusFromChain(
   blockchainService: BlockchainService,
@@ -20,26 +21,43 @@ async function syncPaymentStatusFromChain(
   if (!blockchainService.isChainSupported(chainId)) {
     return false;
   }
-  const paymentStatus = await blockchainService.getPaymentStatus(chainId, payment.payment_hash);
-  if (paymentStatus?.status === 'completed' && ['CREATED', 'PENDING'].includes(payment.status)) {
-    const updated = await paymentService.updateStatusByHash(
-      payment.payment_hash,
-      'CONFIRMED',
-      paymentStatus.transactionHash ?? undefined
-    );
-    payment.status = updated.status;
-    payment.tx_hash = updated.tx_hash;
-    payment.confirmed_at = updated.confirmed_at ?? payment.confirmed_at;
-    if (paymentStatus.payerAddress) {
-      const withPayer = await paymentService.updatePayerAddress(
-        payment.payment_hash,
-        paymentStatus.payerAddress
-      );
-      payment.payer_address = withPayer.payer_address ?? payment.payer_address;
-    }
-    return true;
+  const chainStatus = await blockchainService.getPaymentStatus(chainId, payment.payment_hash);
+  if (!chainStatus || chainStatus.status === 'pending') {
+    return false;
   }
-  return false;
+
+  const onChain = chainStatus.status;
+  const dbStatus = payment.status;
+
+  type PaymentStatus = import('@solo-pay/database').PaymentStatus;
+
+  const syncMap: Record<string, { from: string[]; to: PaymentStatus } | undefined> = {
+    escrowed: { from: ['CREATED', 'PENDING'], to: 'ESCROWED' },
+    finalized: { from: ['ESCROWED', 'FINALIZE_SUBMITTED'], to: 'FINALIZED' },
+    cancelled: { from: ['ESCROWED', 'CANCEL_SUBMITTED'], to: 'CANCELLED' },
+  };
+
+  const rule = syncMap[onChain];
+  if (!rule || !rule.from.includes(dbStatus)) {
+    return false;
+  }
+
+  const updated = await paymentService.updateStatusByHash(
+    payment.payment_hash,
+    rule.to,
+    chainStatus.transactionHash ?? undefined
+  );
+  payment.status = updated.status;
+  payment.tx_hash = updated.tx_hash;
+  payment.confirmed_at = updated.confirmed_at ?? payment.confirmed_at;
+  if (chainStatus.payerAddress) {
+    const withPayer = await paymentService.updatePayerAddress(
+      payment.payment_hash,
+      chainStatus.payerAddress
+    );
+    payment.payer_address = withPayer.payer_address ?? payment.payer_address;
+  }
+  return true;
 }
 
 function buildPaymentDetailResponse(
@@ -91,7 +109,21 @@ export async function merchantPaymentRoute(
     properties: {
       paymentId: { type: 'string' },
       orderId: { type: 'string' },
-      status: { type: 'string', enum: ['CREATED', 'PENDING', 'CONFIRMED', 'FAILED', 'EXPIRED'] },
+      status: {
+        type: 'string',
+        enum: [
+          'CREATED',
+          'PENDING',
+          'ESCROWED',
+          'FINALIZE_SUBMITTED',
+          'CANCEL_SUBMITTED',
+          'CONFIRMED',
+          'FINALIZED',
+          'CANCELLED',
+          'FAILED',
+          'EXPIRED',
+        ],
+      },
       amount: { type: 'string', description: 'Wei' },
       tokenSymbol: { type: 'string' },
       tokenDecimals: { type: 'integer' },
