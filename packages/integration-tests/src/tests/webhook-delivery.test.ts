@@ -22,6 +22,15 @@ const SAMPLE_MERCHANT_URL = (process.env.SAMPLE_MERCHANT_URL || 'http://localhos
 
 const GATEWAY_BASE = (process.env.GATEWAY_URL || 'http://localhost:3001').replace(/\/$/, '');
 
+interface WebhookJsonBody {
+  success?: boolean;
+  ignored?: boolean;
+  error?: string;
+  action?: string;
+  orderId?: string;
+  paymentId?: string;
+}
+
 describe('Webhook Delivery to Sample Merchant', () => {
   let isSampleMerchantReady = false;
   let isGatewayReady = false;
@@ -51,12 +60,16 @@ describe('Webhook Delivery to Sample Merchant', () => {
     }
   }
 
-  async function postWebhook(body: Record<string, unknown>): Promise<Response> {
-    return fetch(`${SAMPLE_MERCHANT_URL}/api/webhook`, {
+  async function postWebhook(
+    payload: Record<string, unknown>
+  ): Promise<{ status: number; body: WebhookJsonBody }> {
+    const res = await fetch(`${SAMPLE_MERCHANT_URL}/api/webhook`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
+      body: JSON.stringify(payload),
     });
+    const json = (await res.json()) as WebhookJsonBody;
+    return { status: res.status, body: json };
   }
 
   // ── orderId validation ──────────────────────────────────────────────
@@ -67,9 +80,7 @@ describe('Webhook Delivery to Sample Merchant', () => {
 
       const res = await postWebhook({ status: 'ESCROWED' });
       expect(res.status).toBe(400);
-
-      const body = await res.json();
-      expect(body.error).toContain('orderId');
+      expect(res.body.error).toContain('orderId');
     });
 
     it('should return 400 when status is missing', async () => {
@@ -77,12 +88,10 @@ describe('Webhook Delivery to Sample Merchant', () => {
 
       const res = await postWebhook({ orderId: '1' });
       expect(res.status).toBe(400);
-
-      const body = await res.json();
-      expect(body.error).toContain('status');
+      expect(res.body.error).toContain('status');
     });
 
-    it('should return 200 ignored for null orderId', async () => {
+    it('should return 400 for null orderId', async () => {
       if (!isSampleMerchantReady) return;
 
       const res = await postWebhook({ orderId: null, status: 'ESCROWED' });
@@ -101,9 +110,7 @@ describe('Webhook Delivery to Sample Merchant', () => {
         tokenSymbol: 'USDC',
       });
       expect(res.status).toBe(200);
-
-      const body = await res.json();
-      expect(body.ignored).toBe(true);
+      expect(res.body.ignored).toBe(true);
     });
 
     it('should return 200 ignored for hash-like orderId', async () => {
@@ -117,9 +124,7 @@ describe('Webhook Delivery to Sample Merchant', () => {
         tokenSymbol: 'USDC',
       });
       expect(res.status).toBe(200);
-
-      const body = await res.json();
-      expect(body.ignored).toBe(true);
+      expect(res.body.ignored).toBe(true);
     });
 
     it('should return 200 ignored for zero orderId', async () => {
@@ -133,9 +138,7 @@ describe('Webhook Delivery to Sample Merchant', () => {
         tokenSymbol: 'USDC',
       });
       expect(res.status).toBe(200);
-
-      const body = await res.json();
-      expect(body.ignored).toBe(true);
+      expect(res.body.ignored).toBe(true);
     });
 
     it('should return 200 ignored for negative orderId', async () => {
@@ -149,9 +152,7 @@ describe('Webhook Delivery to Sample Merchant', () => {
         tokenSymbol: 'USDC',
       });
       expect(res.status).toBe(200);
-
-      const body = await res.json();
-      expect(body.ignored).toBe(true);
+      expect(res.body.ignored).toBe(true);
     });
 
     it('should return 200 ignored for float orderId', async () => {
@@ -165,9 +166,7 @@ describe('Webhook Delivery to Sample Merchant', () => {
         tokenSymbol: 'USDC',
       });
       expect(res.status).toBe(200);
-
-      const body = await res.json();
-      expect(body.ignored).toBe(true);
+      expect(res.body.ignored).toBe(true);
     });
 
     it('should return 404 for valid integer orderId that does not exist', async () => {
@@ -242,7 +241,7 @@ describe('Webhook Delivery to Sample Merchant', () => {
         return;
       }
 
-      const body = await res.json();
+      const body = (await res.json()) as WebhookJsonBody;
       expect(body.orderId).toBe(testOrderId);
       expect(body.paymentId).toBeDefined();
       expect(body.paymentId).toMatch(/^0x/);
