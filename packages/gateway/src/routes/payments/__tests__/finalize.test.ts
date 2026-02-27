@@ -19,6 +19,10 @@ const mockSigningService = {
   signFinalizeRequest: vi.fn(),
 };
 
+const mockRelayerService = {
+  submitDirectTransaction: vi.fn(),
+};
+
 vi.mock('../../../middleware/auth.middleware', () => ({
   createAuthMiddleware: vi.fn(() => async (request: { merchant: unknown }) => {
     request.merchant = { id: 1, merchant_key: 'merchant_demo_001' };
@@ -28,11 +32,14 @@ vi.mock('../../../middleware/auth.middleware', () => ({
 describe('POST /payments/:id/finalize', () => {
   let app: FastifyInstance;
   const signingServices = new Map();
+  const relayerServices = new Map();
 
   beforeEach(async () => {
     vi.clearAllMocks();
     signingServices.clear();
     signingServices.set(31337, mockSigningService);
+    relayerServices.clear();
+    relayerServices.set(31337, mockRelayerService);
 
     app = Fastify();
     await finalizePaymentRoute(
@@ -40,7 +47,8 @@ describe('POST /payments/:id/finalize', () => {
       mockMerchantService as never,
       mockPaymentService as never,
       mockBlockchainService as never,
-      signingServices as never
+      signingServices as never,
+      relayerServices as never
     );
     await app.ready();
   });
@@ -68,12 +76,18 @@ describe('POST /payments/:id/finalize', () => {
 
       const gatewayAddress = '0x' + 'b'.repeat(40);
       const serverSignature = '0x' + 'c'.repeat(130);
+      const mockRelayResult = {
+        relayRequestId: 'relay-123',
+        transactionHash: '0x' + 'f'.repeat(64),
+        status: 'pending',
+      };
 
       mockPaymentService.findByHash.mockResolvedValue(mockPayment);
       mockPaymentService.claimForProcessing.mockResolvedValue(true);
       mockPaymentService.createEvent.mockResolvedValue({});
       mockBlockchainService.getChainContracts.mockReturnValue({ gateway: gatewayAddress });
       mockSigningService.signFinalizeRequest.mockResolvedValue(serverSignature);
+      mockRelayerService.submitDirectTransaction.mockResolvedValue(mockRelayResult);
 
       const response = await app.inject({
         method: 'POST',
@@ -85,9 +99,9 @@ describe('POST /payments/:id/finalize', () => {
       const body = JSON.parse(response.payload);
       expect(body.success).toBe(true);
       expect(body.data.paymentId).toBe(paymentHash);
-      expect(body.data.serverSignature).toBe(serverSignature);
-      expect(body.data.gatewayAddress).toBe(gatewayAddress);
-      expect(body.data.chainId).toBe(31337);
+      expect(body.data.relayRequestId).toBe('relay-123');
+      expect(body.data.transactionHash).toBe('0x' + 'f'.repeat(64));
+      expect(body.data.status).toBe('pending');
     });
   });
 
