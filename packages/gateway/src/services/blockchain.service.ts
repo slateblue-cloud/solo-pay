@@ -43,35 +43,52 @@ export interface PaymentHistoryItem {
   relayId?: string;
 }
 
-// PaymentCompleted 이벤트 ABI (V2: merchantId, recipientAddress, fee 포함)
-const PAYMENT_COMPLETED_EVENT = parseAbiItem(
-  'event PaymentCompleted(bytes32 indexed paymentId, bytes32 indexed merchantId, address indexed payerAddress, address recipientAddress, address tokenAddress, uint256 amount, uint256 fee, uint256 timestamp)'
+// PaymentEscrowed 이벤트 ABI (escrow flow)
+const PAYMENT_ESCROWED_EVENT = parseAbiItem(
+  'event PaymentEscrowed(bytes32 indexed paymentId, bytes32 indexed merchantId, address indexed payerAddress, address recipientAddress, address tokenAddress, uint256 amount, uint256 escrowDeadline, uint256 timestamp)'
 );
 
-/**
- * PaymentCompleted 이벤트 args 타입 (V2)
- */
-interface PaymentCompletedEventArgs {
+interface PaymentEscrowedEventArgs {
   paymentId: string;
   merchantId: string;
   payerAddress: string;
   recipientAddress: string;
   tokenAddress: string;
   amount: bigint;
-  fee: bigint;
+  escrowDeadline: bigint;
   timestamp: bigint;
 }
 
-// PaymentGateway ABI (processedPayments 조회용)
-const PAYMENT_GATEWAY_ABI = [
+// PaymentFinalized 이벤트 ABI
+const PAYMENT_FINALIZED_EVENT = parseAbiItem(
+  'event PaymentFinalized(bytes32 indexed paymentId, bytes32 indexed merchantId, address recipientAddress, address tokenAddress, uint256 amount, uint256 fee, uint256 timestamp)'
+);
+
+// PaymentCancelled 이벤트 ABI
+const PAYMENT_CANCELLED_EVENT = parseAbiItem(
+  'event PaymentCancelled(bytes32 indexed paymentId, bytes32 indexed merchantId, address indexed payerAddress, address tokenAddress, uint256 amount, uint256 timestamp)'
+);
+
+// PaymentGateway ABI (paymentStatus 조회용)
+const PAYMENT_STATUS_ABI = [
   {
     type: 'function',
-    name: 'processedPayments',
+    name: 'paymentStatus',
     inputs: [{ name: 'paymentId', type: 'bytes32' }],
-    outputs: [{ name: '', type: 'bool' }],
+    outputs: [{ name: '', type: 'uint8' }],
     stateMutability: 'view',
   },
 ] as const;
+
+/** On-chain PaymentStatus enum mapping */
+type OnChainStatusString = 'pending' | 'escrowed' | 'finalized' | 'cancelled' | 'refunded';
+const ON_CHAIN_STATUS_MAP: Record<number, OnChainStatusString> = {
+  0: 'pending',
+  1: 'escrowed',
+  2: 'finalized',
+  3: 'cancelled',
+  4: 'refunded',
+};
 
 // ERC20 ABI (balanceOf, allowance, symbol, decimals)
 const ERC20_ABI = [
@@ -348,20 +365,27 @@ export class BlockchainService {
       const config = this.getChainConfig(chainId);
       const contractAddress = config.contracts.gateway as Address;
 
-      // Contract의 processedPayments mapping 조회 (bool 반환)
-      const isProcessed = await client.readContract({
+      const statusValue = await client.readContract({
         address: contractAddress,
-        abi: PAYMENT_GATEWAY_ABI,
-        functionName: 'processedPayments',
+        abi: PAYMENT_STATUS_ABI,
+        functionName: 'paymentStatus',
         args: [paymentId as `0x${string}`],
       });
 
+      const onChainStatus: OnChainStatusString =
+        ON_CHAIN_STATUS_MAP[Number(statusValue)] ?? 'pending';
       const now = new Date().toISOString();
 
-      // 결제가 완료된 경우, 이벤트 로그에서 실제 결제 정보 조회
-      if (isProcessed) {
+      if (onChainStatus !== 'pending') {
+        // Always get escrow details (base info: payer, token, amount, escrow txHash)
         const paymentDetails = await this.getPaymentDetailsByPaymentId(chainId, paymentId);
         if (paymentDetails) {
+          // For finalized/cancelled, also query the release event for release txHash
+          let releaseTxHash: string | undefined;
+          if (onChainStatus === 'finalized' || onChainStatus === 'cancelled') {
+            releaseTxHash = await this.getReleaseTxHash(chainId, paymentId, onChainStatus);
+          }
+
           return {
             paymentId,
             payerAddress: paymentDetails.payerAddress,
@@ -369,15 +393,15 @@ export class BlockchainService {
             tokenAddress: paymentDetails.tokenAddress,
             tokenSymbol: paymentDetails.tokenSymbol,
             treasuryAddress: paymentDetails.treasuryAddress,
-            status: 'completed',
+            status: onChainStatus,
             createdAt: paymentDetails.timestamp,
             updatedAt: now,
             transactionHash: paymentDetails.transactionHash,
+            releaseTxHash,
           };
         }
       }
 
-      // 아직 처리되지 않은 결제
       return {
         paymentId,
         payerAddress: '',
@@ -391,7 +415,6 @@ export class BlockchainService {
       };
     } catch (error) {
       this.logger.error({ err: error }, '결제 상태 조회 실패');
-      // 네트워크 오류나 RPC 오류 시에도 pending 반환 (polling 계속 가능하도록)
       const now = new Date().toISOString();
       return {
         paymentId,
@@ -408,7 +431,7 @@ export class BlockchainService {
   }
 
   /**
-   * paymentId로 PaymentCompleted 이벤트 조회
+   * paymentId로 PaymentEscrowed 이벤트 조회
    */
   private async getPaymentDetailsByPaymentId(
     chainId: number,
@@ -428,12 +451,11 @@ export class BlockchainService {
       const contractAddress = config.contracts.gateway as Address;
 
       const currentBlock = await client.getBlockNumber();
-      // 최근 10000블록 범위에서 검색 (약 5-6시간)
       const fromBlock = currentBlock > BigInt(10000) ? currentBlock - BigInt(10000) : BigInt(0);
 
       const logs = await client.getLogs({
         address: contractAddress,
-        event: PAYMENT_COMPLETED_EVENT,
+        event: PAYMENT_ESCROWED_EVENT,
         args: {
           paymentId: paymentId as `0x${string}`,
         },
@@ -450,10 +472,9 @@ export class BlockchainService {
         return null;
       }
       const block = await client.getBlock({ blockHash: log.blockHash });
-      const args = log.args as PaymentCompletedEventArgs;
+      const args = log.args as PaymentEscrowedEventArgs;
       const tokenAddress = args.tokenAddress || '';
 
-      // 온체인에서 토큰 심볼 조회
       const tokenSymbol = tokenAddress
         ? await this.getTokenSymbolOnChain(chainId, tokenAddress)
         : 'UNKNOWN';
@@ -470,6 +491,42 @@ export class BlockchainService {
     } catch (err) {
       this.logger.error({ err }, '결제 상세 정보 조회 실패');
       return null;
+    }
+  }
+
+  /**
+   * Query the release (finalize/cancel) transaction hash from on-chain events.
+   */
+  private async getReleaseTxHash(
+    chainId: number,
+    paymentId: string,
+    status: 'finalized' | 'cancelled'
+  ): Promise<string | undefined> {
+    try {
+      const client = this.getClient(chainId);
+      const config = this.getChainConfig(chainId);
+      const contractAddress = config.contracts.gateway as Address;
+
+      const currentBlock = await client.getBlockNumber();
+      const fromBlock = currentBlock > BigInt(10000) ? currentBlock - BigInt(10000) : BigInt(0);
+
+      const event = status === 'finalized' ? PAYMENT_FINALIZED_EVENT : PAYMENT_CANCELLED_EVENT;
+
+      const logs = await client.getLogs({
+        address: contractAddress,
+        event,
+        args: { paymentId: paymentId as `0x${string}` },
+        fromBlock,
+        toBlock: 'latest',
+      });
+
+      if (logs.length > 0) {
+        return logs[0].transactionHash;
+      }
+      return undefined;
+    } catch (err) {
+      this.logger.error({ err }, 'Failed to query release txHash');
+      return undefined;
     }
   }
 
@@ -658,7 +715,7 @@ export class BlockchainService {
 
       const logs = await client.getLogs({
         address: contractAddress,
-        event: PAYMENT_COMPLETED_EVENT,
+        event: PAYMENT_ESCROWED_EVENT,
         args: {
           payerAddress: payerAddress as Address,
         },
@@ -671,9 +728,8 @@ export class BlockchainService {
       const payments: PaymentHistoryItem[] = await Promise.all(
         logsWithBlockHash.map(async (log) => {
           const block = await client.getBlock({ blockHash: log.blockHash as `0x${string}` });
-          const args = log.args as PaymentCompletedEventArgs;
+          const args = log.args as PaymentEscrowedEventArgs;
           const tokenAddress = args.tokenAddress || '';
-          // 온체인에서 토큰 심볼과 decimals 조회
           const tokenSymbol = tokenAddress
             ? await this.getTokenSymbolOnChain(chainId, tokenAddress)
             : 'UNKNOWN';
@@ -689,7 +745,7 @@ export class BlockchainService {
             amount: (args.amount || BigInt(0)).toString(),
             timestamp: (args.timestamp || block.timestamp).toString(),
             transactionHash: log.transactionHash,
-            status: 'completed',
+            status: 'escrowed',
             isGasless: false,
             relayId: undefined,
           };

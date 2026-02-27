@@ -32,10 +32,10 @@ export async function createRefundRoute(
         tags: ['Refund'],
         summary: 'Create a new refund request',
         description: `
-Creates a refund request for a confirmed payment.
+Creates a refund request for a finalized payment.
 
 **Requirements:**
-- Payment must be in CONFIRMED status
+- Payment must be in FINALIZED status
 - Payment must belong to the authenticated merchant
 - Payment must have a payer_address stored
 - Payment must not be already refunded
@@ -134,10 +134,10 @@ Creates a refund request for a confirmed payment.
         }
 
         // 3. Check payment status
-        if (payment.status !== 'CONFIRMED') {
+        if (payment.status !== 'FINALIZED') {
           return reply.code(400).send({
-            code: 'PAYMENT_NOT_CONFIRMED',
-            message: `Payment must be CONFIRMED to refund. Current status: ${payment.status}`,
+            code: 'PAYMENT_NOT_FINALIZED',
+            message: `Payment must be FINALIZED to refund. Current status: ${payment.status}`,
           });
         }
 

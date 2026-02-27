@@ -28,7 +28,12 @@ Retrieves the current status of a payment by its payment hash. Requires x-public
 **Status Values:**
 - \`CREATED\` - Payment created, awaiting on-chain transaction
 - \`PENDING\` - Transaction submitted, awaiting confirmation
-- \`CONFIRMED\` - Payment confirmed on-chain
+- \`ESCROWED\` - Payment escrowed on-chain, awaiting merchant decision
+- \`FINALIZE_SUBMITTED\` - Merchant submitted finalize request
+- \`CANCEL_SUBMITTED\` - Merchant submitted cancel request
+- \`CONFIRMED\` - Payment confirmed on-chain (direct flow, no escrow)
+- \`FINALIZED\` - Escrowed payment released to merchant
+- \`CANCELLED\` - Escrowed payment refunded to buyer
 - \`FAILED\` - Payment failed
 
 **Note:** This endpoint syncs on-chain status with database status.
@@ -115,7 +120,7 @@ Retrieves the current status of a payment by its payment hash. Requires x-public
           });
         }
 
-        if (paymentStatus.status === 'completed' && paymentStatus.amount) {
+        if (paymentStatus.status !== 'pending' && paymentStatus.amount) {
           const eventAmount = BigInt(paymentStatus.amount);
           const dbAmount = BigInt(paymentData.amount.toString());
 
@@ -134,19 +139,37 @@ Retrieves the current status of a payment by its payment hash. Requires x-public
         }
 
         let finalStatus = paymentData.status;
-        if (
-          paymentStatus.status === 'completed' &&
-          ['CREATED', 'PENDING'].includes(paymentData.status)
-        ) {
+
+        // Sync on-chain status → DB status
+        const onChain = paymentStatus.status;
+        const dbStatus = paymentData.status;
+
+        const shouldSync =
+          (onChain === 'escrowed' && ['CREATED', 'PENDING'].includes(dbStatus)) ||
+          (onChain === 'finalized' && ['ESCROWED', 'FINALIZE_SUBMITTED'].includes(dbStatus)) ||
+          (onChain === 'cancelled' && ['ESCROWED', 'CANCEL_SUBMITTED'].includes(dbStatus));
+
+        if (shouldSync) {
+          const newStatus =
+            onChain === 'escrowed'
+              ? 'ESCROWED'
+              : onChain === 'finalized'
+                ? 'FINALIZED'
+                : 'CANCELLED';
+          // For FINALIZED/CANCELLED, pass releaseTxHash; for ESCROWED, pass escrow txHash
+          const isRelease = newStatus === 'FINALIZED' || newStatus === 'CANCELLED';
+          const txHashToStore = isRelease
+            ? paymentStatus.releaseTxHash
+            : paymentStatus.transactionHash;
           await paymentService.updateStatusByHash(
             paymentData.payment_hash,
-            'CONFIRMED',
-            paymentStatus.transactionHash
+            newStatus as import('@solo-pay/database').PaymentStatus,
+            txHashToStore
           );
           if (paymentStatus.payerAddress) {
             await paymentService.updatePayerAddress(id, paymentStatus.payerAddress);
           }
-          finalStatus = 'CONFIRMED';
+          finalStatus = newStatus;
         }
 
         const tokenPermitSupported = await paymentService.getTokenPermitSupported(

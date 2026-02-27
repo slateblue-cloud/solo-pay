@@ -87,7 +87,6 @@ async function callGatewayFinalize(paymentId: string): Promise<{ ok: boolean; er
       method: 'POST',
       headers: {
         'x-api-key': API_KEY,
-        'Content-Type': 'application/json',
       },
     });
 
@@ -111,7 +110,6 @@ async function callGatewayCancel(paymentId: string): Promise<{ ok: boolean; erro
       method: 'POST',
       headers: {
         'x-api-key': API_KEY,
-        'Content-Type': 'application/json',
       },
     });
 

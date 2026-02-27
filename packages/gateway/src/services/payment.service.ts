@@ -124,6 +124,9 @@ export class PaymentService {
       data: {
         status: newStatus,
         ...(newStatus === 'CONFIRMED' && { confirmed_at: new Date() }),
+        ...(newStatus === 'ESCROWED' && { confirmed_at: new Date() }),
+        ...(newStatus === 'FINALIZED' && { finalized_at: new Date() }),
+        ...(newStatus === 'CANCELLED' && { cancelled_at: new Date() }),
       },
     });
 
@@ -158,13 +161,24 @@ export class PaymentService {
 
     const oldStatus = payment.status;
 
-    // Update payment with status, optional tx_hash, and confirmed_at if CONFIRMED
+    // Determine which tx_hash column to write:
+    // ESCROWED/PENDING → tx_hash (escrow tx), FINALIZED/CANCELLED → release_tx_hash
+    const isRelease = newStatus === 'FINALIZED' || newStatus === 'CANCELLED';
+    const txHashField = txHash
+      ? isRelease
+        ? { release_tx_hash: txHash }
+        : { tx_hash: txHash }
+      : {};
+
     const updatedPayment = await this.prisma.payment.update({
       where: { payment_hash: paymentHash },
       data: {
         status: newStatus,
-        ...(txHash && { tx_hash: txHash }),
+        ...txHashField,
         ...(newStatus === 'CONFIRMED' && { confirmed_at: new Date() }),
+        ...(newStatus === 'ESCROWED' && { confirmed_at: new Date() }),
+        ...(newStatus === 'FINALIZED' && { finalized_at: new Date() }),
+        ...(newStatus === 'CANCELLED' && { cancelled_at: new Date() }),
       },
     });
 
