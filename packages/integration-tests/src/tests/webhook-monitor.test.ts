@@ -158,7 +158,11 @@ describe('Webhook Monitor Integration', () => {
           signal: AbortSignal.timeout(5000),
         });
         if (res.ok) {
-          const body = (await res.json()) as { status: string; txHash?: string; releaseTxHash?: string };
+          const body = (await res.json()) as {
+            status: string;
+            txHash?: string;
+            releaseTxHash?: string;
+          };
           if (body.status === expectedStatus) {
             return body;
           }
