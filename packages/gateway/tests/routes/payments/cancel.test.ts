@@ -6,6 +6,7 @@ import { PaymentService } from '../../../src/services/payment.service';
 import { MerchantService } from '../../../src/services/merchant.service';
 import { ServerSigningService } from '../../../src/services/signature-server.service';
 import { BlockchainService } from '../../../src/services/blockchain.service';
+import { RelayerService } from '../../../src/services/relayer.service';
 import { API_V1_BASE_PATH } from '../../../src/constants';
 
 const TEST_API_KEY = 'sk_test_abc123';
@@ -50,6 +51,8 @@ describe('POST /payments/:id/cancel', () => {
   let blockchainService: Partial<BlockchainService>;
   let signingService: Partial<ServerSigningService>;
   let signingServices: Map<number, ServerSigningService>;
+  let relayerService: Partial<RelayerService>;
+  let relayerServices: Map<number, RelayerService>;
 
   beforeEach(async () => {
     app = Fastify({
@@ -86,6 +89,17 @@ describe('POST /payments/:id/cancel', () => {
     signingServices = new Map();
     signingServices.set(80002, signingService as ServerSigningService);
 
+    relayerService = {
+      submitDirectTransaction: vi.fn().mockResolvedValue({
+        relayRequestId: 'relay-123',
+        transactionHash: '0x' + 'f'.repeat(64),
+        status: 'pending',
+      }),
+    };
+
+    relayerServices = new Map();
+    relayerServices.set(80002, relayerService as RelayerService);
+
     await app.register(
       async (scope) => {
         await cancelPaymentRoute(
@@ -93,7 +107,8 @@ describe('POST /payments/:id/cancel', () => {
           merchantService as MerchantService,
           paymentService as PaymentService,
           blockchainService as BlockchainService,
-          signingServices
+          signingServices,
+          relayerServices
         );
       },
       { prefix: API_V1_BASE_PATH }
@@ -112,9 +127,9 @@ describe('POST /payments/:id/cancel', () => {
       const body = JSON.parse(response.body);
       expect(body.success).toBe(true);
       expect(body.data.paymentId).toBe(VALID_PAYMENT_ID);
-      expect(body.data.serverSignature).toBe(MOCK_SIGNATURE);
-      expect(body.data.gatewayAddress).toBe(MOCK_GATEWAY_ADDRESS);
-      expect(body.data.chainId).toBe(80002);
+      expect(body.data.relayRequestId).toBe('relay-123');
+      expect(body.data.transactionHash).toBe('0x' + 'f'.repeat(64));
+      expect(body.data.status).toBe('pending');
     });
 
     it('should call claimForProcessing with correct args', async () => {

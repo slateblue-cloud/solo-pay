@@ -197,14 +197,16 @@ const registerRoutes = async () => {
         merchantService,
         paymentService,
         blockchainService,
-        signingServices
+        signingServices,
+        relayerServices
       );
       await cancelPaymentRoute(
         scope,
         merchantService,
         paymentService,
         blockchainService,
-        signingServices
+        signingServices,
+        relayerServices
       );
       await createRefundRoute(
         scope,

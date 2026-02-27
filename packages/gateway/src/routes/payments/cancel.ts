@@ -1,9 +1,10 @@
 import { FastifyInstance } from 'fastify';
-import { Hex } from 'viem';
+import { Hex, encodeFunctionData, Address } from 'viem';
 import { MerchantService } from '../../services/merchant.service';
 import { PaymentService } from '../../services/payment.service';
 import { ServerSigningService } from '../../services/signature-server.service';
 import { BlockchainService } from '../../services/blockchain.service';
+import { RelayerService } from '../../services/relayer.service';
 import { createAuthMiddleware } from '../../middleware/auth.middleware';
 import { ErrorResponseSchema } from '../../docs/schemas';
 
@@ -13,12 +14,26 @@ interface CancelPaymentParams {
 
 const BYTES32_PATTERN = '^0x[a-fA-F0-9]{64}$';
 
+const CANCEL_ABI = [
+  {
+    type: 'function',
+    name: 'cancel',
+    inputs: [
+      { name: 'paymentId', type: 'bytes32' },
+      { name: 'serverSignature', type: 'bytes' },
+    ],
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+] as const;
+
 export async function cancelPaymentRoute(
   app: FastifyInstance,
   merchantService: MerchantService,
   paymentService: PaymentService,
   blockchainService: BlockchainService,
-  signingServices: Map<number, ServerSigningService>
+  signingServices: Map<number, ServerSigningService>,
+  relayerServices: Map<number, RelayerService>
 ) {
   const authMiddleware = createAuthMiddleware(merchantService);
 
@@ -39,7 +54,8 @@ Cancels an escrowed payment, returning full amount to the buyer.
 **Flow:**
 1. Validate payment status and ownership
 2. Generate CancelRequest server signature
-3. Return signature for contract submission
+3. Submit cancel transaction to blockchain via relayer
+4. Return transaction submission result
 
 Note: After escrow deadline, anyone can cancel permissionlessly on-chain without this API.
         `,
@@ -64,9 +80,9 @@ Note: After escrow deadline, anyone can cancel permissionlessly on-chain without
                 type: 'object',
                 properties: {
                   paymentId: { type: 'string' },
-                  serverSignature: { type: 'string' },
-                  gatewayAddress: { type: 'string' },
-                  chainId: { type: 'integer' },
+                  relayRequestId: { type: 'string' },
+                  transactionHash: { type: 'string' },
+                  status: { type: 'string' },
                 },
               },
             },
@@ -142,19 +158,41 @@ Note: After escrow deadline, anyone can cancel permissionlessly on-chain without
           });
         }
 
-        // 7. Generate cancel signature
+        // 7. Get relayer service
+        const relayerService = relayerServices.get(payment.network_id);
+        if (!relayerService) {
+          return reply.code(500).send({
+            code: 'RELAYER_ERROR',
+            message: 'Relayer service not available for this chain',
+          });
+        }
+
+        // 8. Generate cancel signature
         const serverSignature = await signingService.signCancelRequest(paymentId as Hex);
 
-        // 8. Create audit event
+        // 9. Encode cancel calldata
+        const calldata = encodeFunctionData({
+          abi: CANCEL_ABI,
+          functionName: 'cancel',
+          args: [paymentId as Hex, serverSignature],
+        });
+
+        // 10. Submit via relayer
+        const relayResult = await relayerService.submitDirectTransaction(
+          chainContracts.gateway as Address,
+          calldata
+        );
+
+        // 11. Create audit event
         await paymentService.createEvent(payment.id, 'CANCEL_SUBMITTED');
 
         return reply.code(200).send({
           success: true,
           data: {
             paymentId: payment.payment_hash,
-            serverSignature,
-            gatewayAddress: chainContracts.gateway,
-            chainId: payment.network_id,
+            relayRequestId: relayResult.relayRequestId,
+            transactionHash: relayResult.transactionHash,
+            status: relayResult.status,
           },
         });
       } catch (error) {

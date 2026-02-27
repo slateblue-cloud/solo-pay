@@ -134,9 +134,16 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'orderId and status are required' }, { status: 400 });
     }
 
+    // orderId must be a valid integer (maps to local Payment.id)
+    const localPaymentId = Number(orderId);
+    if (!Number.isSafeInteger(localPaymentId) || localPaymentId <= 0) {
+      console.warn(`[webhook] Invalid orderId=${orderId}, skipping`);
+      return NextResponse.json({ success: true, ignored: true });
+    }
+
     // 1. Find local payment record
     const localPayment = await prisma.payment.findUnique({
-      where: { id: Number(orderId) },
+      where: { id: localPaymentId },
     });
 
     if (!localPayment) {

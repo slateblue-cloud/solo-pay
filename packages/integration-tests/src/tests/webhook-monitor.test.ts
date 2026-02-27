@@ -23,25 +23,25 @@ const GATEWAY_API_URL = `${GATEWAY_BASE}/api/v1`;
  *   1. Gateway creates payment (DB: CREATED)
  *   2. On-chain pay() → PaymentEscrowed event
  *   3. Webhook-manager detects on-chain status → DB: ESCROWED
- *   4. Gateway finalize API → DB: FINALIZE_SUBMITTED
+ *   4. Gateway finalize API → submits finalize tx via relayer → DB: FINALIZE_SUBMITTED
  *   5. On-chain finalize() → PaymentFinalized event
  *   6. Webhook-manager detects → DB: FINALIZED
  *
  * And the cancel flow:
- *   3b. Gateway cancel API → DB: CANCEL_SUBMITTED
+ *   3b. Gateway cancel API → submits cancel tx via relayer → DB: CANCEL_SUBMITTED
  *   4b. On-chain cancel() → PaymentCancelled event
  *   5b. Webhook-manager detects → DB: CANCELLED
  *
  * Prerequisites:
  *   - Hardhat node running (port 8545)
  *   - Gateway API running (port 3001)
+ *   - Simple-relayer running (port 3002)
  *   - Webhook-manager running (with blockchain monitor)
  *   - MySQL + Redis running
  */
 describe('Webhook Monitor Integration', () => {
   const token = getToken('test');
   const payerPrivateKey = HARDHAT_ACCOUNTS.payer.privateKey;
-  const signerPrivateKey = HARDHAT_ACCOUNTS.signer.privateKey;
   const payerAddress = HARDHAT_ACCOUNTS.payer.address;
   const recipientAddress = HARDHAT_ACCOUNTS.recipient.address;
   const gatewayAddress = CONTRACT_ADDRESSES.paymentGateway;
@@ -217,7 +217,7 @@ describe('Webhook Monitor Integration', () => {
       // 2. Wait for ESCROWED
       await waitForDbStatus(paymentHash, 'ESCROWED', 30000);
 
-      // 3. Call gateway finalize API → FINALIZE_SUBMITTED
+      // 3. Call gateway finalize API → gateway signs + submits tx via relayer
       const finalizeRes = await fetch(`${GATEWAY_API_URL}/payments/${paymentHash}/finalize`, {
         method: 'POST',
         headers: {
@@ -227,17 +227,11 @@ describe('Webhook Monitor Integration', () => {
       expect(finalizeRes.ok).toBe(true);
       const finalizeBody = (await finalizeRes.json()) as {
         success: boolean;
-        data: { serverSignature: string; gatewayAddress: string; chainId: number };
+        data: { paymentId: string; relayRequestId: string; status: string };
       };
       expect(finalizeBody.success).toBe(true);
 
-      // 4. Execute finalize on-chain with server signature
-      const signerWallet = getWallet(signerPrivateKey);
-      const gateway = getContract(gatewayAddress, PaymentGatewayABI, signerWallet);
-      const finalizeTx = await gateway.finalize(paymentHash, finalizeBody.data.serverSignature);
-      await finalizeTx.wait();
-
-      // 5. Wait for webhook-manager to detect FINALIZED
+      // 4. Wait for webhook-manager to detect FINALIZED (relayer submits tx automatically)
       const result = await waitForDbStatus(paymentHash, 'FINALIZED', 30000);
       expect(result.status).toBe('FINALIZED');
     });
@@ -253,19 +247,9 @@ describe('Webhook Monitor Integration', () => {
 
       const finalizeRes = await fetch(`${GATEWAY_API_URL}/payments/${paymentHash}/finalize`, {
         method: 'POST',
-        headers: {
-          'x-api-key': TEST_MERCHANT.apiKey,
-        },
+        headers: { 'x-api-key': TEST_MERCHANT.apiKey },
       });
-      const finalizeBody = (await finalizeRes.json()) as {
-        success: boolean;
-        data: { serverSignature: string };
-      };
-
-      const signerWallet = getWallet(signerPrivateKey);
-      const gateway = getContract(gatewayAddress, PaymentGatewayABI, signerWallet);
-      const finalizeTx = await gateway.finalize(paymentHash, finalizeBody.data.serverSignature);
-      await finalizeTx.wait();
+      expect(finalizeRes.ok).toBe(true);
 
       const result = await waitForDbStatus(paymentHash, 'FINALIZED', 30000);
       expect(result.status).toBe('FINALIZED');
@@ -293,7 +277,7 @@ describe('Webhook Monitor Integration', () => {
       // 2. Wait for ESCROWED
       await waitForDbStatus(paymentHash, 'ESCROWED', 30000);
 
-      // 3. Call gateway cancel API → CANCEL_SUBMITTED
+      // 3. Call gateway cancel API → gateway signs + submits tx via relayer
       const cancelRes = await fetch(`${GATEWAY_API_URL}/payments/${paymentHash}/cancel`, {
         method: 'POST',
         headers: {
@@ -303,21 +287,15 @@ describe('Webhook Monitor Integration', () => {
       expect(cancelRes.ok).toBe(true);
       const cancelBody = (await cancelRes.json()) as {
         success: boolean;
-        data: { serverSignature: string };
+        data: { paymentId: string; relayRequestId: string; status: string };
       };
       expect(cancelBody.success).toBe(true);
 
-      // 4. Execute cancel on-chain with server signature
-      const signerWallet = getWallet(signerPrivateKey);
-      const gateway = getContract(gatewayAddress, PaymentGatewayABI, signerWallet);
-      const cancelTx = await gateway.cancel(paymentHash, cancelBody.data.serverSignature);
-      await cancelTx.wait();
-
-      // 5. Wait for webhook-manager to detect CANCELLED
+      // 4. Wait for webhook-manager to detect CANCELLED (relayer submits tx automatically)
       const result = await waitForDbStatus(paymentHash, 'CANCELLED', 30000);
       expect(result.status).toBe('CANCELLED');
 
-      // 6. Verify funds returned to payer
+      // 5. Verify funds returned to payer
       const finalPayerBalance = await getTokenBalance(token.address, payerAddress);
       expect(finalPayerBalance).toBe(initialPayerBalance);
     });
@@ -333,19 +311,9 @@ describe('Webhook Monitor Integration', () => {
 
       const cancelRes = await fetch(`${GATEWAY_API_URL}/payments/${paymentHash}/cancel`, {
         method: 'POST',
-        headers: {
-          'x-api-key': TEST_MERCHANT.apiKey,
-        },
+        headers: { 'x-api-key': TEST_MERCHANT.apiKey },
       });
-      const cancelBody = (await cancelRes.json()) as {
-        success: boolean;
-        data: { serverSignature: string };
-      };
-
-      const signerWallet = getWallet(signerPrivateKey);
-      const gateway = getContract(gatewayAddress, PaymentGatewayABI, signerWallet);
-      const cancelTx = await gateway.cancel(paymentHash, cancelBody.data.serverSignature);
-      await cancelTx.wait();
+      expect(cancelRes.ok).toBe(true);
 
       const result = await waitForDbStatus(paymentHash, 'CANCELLED', 30000);
       expect(result.status).toBe('CANCELLED');
@@ -377,22 +345,12 @@ describe('Webhook Monitor Integration', () => {
       const afterEscrowPayer = await getTokenBalance(token.address, payerAddress);
       expect(afterEscrowPayer).toBe(initialPayerBalance - amount);
 
-      // 2. Finalize → FINALIZED
+      // 2. Finalize → FINALIZED (gateway submits tx via relayer)
       const finalizeRes = await fetch(`${GATEWAY_API_URL}/payments/${paymentHash}/finalize`, {
         method: 'POST',
-        headers: {
-          'x-api-key': TEST_MERCHANT.apiKey,
-        },
+        headers: { 'x-api-key': TEST_MERCHANT.apiKey },
       });
-      const finalizeBody = (await finalizeRes.json()) as {
-        success: boolean;
-        data: { serverSignature: string };
-      };
-
-      const signerWallet = getWallet(signerPrivateKey);
-      const gateway = getContract(gatewayAddress, PaymentGatewayABI, signerWallet);
-      const finalizeTx = await gateway.finalize(paymentHash, finalizeBody.data.serverSignature);
-      await finalizeTx.wait();
+      expect(finalizeRes.ok).toBe(true);
 
       await waitForDbStatus(paymentHash, 'FINALIZED', 30000);
 

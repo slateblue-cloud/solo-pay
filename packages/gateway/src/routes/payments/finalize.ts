@@ -1,9 +1,10 @@
 import { FastifyInstance } from 'fastify';
-import { Hex } from 'viem';
+import { Hex, encodeFunctionData, Address } from 'viem';
 import { MerchantService } from '../../services/merchant.service';
 import { PaymentService } from '../../services/payment.service';
 import { ServerSigningService } from '../../services/signature-server.service';
 import { BlockchainService } from '../../services/blockchain.service';
+import { RelayerService } from '../../services/relayer.service';
 import { createAuthMiddleware } from '../../middleware/auth.middleware';
 import { ErrorResponseSchema } from '../../docs/schemas';
 
@@ -13,12 +14,26 @@ interface FinalizePaymentParams {
 
 const BYTES32_PATTERN = '^0x[a-fA-F0-9]{64}$';
 
+const FINALIZE_ABI = [
+  {
+    type: 'function',
+    name: 'finalize',
+    inputs: [
+      { name: 'paymentId', type: 'bytes32' },
+      { name: 'serverSignature', type: 'bytes' },
+    ],
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+] as const;
+
 export async function finalizePaymentRoute(
   app: FastifyInstance,
   merchantService: MerchantService,
   paymentService: PaymentService,
   blockchainService: BlockchainService,
-  signingServices: Map<number, ServerSigningService>
+  signingServices: Map<number, ServerSigningService>,
+  relayerServices: Map<number, RelayerService>
 ) {
   const authMiddleware = createAuthMiddleware(merchantService);
 
@@ -40,7 +55,8 @@ Finalizes an escrowed payment, releasing funds to the merchant.
 **Flow:**
 1. Validate payment status and ownership
 2. Generate FinalizeRequest server signature
-3. Return signature for contract submission
+3. Submit finalize transaction to blockchain via relayer
+4. Return transaction submission result
         `,
         security: [{ ApiKeyAuth: [] }],
         params: {
@@ -63,9 +79,9 @@ Finalizes an escrowed payment, releasing funds to the merchant.
                 type: 'object',
                 properties: {
                   paymentId: { type: 'string' },
-                  serverSignature: { type: 'string' },
-                  gatewayAddress: { type: 'string' },
-                  chainId: { type: 'integer' },
+                  relayRequestId: { type: 'string' },
+                  transactionHash: { type: 'string' },
+                  status: { type: 'string' },
                 },
               },
             },
@@ -149,19 +165,41 @@ Finalizes an escrowed payment, releasing funds to the merchant.
           });
         }
 
-        // 8. Generate finalize signature
+        // 8. Get relayer service
+        const relayerService = relayerServices.get(payment.network_id);
+        if (!relayerService) {
+          return reply.code(500).send({
+            code: 'RELAYER_ERROR',
+            message: 'Relayer service not available for this chain',
+          });
+        }
+
+        // 9. Generate finalize signature
         const serverSignature = await signingService.signFinalizeRequest(paymentId as Hex);
 
-        // 9. Create audit event
+        // 10. Encode finalize calldata
+        const calldata = encodeFunctionData({
+          abi: FINALIZE_ABI,
+          functionName: 'finalize',
+          args: [paymentId as Hex, serverSignature],
+        });
+
+        // 11. Submit via relayer
+        const relayResult = await relayerService.submitDirectTransaction(
+          chainContracts.gateway as Address,
+          calldata
+        );
+
+        // 12. Create audit event
         await paymentService.createEvent(payment.id, 'FINALIZE_SUBMITTED');
 
         return reply.code(200).send({
           success: true,
           data: {
             paymentId: payment.payment_hash,
-            serverSignature,
-            gatewayAddress: chainContracts.gateway,
-            chainId: payment.network_id,
+            relayRequestId: relayResult.relayRequestId,
+            transactionHash: relayResult.transactionHash,
+            status: relayResult.status,
           },
         });
       } catch (error) {
