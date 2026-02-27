@@ -7,6 +7,8 @@ export interface PaymentWebhookBody {
   orderId: string | null;
   status: string;
   txHash: string | null;
+  /** Finalize/cancel transaction hash (separate from escrow txHash) */
+  releaseTxHash?: string | null;
   amount: string;
   tokenSymbol: string;
   /** ISO-8601 timestamp (present on CONFIRMED / FINALIZED) */

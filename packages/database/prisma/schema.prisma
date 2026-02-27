@@ -139,7 +139,8 @@ model Payment {
   token_symbol      String        @db.VarChar(20) // snapshot
   network_id        Int // snapshot of chain's network_id
   status            PaymentStatus @default(CREATED)
-  tx_hash           String?       @db.VarChar(66)
+  tx_hash           String?       @db.VarChar(66) // escrow tx (pay() transaction)
+  release_tx_hash   String?       @db.VarChar(66) // finalize/cancel tx (escrow release)
   expires_at        DateTime
   confirmed_at      DateTime?
   order_id          String?       @db.VarChar(255) // merchant order ID (client-side integration)
