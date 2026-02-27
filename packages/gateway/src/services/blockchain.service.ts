@@ -59,6 +59,16 @@ interface PaymentEscrowedEventArgs {
   timestamp: bigint;
 }
 
+// PaymentFinalized 이벤트 ABI
+const PAYMENT_FINALIZED_EVENT = parseAbiItem(
+  'event PaymentFinalized(bytes32 indexed paymentId, bytes32 indexed merchantId, address recipientAddress, address tokenAddress, uint256 amount, uint256 fee, uint256 timestamp)'
+);
+
+// PaymentCancelled 이벤트 ABI
+const PAYMENT_CANCELLED_EVENT = parseAbiItem(
+  'event PaymentCancelled(bytes32 indexed paymentId, bytes32 indexed merchantId, address indexed payerAddress, address tokenAddress, uint256 amount, uint256 timestamp)'
+);
+
 // PaymentGateway ABI (paymentStatus 조회용)
 const PAYMENT_STATUS_ABI = [
   {
@@ -367,8 +377,15 @@ export class BlockchainService {
       const now = new Date().toISOString();
 
       if (onChainStatus !== 'pending') {
+        // Always get escrow details (base info: payer, token, amount, escrow txHash)
         const paymentDetails = await this.getPaymentDetailsByPaymentId(chainId, paymentId);
         if (paymentDetails) {
+          // For finalized/cancelled, also query the release event for release txHash
+          let releaseTxHash: string | undefined;
+          if (onChainStatus === 'finalized' || onChainStatus === 'cancelled') {
+            releaseTxHash = await this.getReleaseTxHash(chainId, paymentId, onChainStatus);
+          }
+
           return {
             paymentId,
             payerAddress: paymentDetails.payerAddress,
@@ -380,6 +397,7 @@ export class BlockchainService {
             createdAt: paymentDetails.timestamp,
             updatedAt: now,
             transactionHash: paymentDetails.transactionHash,
+            releaseTxHash,
           };
         }
       }
@@ -473,6 +491,42 @@ export class BlockchainService {
     } catch (err) {
       this.logger.error({ err }, '결제 상세 정보 조회 실패');
       return null;
+    }
+  }
+
+  /**
+   * Query the release (finalize/cancel) transaction hash from on-chain events.
+   */
+  private async getReleaseTxHash(
+    chainId: number,
+    paymentId: string,
+    status: 'finalized' | 'cancelled'
+  ): Promise<string | undefined> {
+    try {
+      const client = this.getClient(chainId);
+      const config = this.getChainConfig(chainId);
+      const contractAddress = config.contracts.gateway as Address;
+
+      const currentBlock = await client.getBlockNumber();
+      const fromBlock = currentBlock > BigInt(10000) ? currentBlock - BigInt(10000) : BigInt(0);
+
+      const event = status === 'finalized' ? PAYMENT_FINALIZED_EVENT : PAYMENT_CANCELLED_EVENT;
+
+      const logs = await client.getLogs({
+        address: contractAddress,
+        event,
+        args: { paymentId: paymentId as `0x${string}` },
+        fromBlock,
+        toBlock: 'latest',
+      });
+
+      if (logs.length > 0) {
+        return logs[0].transactionHash;
+      }
+      return undefined;
+    } catch (err) {
+      this.logger.error({ err }, 'Failed to query release txHash');
+      return undefined;
     }
   }
 

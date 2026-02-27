@@ -65,6 +65,7 @@ export const PaymentStatusSchema = z.object({
     'completed',
   ]),
   transactionHash: z.string().optional(),
+  releaseTxHash: z.string().optional(),
   blockNumber: z.number().optional(),
   createdAt: z.string(),
   updatedAt: z.string(),

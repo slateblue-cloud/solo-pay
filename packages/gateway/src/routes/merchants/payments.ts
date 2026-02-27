@@ -42,13 +42,20 @@ async function syncPaymentStatusFromChain(
     return false;
   }
 
+  // For FINALIZED/CANCELLED, pass the release txHash; for ESCROWED, pass the escrow txHash
+  const isRelease = rule.to === 'FINALIZED' || rule.to === 'CANCELLED';
+  const txHashToStore = isRelease
+    ? (chainStatus.releaseTxHash ?? undefined)
+    : (chainStatus.transactionHash ?? undefined);
+
   const updated = await paymentService.updateStatusByHash(
     payment.payment_hash,
     rule.to,
-    chainStatus.transactionHash ?? undefined
+    txHashToStore
   );
   payment.status = updated.status;
   payment.tx_hash = updated.tx_hash;
+  payment.release_tx_hash = updated.release_tx_hash;
   payment.confirmed_at = updated.confirmed_at ?? payment.confirmed_at;
   if (chainStatus.payerAddress) {
     const withPayer = await paymentService.updatePayerAddress(
@@ -69,6 +76,7 @@ function buildPaymentDetailResponse(
     token_symbol: string;
     token_decimals: number;
     tx_hash: string | null;
+    release_tx_hash: string | null;
     payer_address: string | null;
     currency_code: string | null;
     fiat_amount: { toString: () => string } | null;
@@ -86,6 +94,7 @@ function buildPaymentDetailResponse(
     tokenSymbol: payment.token_symbol,
     tokenDecimals: payment.token_decimals,
     txHash: payment.tx_hash ?? undefined,
+    releaseTxHash: payment.release_tx_hash ?? undefined,
     payerAddress: payment.payer_address ?? undefined,
     currencyCode: payment.currency_code ?? undefined,
     fiatAmount: payment.fiat_amount?.toString() ?? undefined,
@@ -128,6 +137,7 @@ export async function merchantPaymentRoute(
       tokenSymbol: { type: 'string' },
       tokenDecimals: { type: 'integer' },
       txHash: { type: 'string' },
+      releaseTxHash: { type: 'string', description: 'Finalize/cancel transaction hash' },
       payerAddress: { type: 'string' },
       currencyCode: { type: 'string', description: 'Fiat currency code (e.g. USD)' },
       fiatAmount: { type: 'string', description: 'Original fiat amount before conversion' },

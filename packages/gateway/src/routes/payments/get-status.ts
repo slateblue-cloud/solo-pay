@@ -167,10 +167,15 @@ For non-terminal statuses, a fresh server signature with a new deadline is gener
               : onChain === 'finalized'
                 ? 'FINALIZED'
                 : 'CANCELLED';
+          // For FINALIZED/CANCELLED, pass releaseTxHash; for ESCROWED, pass escrow txHash
+          const isRelease = newStatus === 'FINALIZED' || newStatus === 'CANCELLED';
+          const txHashToStore = isRelease
+            ? paymentStatus.releaseTxHash
+            : paymentStatus.transactionHash;
           await paymentService.updateStatusByHash(
             paymentData.payment_hash,
             newStatus as import('@solo-pay/database').PaymentStatus,
-            paymentStatus.transactionHash
+            txHashToStore
           );
           if (paymentStatus.payerAddress) {
             await paymentService.updatePayerAddress(id, paymentStatus.payerAddress);

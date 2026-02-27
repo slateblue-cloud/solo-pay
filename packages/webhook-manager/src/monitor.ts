@@ -22,6 +22,7 @@ interface MonitorJobData {
   orderId: string | null;
   webhookUrl: string | null;
   status: string;
+  txHash: string | null;
 }
 
 export interface WebhookQueueForMonitor {
@@ -46,13 +47,15 @@ export interface MonitorOptions {
 function buildWebhookBody(
   data: MonitorJobData,
   newStatus: string,
-  txHash: string | null
+  txHash: string | null,
+  releaseTxHash?: string | null
 ): PaymentWebhookBody {
   return {
     paymentId: data.paymentHash,
     orderId: data.orderId,
     status: newStatus,
     txHash,
+    releaseTxHash: releaseTxHash ?? undefined,
     amount: data.amount,
     tokenSymbol: data.tokenSymbol,
     escrowedAt: newStatus === 'ESCROWED' ? new Date().toISOString() : undefined,
@@ -116,11 +119,12 @@ export function startPaymentMonitor(options: MonitorOptions): { stop: () => Prom
     data: MonitorJobData,
     jobName: string,
     newStatus: string,
-    txHash: string | null
+    txHash: string | null,
+    releaseTxHash?: string | null
   ): Promise<void> {
     const webhookUrl = await resolveWebhookUrl(data);
     if (!webhookUrl) return;
-    const body = buildWebhookBody(data, newStatus, txHash);
+    const body = buildWebhookBody(data, newStatus, txHash, releaseTxHash);
     await webhookQueue.addPaymentEvent(jobName, { url: webhookUrl, body });
   }
 
@@ -236,7 +240,7 @@ export function startPaymentMonitor(options: MonitorOptions): { stop: () => Prom
         data: {
           status: 'FINALIZED',
           finalized_at: new Date(),
-          ...(txHash && { tx_hash: txHash }),
+          ...(txHash && { release_tx_hash: txHash }),
         },
       });
 
@@ -251,8 +255,8 @@ export function startPaymentMonitor(options: MonitorOptions): { stop: () => Prom
         },
       });
 
-      console.log('[monitor] finalized payment=%s tx=%s', data.paymentHash, txHash);
-      await enqueueWebhook(data, JOB_NAME_PAYMENT_FINALIZED, 'FINALIZED', txHash);
+      console.log('[monitor] finalized payment=%s release_tx=%s', data.paymentHash, txHash);
+      await enqueueWebhook(data, JOB_NAME_PAYMENT_FINALIZED, 'FINALIZED', data.txHash, txHash);
       return;
     }
 
@@ -279,7 +283,7 @@ export function startPaymentMonitor(options: MonitorOptions): { stop: () => Prom
         data: {
           status: 'CANCELLED',
           cancelled_at: new Date(),
-          ...(txHash && { tx_hash: txHash }),
+          ...(txHash && { release_tx_hash: txHash }),
         },
       });
 
@@ -294,8 +298,8 @@ export function startPaymentMonitor(options: MonitorOptions): { stop: () => Prom
         },
       });
 
-      console.log('[monitor] cancelled payment=%s tx=%s', data.paymentHash, txHash);
-      await enqueueWebhook(data, JOB_NAME_PAYMENT_CANCELLED, 'CANCELLED', txHash);
+      console.log('[monitor] cancelled payment=%s release_tx=%s', data.paymentHash, txHash);
+      await enqueueWebhook(data, JOB_NAME_PAYMENT_CANCELLED, 'CANCELLED', data.txHash, txHash);
       return;
     }
 
@@ -334,8 +338,9 @@ export function startPaymentMonitor(options: MonitorOptions): { stop: () => Prom
             orderId: payment.order_id ?? null,
             webhookUrl: payment.webhook_url ?? null,
             status: payment.status,
+            txHash: payment.tx_hash ?? null,
           },
-          { jobId: `${payment.payment_hash}:${payment.status}` }
+          { jobId: `${payment.payment_hash}-${payment.status}` }
         );
       }
     } catch (err) {
