@@ -117,52 +117,14 @@ export async function createPaymentFromUrlParams(
 }
 
 // ============================================================================
-// Payment Details (Resume Mode)
-// ============================================================================
-
-/**
- * Get full payment details by paymentId (GET /payments/:id).
- * Used to resume a payment flow after page refresh or when opening
- * a widget link with only pk and paymentId.
- */
-export async function getPaymentDetails(
-  paymentId: string,
-  publicKey: string
-): Promise<PaymentDetails> {
-  const apiBase = getGatewayApiBase();
-
-  const response = await fetch(`${apiBase}/payments/${paymentId}`, {
-    headers: { 'x-public-key': publicKey },
-    cache: 'no-store',
-  });
-
-  const data = await response.json();
-
-  if (!response.ok) {
-    const error = data as ErrorResponse;
-    throw new PaymentApiError(
-      error.code || 'UNKNOWN_ERROR',
-      error.message || 'Failed to get payment details',
-      response.status,
-      error.details
-    );
-  }
-
-  if (data && data.success === true && data.data) {
-    return data.data as PaymentDetails;
-  }
-
-  return data as PaymentDetails;
-}
-
-// ============================================================================
 // Payment Status
 // ============================================================================
 
-export interface PaymentStatusResponse {
+export interface PaymentStatusResponse extends PaymentDetails {
   paymentId: string;
-  status: 'PENDING' | 'PROCESSING' | 'CONFIRMED' | 'FAILED' | 'EXPIRED';
+  status: 'CREATED' | 'PENDING' | 'PROCESSING' | 'CONFIRMED' | 'FAILED' | 'EXPIRED' | 'ESCROWED' | 'FINALIZED' | 'CANCELLED';
   txHash?: string;
+  transactionHash?: string;
   confirmedAt?: string;
 }
 
@@ -171,14 +133,14 @@ export interface GetPaymentStatusOptions {
 }
 
 /**
- * Get payment status (GET /payments/:id).
+ * Get payment status and full details (GET /payments/:id).
  */
 export async function getPaymentStatus(
   paymentId: string,
   options?: GetPaymentStatusOptions
 ): Promise<PaymentStatusResponse> {
   const apiBase = getGatewayApiBase();
-  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  const headers: Record<string, string> = {};
   if (options?.publicKey) headers['x-public-key'] = options.publicKey;
 
   const response = await fetch(`${apiBase}/payments/${paymentId}`, {
@@ -200,20 +162,7 @@ export async function getPaymentStatus(
   }
 
   if (data && data.success === true && data.data) {
-    const d = data.data as {
-      status: string;
-      payment_hash?: string;
-      paymentId?: string;
-      transactionHash?: string;
-      txHash?: string;
-      confirmedAt?: string;
-    };
-    return {
-      paymentId: d.payment_hash ?? d.paymentId ?? paymentId,
-      status: d.status as PaymentStatusResponse['status'],
-      txHash: d.transactionHash ?? d.txHash,
-      confirmedAt: d.confirmedAt,
-    };
+    return data.data as PaymentStatusResponse;
   }
 
   return data as PaymentStatusResponse;
@@ -239,11 +188,15 @@ export async function pollPaymentStatus(
 
     onStatusChange?.(status);
 
-    if (status.status === 'CONFIRMED') {
+    if (status.status === 'CONFIRMED' || status.status === 'FINALIZED') {
       return status;
     }
 
-    if (status.status === 'FAILED' || status.status === 'EXPIRED') {
+    if (
+      status.status === 'FAILED' ||
+      status.status === 'EXPIRED' ||
+      status.status === 'CANCELLED'
+    ) {
       throw new PaymentApiError(
         `PAYMENT_${status.status}`,
         `Payment ${status.status.toLowerCase()}`,

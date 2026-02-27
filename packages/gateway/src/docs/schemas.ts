@@ -225,12 +225,16 @@ export const PaymentStatusResponseSchema = {
         },
         status: {
           type: 'string',
-          enum: ['CREATED', 'PENDING', 'CONFIRMED', 'FAILED'],
+          enum: [
+            'CREATED', 'PENDING', 'ESCROWED', 'FINALIZE_SUBMITTED', 'CANCEL_SUBMITTED',
+            'CONFIRMED', 'FINALIZED', 'CANCELLED', 'FAILED', 'EXPIRED',
+          ],
           description: 'Payment status from database',
         },
         createdAt: { type: 'string', description: 'Creation timestamp' },
         updatedAt: { type: 'string', description: 'Last update timestamp' },
         transactionHash: { type: 'string', nullable: true, description: 'Transaction hash' },
+        chainId: { type: 'integer', description: 'Network/Chain ID' },
         payment_hash: { type: 'string', description: 'Payment hash (bytes32)' },
         network_id: { type: 'integer', description: 'Network/Chain ID' },
         token_symbol: { type: 'string', description: 'Token symbol from DB' },

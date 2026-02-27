@@ -48,7 +48,7 @@ export interface UrlParamsValidationResult {
 }
 
 /**
- * API response from POST /payments
+ * Payment details returned by POST /payments and GET /payments/:id.
  */
 export interface PaymentDetails {
   /** Payment hash for smart contract */
@@ -95,11 +95,12 @@ export interface PaymentDetails {
   fiatAmount?: number;
   /** Token price at creation time */
   tokenPrice?: number;
-  /** Payment status (returned by GET /payments/:id/details for resume mode) */
+  /** Payment status */
   status?:
     | 'CREATED'
     | 'PENDING'
     | 'PROCESSING'
+    | 'ESCROWED'
     | 'CONFIRMED'
     | 'FAILED'
     | 'EXPIRED'

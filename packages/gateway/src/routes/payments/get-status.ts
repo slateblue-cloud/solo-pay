@@ -30,9 +30,13 @@ export async function getPaymentStatusRoute(
       schema: {
         operationId: 'getPaymentStatus',
         tags: ['Payment'],
-        summary: 'Get payment status',
+        summary: 'Get payment status and details',
         description: `
-Retrieves the current status of a payment by its payment hash. Requires x-public-key. Origin is verified against ALLOWED_WIDGET_ORIGIN when configured.
+Retrieves the current status and full details of a payment by its payment hash. Requires x-public-key.
+
+Returns on-chain status (synced to DB), plus full payment details including server signature, merchant/token/chain info, and contract parameters needed for the widget to resume a payment flow.
+
+For non-terminal statuses, a fresh server signature with a new deadline is generated. For terminal statuses, details are returned without a signature.
 
 **Status Values:**
 - \`CREATED\` - Payment created, awaiting on-chain transaction
@@ -44,8 +48,6 @@ Retrieves the current status of a payment by its payment hash. Requires x-public
 - \`FINALIZED\` - Escrowed payment released to merchant
 - \`CANCELLED\` - Escrowed payment refunded to buyer
 - \`FAILED\` - Payment failed
-
-**Note:** This endpoint syncs on-chain status with database status.
         `,
         headers: {
           type: 'object',
@@ -256,8 +258,11 @@ Retrieves the current status of a payment by its payment hash. Requires x-public
           success: true,
           data: {
             ...paymentStatus,
+            paymentId: paymentData.payment_hash,
             payment_hash: paymentData.payment_hash,
+            chainId: paymentData.network_id,
             network_id: paymentData.network_id,
+            tokenSymbol: paymentData.token_symbol,
             token_symbol: paymentData.token_symbol,
             status: finalStatus,
             tokenPermitSupported,

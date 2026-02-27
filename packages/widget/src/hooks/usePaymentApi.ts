@@ -2,7 +2,6 @@ import { useState, useCallback } from 'react';
 import type { WidgetUrlParams, PaymentDetails } from '../types';
 import {
   createPaymentFromUrlParams,
-  getPaymentDetails,
   getPaymentStatus,
   pollPaymentStatus,
   PaymentApiError,
@@ -82,7 +81,7 @@ export function usePaymentApi(): UsePaymentApiReturn {
       setErrorCode(null);
 
       try {
-        const result = await getPaymentDetails(paymentId, pk);
+        const result = await getPaymentStatus(paymentId, { publicKey: pk });
         setPayment(result);
         setPublicKey(pk);
         return result;
