@@ -120,10 +120,20 @@ export async function createPaymentFromUrlParams(
 // Payment Status
 // ============================================================================
 
-export interface PaymentStatusResponse {
+export interface PaymentStatusResponse extends PaymentDetails {
   paymentId: string;
-  status: 'PENDING' | 'PROCESSING' | 'CONFIRMED' | 'FAILED' | 'EXPIRED';
+  status:
+    | 'CREATED'
+    | 'PENDING'
+    | 'PROCESSING'
+    | 'CONFIRMED'
+    | 'FAILED'
+    | 'EXPIRED'
+    | 'ESCROWED'
+    | 'FINALIZED'
+    | 'CANCELLED';
   txHash?: string;
+  transactionHash?: string;
   confirmedAt?: string;
 }
 
@@ -132,14 +142,14 @@ export interface GetPaymentStatusOptions {
 }
 
 /**
- * Get payment status (GET /payments/:id).
+ * Get payment status and full details (GET /payments/:id).
  */
 export async function getPaymentStatus(
   paymentId: string,
   options?: GetPaymentStatusOptions
 ): Promise<PaymentStatusResponse> {
   const apiBase = getGatewayApiBase();
-  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  const headers: Record<string, string> = {};
   if (options?.publicKey) headers['x-public-key'] = options.publicKey;
 
   const response = await fetch(`${apiBase}/payments/${paymentId}`, {
@@ -161,20 +171,7 @@ export async function getPaymentStatus(
   }
 
   if (data && data.success === true && data.data) {
-    const d = data.data as {
-      status: string;
-      payment_hash?: string;
-      paymentId?: string;
-      transactionHash?: string;
-      txHash?: string;
-      confirmedAt?: string;
-    };
-    return {
-      paymentId: d.payment_hash ?? d.paymentId ?? paymentId,
-      status: d.status as PaymentStatusResponse['status'],
-      txHash: d.transactionHash ?? d.txHash,
-      confirmedAt: d.confirmedAt,
-    };
+    return data.data as PaymentStatusResponse;
   }
 
   return data as PaymentStatusResponse;
@@ -200,11 +197,15 @@ export async function pollPaymentStatus(
 
     onStatusChange?.(status);
 
-    if (status.status === 'CONFIRMED') {
+    if (status.status === 'CONFIRMED' || status.status === 'FINALIZED') {
       return status;
     }
 
-    if (status.status === 'FAILED' || status.status === 'EXPIRED') {
+    if (
+      status.status === 'FAILED' ||
+      status.status === 'EXPIRED' ||
+      status.status === 'CANCELLED'
+    ) {
       throw new PaymentApiError(
         `PAYMENT_${status.status}`,
         `Payment ${status.status.toLowerCase()}`,

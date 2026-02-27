@@ -1,7 +1,12 @@
 import { FastifyInstance } from 'fastify';
+import { Address, Hex } from 'viem';
 import { BlockchainService } from '../../services/blockchain.service';
 import { PaymentService } from '../../services/payment.service';
 import { MerchantService } from '../../services/merchant.service';
+import { ChainService } from '../../services/chain.service';
+import { TokenService } from '../../services/token.service';
+import { PaymentMethodService } from '../../services/payment-method.service';
+import { ServerSigningService } from '../../services/signature-server.service';
 import { createPublicAuthMiddleware } from '../../middleware/public-auth.middleware';
 import { PaymentStatusResponseSchema, ErrorResponseSchema } from '../../docs/schemas';
 
@@ -9,7 +14,11 @@ export async function getPaymentStatusRoute(
   app: FastifyInstance,
   blockchainService: BlockchainService,
   paymentService: PaymentService,
-  merchantService: MerchantService
+  merchantService: MerchantService,
+  chainService: ChainService,
+  tokenService: TokenService,
+  paymentMethodService: PaymentMethodService,
+  signingServices?: Map<number, ServerSigningService>
 ) {
   const authMiddleware = createPublicAuthMiddleware(merchantService);
 
@@ -21,9 +30,13 @@ export async function getPaymentStatusRoute(
       schema: {
         operationId: 'getPaymentStatus',
         tags: ['Payment'],
-        summary: 'Get payment status',
+        summary: 'Get payment status and details',
         description: `
-Retrieves the current status of a payment by its payment hash. Requires x-public-key. Origin is verified against ALLOWED_WIDGET_ORIGIN when configured.
+Retrieves the current status and full details of a payment by its payment hash. Requires x-public-key.
+
+Returns on-chain status (synced to DB), plus full payment details including server signature, merchant/token/chain info, and contract parameters needed for the widget to resume a payment flow.
+
+For non-terminal statuses, a fresh server signature with a new deadline is generated. For terminal statuses, details are returned without a signature.
 
 **Status Values:**
 - \`CREATED\` - Payment created, awaiting on-chain transaction
@@ -35,8 +48,6 @@ Retrieves the current status of a payment by its payment hash. Requires x-public
 - \`FINALIZED\` - Escrowed payment released to merchant
 - \`CANCELLED\` - Escrowed payment refunded to buyer
 - \`FAILED\` - Payment failed
-
-**Note:** This endpoint syncs on-chain status with database status.
         `,
         headers: {
           type: 'object',
@@ -176,15 +187,88 @@ Retrieves the current status of a payment by its payment hash. Requires x-public
           paymentData.payment_method_id
         );
 
+        // Fetch full payment details (merchant, chain, token, signature)
+        const [merchantRecord, chain, paymentMethod] = await Promise.all([
+          merchantService.findById(paymentData.merchant_id),
+          chainService.findByNetworkId(paymentData.network_id),
+          paymentMethodService.findById(paymentData.payment_method_id),
+        ]);
+
+        let detailsFields: Record<string, unknown> = {};
+
+        if (merchantRecord && chain && paymentMethod) {
+          const token = await tokenService.findById(paymentMethod.token_id);
+
+          if (token) {
+            const merchantId = ServerSigningService.merchantKeyToId(merchantRecord.merchant_key);
+            const recipientAddress = merchantRecord.recipient_address as Address | null;
+            const amountInWei = BigInt(paymentData.amount.toString());
+            const defaultEscrowDuration = Number(process.env.DEFAULT_ESCROW_DURATION) || 300;
+            const escrowDuration = BigInt(merchantRecord.escrow_duration ?? defaultEscrowDuration);
+
+            const terminalStatuses = ['CONFIRMED', 'FAILED', 'EXPIRED', 'FINALIZED', 'CANCELLED'];
+            const isTerminal = terminalStatuses.includes(finalStatus);
+
+            let serverSignature: Hex | string = '';
+            let deadline = BigInt(0);
+
+            if (!isTerminal) {
+              const deadlineTtl = Number(process.env.PAYMENT_DEADLINE_SECONDS) || 3600;
+              deadline = BigInt(Math.floor(Date.now() / 1000) + deadlineTtl);
+
+              const signingService = signingServices?.get(paymentData.network_id);
+              if (signingService && recipientAddress) {
+                try {
+                  serverSignature = await signingService.signPaymentRequest(
+                    id as Hex,
+                    token.address as Address,
+                    amountInWei,
+                    recipientAddress,
+                    merchantId,
+                    merchantRecord.fee_bps,
+                    deadline,
+                    escrowDuration
+                  );
+                } catch (err) {
+                  app.log.error({ err }, 'Failed to generate server signature for payment details');
+                }
+              }
+            }
+
+            detailsFields = {
+              serverSignature,
+              orderId: paymentData.order_id ?? '',
+              tokenAddress: token.address,
+              gatewayAddress: chain.gateway_address ?? '',
+              amount: amountInWei.toString(),
+              tokenDecimals: paymentData.token_decimals,
+              recipientAddress: recipientAddress ?? '',
+              merchantId,
+              feeBps: merchantRecord.fee_bps,
+              deadline: deadline.toString(),
+              escrowDuration: escrowDuration.toString(),
+              forwarderAddress: chain.forwarder_address ?? undefined,
+              successUrl: paymentData.success_url ?? '',
+              failUrl: paymentData.fail_url ?? '',
+              expiresAt: new Date(paymentData.expires_at).toISOString(),
+              currency: paymentData.currency_code ?? undefined,
+              fiatAmount: paymentData.fiat_amount ? Number(paymentData.fiat_amount) : undefined,
+              tokenPrice: paymentData.token_price ? Number(paymentData.token_price) : undefined,
+              txHash: paymentData.tx_hash ?? undefined,
+            };
+          }
+        }
+
         return reply.code(200).send({
           success: true,
           data: {
             ...paymentStatus,
-            payment_hash: paymentData.payment_hash,
-            network_id: paymentData.network_id,
-            token_symbol: paymentData.token_symbol,
+            paymentId: paymentData.payment_hash,
+            chainId: paymentData.network_id,
+            tokenSymbol: paymentData.token_symbol,
             status: finalStatus,
             tokenPermitSupported,
+            ...detailsFields,
           },
         });
       } catch (error) {

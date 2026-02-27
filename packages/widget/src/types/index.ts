@@ -15,15 +15,15 @@ export type WidgetLocale = 'en' | 'ko';
 export interface WidgetUrlParams {
   /** Public key for merchant authentication (required) */
   pk: string;
-  /** Merchant order ID (required) */
+  /** Merchant order ID (required in creation mode) */
   orderId: string;
-  /** Payment amount in human readable format (required) */
+  /** Payment amount in human readable format (required in creation mode) */
   amount: string;
-  /** ERC-20 token contract address (required, must be whitelisted and enabled for merchant) */
+  /** ERC-20 token contract address (required in creation mode) */
   tokenAddress: string;
-  /** Redirect URL on success (required) */
+  /** Redirect URL on success (required in creation mode) */
   successUrl: string;
-  /** Redirect URL on failure (required) */
+  /** Redirect URL on failure (required in creation mode) */
   failUrl: string;
   /** Fiat currency code (optional, e.g., USD, KRW) */
   currency?: string;
@@ -31,6 +31,8 @@ export interface WidgetUrlParams {
   walletOnly?: boolean;
   /** UI language: en (default) or ko. When changed in UI, URL is updated. */
   lang?: WidgetLocale;
+  /** Payment ID for resume mode (skips creation and fetches existing payment) */
+  paymentId?: string;
 }
 
 /**
@@ -46,7 +48,7 @@ export interface UrlParamsValidationResult {
 }
 
 /**
- * API response from POST /payments
+ * Payment details returned by POST /payments and GET /payments/:id.
  */
 export interface PaymentDetails {
   /** Payment hash for smart contract */
@@ -93,6 +95,19 @@ export interface PaymentDetails {
   fiatAmount?: number;
   /** Token price at creation time */
   tokenPrice?: number;
+  /** Payment status */
+  status?:
+    | 'CREATED'
+    | 'PENDING'
+    | 'PROCESSING'
+    | 'ESCROWED'
+    | 'CONFIRMED'
+    | 'FAILED'
+    | 'EXPIRED'
+    | 'FINALIZED'
+    | 'CANCELLED';
+  /** Transaction hash */
+  txHash?: string;
 }
 
 /** Gas payment mode */

@@ -3,20 +3,23 @@ import type { WidgetUrlParams, UrlParamsValidationResult, WidgetLocale } from '.
 /**
  * Validate URL parameters for widget initialization
  *
- * Required params: pk, orderId, amount, tokenAddress, successUrl, failUrl
+ * Supports two modes:
+ * 1. **Creation mode**: pk + orderId + amount + tokenAddress + successUrl + failUrl (all required)
+ * 2. **Resume mode**: pk + paymentId (skips creation, fetches existing payment from server)
+ *
  * Optional: currency, walletOnly, lang (en | ko)
  *
  * @example
  * ```tsx
- * // In any React component
- * const searchParams = useSearchParams();
  * const result = validateWidgetUrlParams(searchParams);
- *
  * if (!result.isValid) {
  *   return <ErrorPage errors={result.errors} />;
  * }
- *
- * const { pk, orderId, amount, successUrl, failUrl, lang } = result.params;
+ * if (result.params.paymentId) {
+ *   // Resume mode — fetch payment details from server
+ * } else {
+ *   // Creation mode — create new payment
+ * }
  * ```
  */
 export function validateWidgetUrlParams(
@@ -24,25 +27,50 @@ export function validateWidgetUrlParams(
 ): UrlParamsValidationResult {
   const errors: string[] = [];
 
-  // Extract all parameters
+  // Extract common parameters
   const pk = searchParams.get('pk');
-  const orderId = searchParams.get('orderId');
-  const amount = searchParams.get('amount');
-  const tokenAddress = searchParams.get('tokenAddress');
-  const successUrl = searchParams.get('successUrl');
-  const failUrl = searchParams.get('failUrl');
+  const paymentId = searchParams.get('paymentId');
   const currency = searchParams.get('currency');
   const walletOnlyRaw = searchParams.get('walletOnly');
   const walletOnly = walletOnlyRaw === '1' || walletOnlyRaw === 'true' || walletOnlyRaw === 'yes';
   const langRaw = searchParams.get('lang');
   const lang: WidgetLocale = langRaw === 'ko' || langRaw === 'en' ? langRaw : 'en';
 
-  // Validate required fields
+  // pk is always required
   if (!pk || pk.trim() === '') {
     errors.push('pk (public key) is required');
   } else if (!pk.startsWith('pk_')) {
     errors.push('pk must start with "pk_"');
   }
+
+  // Resume mode: only pk + paymentId required
+  if (paymentId && paymentId.trim() !== '') {
+    if (errors.length > 0) {
+      return { isValid: false, errors };
+    }
+
+    return {
+      isValid: true,
+      params: {
+        pk: pk!,
+        paymentId,
+        // Provide empty defaults for required fields — they will be populated from server
+        orderId: '',
+        amount: '',
+        tokenAddress: '',
+        successUrl: '',
+        failUrl: '',
+        lang,
+      },
+    };
+  }
+
+  // Creation mode: validate all required fields
+  const orderId = searchParams.get('orderId');
+  const amount = searchParams.get('amount');
+  const tokenAddress = searchParams.get('tokenAddress');
+  const successUrl = searchParams.get('successUrl');
+  const failUrl = searchParams.get('failUrl');
 
   if (!orderId || orderId.trim() === '') {
     errors.push('orderId is required');

@@ -45,6 +45,7 @@ const translations = {
     'error.transactionFailedRetry': 'Transaction failed. Please try again',
     'error.networkError': 'Network error. Please check your connection',
     'error.insufficientBalance': 'Insufficient balance. You need {amount} {token}',
+    'error.paymentExpired': 'This payment has expired',
 
     // Connect wallet
     'connect.title': 'Connect Wallet',
@@ -134,6 +135,7 @@ const translations = {
     'error.transactionFailedRetry': '트랜잭션 실패. 다시 시도해 주세요',
     'error.networkError': '네트워크 오류. 연결을 확인해 주세요',
     'error.insufficientBalance': '잔액이 부족합니다. {amount} {token} 필요',
+    'error.paymentExpired': '결제가 만료되었습니다',
 
     'connect.title': '지갑 연결',
     'connect.description': '결제를 위해 지갑을 연결해 주세요.\nMetaMask, Trust Wallet 지원.',
