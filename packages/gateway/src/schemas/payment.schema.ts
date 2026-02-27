@@ -5,7 +5,15 @@ import PaymentGatewayV1Artifact from '@solo-pay/contracts/artifacts/src/PaymentG
 // Create payment request (POST /payments): orderId, amount, tokenAddress, successUrl, failUrl, currency?
 export const CreatePaymentSchema = z
   .object({
-    orderId: z.string().min(1, 'orderId is required'),
+    orderId: z
+      .string()
+      .trim()
+      .min(1, 'orderId is required')
+      .max(255, 'orderId must be 255 characters or less')
+      .regex(
+        /^[a-zA-Z0-9_\-.:]+$/,
+        'orderId must contain only alphanumeric characters, hyphens, underscores, dots, and colons'
+      ),
     amount: z.number().positive('amount must be positive'),
     tokenAddress: z
       .string()

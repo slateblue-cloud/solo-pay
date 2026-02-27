@@ -94,8 +94,8 @@ export default function PaymentStep({ urlParams }: PaymentStepProps) {
   // Track if payment was initiated in this session (prevents stale txHash from triggering success)
   const paymentInitiated = useRef(false);
 
-  /** When true, user clicked "Change wallet" — show wallet selection and do not auto-advance on reconnect */
-  const userRequestedWalletChange = useRef(false);
+  /** When true: show wallet picker, do not auto-advance, and disconnect whenever extension reconnects */
+  const [lockReconnect, setLockReconnect] = useState(false);
 
   // Error for invalid payment configuration
   const [configError, setConfigError] = useState<string | null>(null);
@@ -144,6 +144,8 @@ export default function PaymentStep({ urlParams }: PaymentStepProps) {
   // Prevent double API call in React Strict Mode
   const isInitialized = useRef(false);
 
+  const [buttonConnectClicked, setButtonConnectClicked] = useState(false);
+
   // Create payment on mount when urlParams is available (skip when walletOnly — no gateway API)
   useEffect(() => {
     if (urlParams && !urlParams.walletOnly && !isInitialized.current) {
@@ -151,6 +153,19 @@ export default function PaymentStep({ urlParams }: PaymentStepProps) {
       createPayment(urlParams);
     }
   }, [urlParams, createPayment]);
+
+  // Fresh wallet session: if we're connected without user clicking connect (e.g. cached), disconnect and lock
+  useEffect(() => {
+    if (!buttonConnectClicked && isConnected) {
+      setLockReconnect(true);
+      disconnect();
+    }
+  }, [buttonConnectClicked, isConnected, disconnect]);
+
+  // While locked, force disconnect on any extension/Wagmi reconnect (state in deps so effect re-runs)
+  useEffect(() => {
+    if (lockReconnect && isConnected) disconnect();
+  }, [lockReconnect, isConnected, disconnect]);
 
   // Human-readable amount (for display)
   // When currency conversion is used, show the converted token amount instead of the fiat input
@@ -177,7 +192,7 @@ export default function PaymentStep({ urlParams }: PaymentStepProps) {
   useEffect(() => {
     if (currentStep !== 'wallet-connect') return;
     if (!isConnected || !address || !paymentDetails) return;
-    if (userRequestedWalletChange.current) return;
+    if (lockReconnect) return;
 
     const targetChainId = paymentDetails.chainId;
     const needsSwitch = chain?.id !== targetChainId;
@@ -200,12 +215,9 @@ export default function PaymentStep({ urlParams }: PaymentStepProps) {
     }
 
     if (!isSwitchingChain) {
+      // Wait for permit check so we can go straight to payment-confirm when token supports permit (already approved flow)
       if (isPermitSupported === undefined) return;
-      if (isPermitSupported) {
-        setCurrentStep('payment-confirm');
-      } else {
-        setCurrentStep('token-approval');
-      }
+      setCurrentStep(isPermitSupported ? 'payment-confirm' : 'token-approval');
     }
   }, [
     isConnected,
@@ -218,21 +230,20 @@ export default function PaymentStep({ urlParams }: PaymentStepProps) {
     currentStep,
   ]);
 
-  // Fallback: if permit check never resolves, advance to token-approval after 12s
+  // Fallback: if still on wallet-connect after connecting (e.g. Trust Wallet chain/switch delay), advance after 4s
   useEffect(() => {
     if (
       !paymentDetails ||
       !isConnected ||
       !address ||
-      isPermitSupported !== undefined ||
       currentStep !== 'wallet-connect' ||
-      userRequestedWalletChange.current
+      lockReconnect
     ) {
       return;
     }
-    const timeout = window.setTimeout(() => setCurrentStep('token-approval'), 12000);
+    const timeout = window.setTimeout(() => setCurrentStep('token-approval'), 4000);
     return () => window.clearTimeout(timeout);
-  }, [paymentDetails, isConnected, address, isPermitSupported, currentStep]);
+  }, [paymentDetails, isConnected, address, currentStep, lockReconnect]);
 
   // Auto-advance after approval confirmation
   useEffect(() => {
@@ -274,15 +285,17 @@ export default function PaymentStep({ urlParams }: PaymentStepProps) {
     ? parseFloat(formattedBalance) >= parseFloat(displayAmount)
     : true; // Assume true while loading
 
-  // Disconnect handler — always show wallet selection (don't auto-reconnect to previous wallet)
+  /** Show wallet picker and block auto-reconnect until user picks a wallet */
   const handleDisconnect = useCallback(() => {
-    userRequestedWalletChange.current = true;
+    setLockReconnect(true);
     disconnect();
     goToWalletConnect();
   }, [disconnect]);
 
+  /** Called when user picks a wallet (clears lock so we allow this connection and auto-advance) */
   const clearWalletChangeIntent = useCallback(() => {
-    userRequestedWalletChange.current = false;
+    setLockReconnect(false);
+    setButtonConnectClicked(true);
   }, []);
 
   // Approve handler
@@ -514,10 +527,7 @@ export default function PaymentStep({ urlParams }: PaymentStepProps) {
     if (!paymentDetails) return null;
     switch (currentStep) {
       case 'wallet-connect':
-        if (userRequestedWalletChange.current) {
-          return <ConnectWalletButton onConnectorClick={clearWalletChangeIntent} />;
-        }
-        if (isConnected && paymentDetails) {
+        if (isConnected && !lockReconnect) {
           return (
             <LoadingSpinner
               message={

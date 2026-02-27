@@ -61,6 +61,9 @@ describe('PaymentService', () => {
       currency_code: null,
       fiat_amount: null,
       token_price: null,
+      escrow_deadline: null,
+      finalized_at: null,
+      cancelled_at: null,
     };
 
     mockPrisma.payment.create.mockResolvedValue(mockResult);
@@ -109,6 +112,9 @@ describe('PaymentService', () => {
       currency_code: null,
       fiat_amount: null,
       token_price: null,
+      escrow_deadline: null,
+      finalized_at: null,
+      cancelled_at: null,
     };
 
     mockPrisma.payment.findUnique.mockResolvedValue(mockPayment);
@@ -146,6 +152,9 @@ describe('PaymentService', () => {
       currency_code: null,
       fiat_amount: null,
       token_price: null,
+      escrow_deadline: null,
+      finalized_at: null,
+      cancelled_at: null,
     };
 
     mockPrisma.payment.findUnique.mockResolvedValue(mockPayment);
@@ -186,6 +195,9 @@ describe('PaymentService', () => {
       currency_code: null,
       fiat_amount: null,
       token_price: null,
+      escrow_deadline: null,
+      finalized_at: null,
+      cancelled_at: null,
     };
 
     const mockUpdated = {
@@ -239,6 +251,9 @@ describe('PaymentService', () => {
         currency_code: null,
         fiat_amount: null,
         token_price: null,
+        escrow_deadline: null,
+        finalized_at: null,
+        cancelled_at: null,
       },
     ];
 
@@ -281,6 +296,9 @@ describe('PaymentService', () => {
       currency_code: null,
       fiat_amount: null,
       token_price: null,
+      escrow_deadline: null,
+      finalized_at: null,
+      cancelled_at: null,
     };
 
     mockPrisma.payment.create.mockResolvedValue(mockResult);
@@ -326,6 +344,9 @@ describe('PaymentService', () => {
       currency_code: null,
       fiat_amount: null,
       token_price: null,
+      escrow_deadline: null,
+      finalized_at: null,
+      cancelled_at: null,
     };
 
     mockPrisma.payment.findUnique.mockResolvedValue(mockPayment);
@@ -382,6 +403,9 @@ describe('PaymentService', () => {
         currency_code: null,
         fiat_amount: null,
         token_price: null,
+        escrow_deadline: null,
+        finalized_at: null,
+        cancelled_at: null,
       };
 
       const mockUpdated = {
@@ -448,6 +472,9 @@ describe('PaymentService', () => {
         currency_code: null,
         fiat_amount: null,
         token_price: null,
+        escrow_deadline: null,
+        finalized_at: null,
+        cancelled_at: null,
       };
 
       const mockUpdated = {
@@ -502,6 +529,9 @@ describe('PaymentService', () => {
         currency_code: null,
         fiat_amount: null,
         token_price: null,
+        escrow_deadline: null,
+        finalized_at: null,
+        cancelled_at: null,
       };
 
       const mockUpdated = {
@@ -557,6 +587,9 @@ describe('PaymentService', () => {
         currency_code: null,
         fiat_amount: null,
         token_price: null,
+        escrow_deadline: null,
+        finalized_at: null,
+        cancelled_at: null,
       };
 
       mockPrisma.payment.findUnique.mockResolvedValue(mockPayment);
@@ -606,6 +639,9 @@ describe('PaymentService', () => {
         currency_code: null,
         fiat_amount: null,
         token_price: null,
+        escrow_deadline: null,
+        finalized_at: null,
+        cancelled_at: null,
       };
 
       mockPrisma.payment.findFirst.mockResolvedValue(mockPayment);
@@ -662,6 +698,9 @@ describe('PaymentService', () => {
         currency_code: null,
         fiat_amount: null,
         token_price: null,
+        escrow_deadline: null,
+        finalized_at: null,
+        cancelled_at: null,
       };
 
       const mockUpdated = {
@@ -726,6 +765,9 @@ describe('PaymentService', () => {
         currency_code: null,
         fiat_amount: null,
         token_price: null,
+        escrow_deadline: null,
+        finalized_at: null,
+        cancelled_at: null,
       };
 
       mockPrisma.payment.create.mockResolvedValue(mockResult);
@@ -775,6 +817,9 @@ describe('PaymentService', () => {
           currency_code: null,
           fiat_amount: null,
           token_price: null,
+          escrow_deadline: null,
+          finalized_at: null,
+          cancelled_at: null,
         },
       ];
 
@@ -813,6 +858,9 @@ describe('PaymentService', () => {
         currency_code: null,
         fiat_amount: null,
         token_price: null,
+        escrow_deadline: null,
+        finalized_at: null,
+        cancelled_at: null,
       };
 
       mockPrisma.payment.findUnique.mockResolvedValue(mockPayment);
@@ -853,6 +901,9 @@ describe('PaymentService', () => {
           currency_code: null,
           fiat_amount: null,
           token_price: null,
+          escrow_deadline: null,
+          finalized_at: null,
+          cancelled_at: null,
         },
         {
           id: 202,
@@ -878,6 +929,9 @@ describe('PaymentService', () => {
           currency_code: null,
           fiat_amount: null,
           token_price: null,
+          escrow_deadline: null,
+          finalized_at: null,
+          cancelled_at: null,
         },
       ];
 
@@ -919,6 +973,9 @@ describe('PaymentService', () => {
         currency_code: null,
         fiat_amount: null,
         token_price: null,
+        escrow_deadline: null,
+        finalized_at: null,
+        cancelled_at: null,
       };
 
       mockPrisma.payment.findFirst.mockResolvedValue(latestPayment);
@@ -954,6 +1011,9 @@ describe('PaymentService', () => {
         currency_code: null,
         fiat_amount: null,
         token_price: null,
+        escrow_deadline: null,
+        finalized_at: null,
+        cancelled_at: null,
       };
 
       mockPrisma.payment.findFirst.mockResolvedValue(merchant1Payment);
@@ -973,6 +1033,101 @@ describe('PaymentService', () => {
       const result = await paymentService.findByOrderId('existing_order', 999);
 
       expect(result).toBeNull();
+    });
+  });
+
+  describe('getTokenPermitSupported', () => {
+    it('should return true when token has permit_enabled', async () => {
+      mockPrisma.merchantPaymentMethod.findUnique.mockResolvedValue({
+        id: 1,
+        merchant_id: 1,
+        token_id: 10,
+        is_enabled: true,
+        is_deleted: false,
+        deleted_at: null,
+        created_at: new Date(),
+        updated_at: new Date(),
+      });
+      mockPrisma.token.findFirst.mockResolvedValue({
+        id: 10,
+        chain_id: 1,
+        address: '0x' + 'a'.repeat(40),
+        symbol: 'USDC',
+        decimals: 6,
+        cmc_slug: null,
+        permit_enabled: true,
+        is_enabled: true,
+        is_deleted: false,
+        deleted_at: null,
+        created_at: new Date(),
+        updated_at: new Date(),
+      });
+
+      const result = await paymentService.getTokenPermitSupported(1);
+
+      expect(result).toBe(true);
+      expect(mockPrisma.merchantPaymentMethod.findUnique).toHaveBeenCalledWith({
+        where: { id: 1 },
+        select: { token_id: true },
+      });
+    });
+
+    it('should return false when token has permit_enabled=false', async () => {
+      mockPrisma.merchantPaymentMethod.findUnique.mockResolvedValue({
+        id: 2,
+        merchant_id: 1,
+        token_id: 20,
+        is_enabled: true,
+        is_deleted: false,
+        deleted_at: null,
+        created_at: new Date(),
+        updated_at: new Date(),
+      });
+      mockPrisma.token.findFirst.mockResolvedValue({
+        id: 20,
+        chain_id: 1,
+        address: '0x' + 'b'.repeat(40),
+        symbol: 'USDT',
+        decimals: 6,
+        cmc_slug: null,
+        permit_enabled: false,
+        is_enabled: true,
+        is_deleted: false,
+        deleted_at: null,
+        created_at: new Date(),
+        updated_at: new Date(),
+      });
+
+      const result = await paymentService.getTokenPermitSupported(2);
+
+      expect(result).toBe(false);
+    });
+
+    it('should return false when payment method not found', async () => {
+      mockPrisma.merchantPaymentMethod.findUnique.mockResolvedValue(null);
+
+      const result = await paymentService.getTokenPermitSupported(999);
+
+      expect(result).toBe(false);
+      expect(mockPrisma.token.findFirst).not.toHaveBeenCalled();
+    });
+
+    it('should return false when token not found', async () => {
+      mockPrisma.merchantPaymentMethod.findUnique.mockResolvedValue({
+        id: 3,
+        merchant_id: 1,
+        token_id: 999,
+        is_enabled: true,
+        is_deleted: false,
+        deleted_at: null,
+        created_at: new Date(),
+        updated_at: new Date(),
+      });
+      mockPrisma.token.findFirst.mockResolvedValue(null);
+
+      const result = await paymentService.getTokenPermitSupported(3);
+
+      expect(result).toBe(false);
     });
   });
 });

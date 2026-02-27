@@ -29,10 +29,11 @@ const mockMerchant = {
 };
 
 // 유효한 pay() calldata 생성 헬퍼
-// Pay function: pay(paymentId, tokenAddress, amount, recipientAddress, merchantId, feeBps, serverSignature)
+// Pay function: pay(paymentId, tokenAddress, amount, recipientAddress, merchantId, feeBps, deadline, escrowDuration, serverSignature, permit)
 const createValidPayCalldata = (paymentId: string, amount: string) => {
   const paymentIdHash = keccak256(toHex(paymentId));
   const merchantId = keccak256(toHex('merchant_demo_001')); // bytes32 merchantId
+  const deadline = BigInt(Math.floor(Date.now() / 1000) + 3600);
   return encodeFunctionData({
     abi: PaymentGatewayV1Artifact.abi,
     functionName: 'pay',
@@ -43,6 +44,8 @@ const createValidPayCalldata = (paymentId: string, amount: string) => {
       '0x70997970C51812dc3A010C7d01b50e0d17dc79C8' as `0x${string}`, // address recipientAddress
       merchantId, // bytes32 merchantId
       0, // uint16 feeBps
+      deadline, // uint256 deadline
+      86400n, // uint256 escrowDuration (24 hours)
       ('0x' + 'ab'.repeat(65)) as `0x${string}`, // bytes serverSignature (dummy 65 bytes)
       {
         deadline: 0n,

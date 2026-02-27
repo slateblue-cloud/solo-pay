@@ -13,7 +13,9 @@ import {
   generatePaymentId,
   signPaymentRequest,
   merchantKeyToId,
+  getDeadline,
   ZERO_PERMIT,
+  DEFAULT_ESCROW_DURATION,
   type PaymentParams,
 } from '../helpers/signature';
 import { HARDHAT_ACCOUNTS, CONTRACT_ADDRESSES } from '../setup/wallets';
@@ -44,6 +46,7 @@ describe('Error Handling Integration', () => {
       const paymentId = generatePaymentId(`ERROR_ZERO_AMOUNT_${Date.now()}`);
       const feeBps = 0;
 
+      const deadline = getDeadline(1);
       const paymentParams: PaymentParams = {
         paymentId,
         tokenAddress: token.address,
@@ -51,6 +54,8 @@ describe('Error Handling Integration', () => {
         recipientAddress: recipientAddress,
         merchantId,
         feeBps,
+        deadline,
+        escrowDuration: DEFAULT_ESCROW_DURATION,
       };
       const serverSignature = await signPaymentRequest(paymentParams, signerPrivateKey);
 
@@ -65,6 +70,8 @@ describe('Error Handling Integration', () => {
           recipientAddress,
           merchantId,
           feeBps,
+          deadline,
+          DEFAULT_ESCROW_DURATION,
           serverSignature,
           ZERO_PERMIT
         )
@@ -76,6 +83,7 @@ describe('Error Handling Integration', () => {
       const amount = parseUnits('10', token.decimals);
       const feeBps = 0;
 
+      const deadline = getDeadline(1);
       const paymentParams: PaymentParams = {
         paymentId,
         tokenAddress: ethers.ZeroAddress,
@@ -83,6 +91,8 @@ describe('Error Handling Integration', () => {
         recipientAddress: recipientAddress,
         merchantId,
         feeBps,
+        deadline,
+        escrowDuration: DEFAULT_ESCROW_DURATION,
       };
       const serverSignature = await signPaymentRequest(paymentParams, signerPrivateKey);
 
@@ -97,6 +107,8 @@ describe('Error Handling Integration', () => {
           recipientAddress,
           merchantId,
           feeBps,
+          deadline,
+          DEFAULT_ESCROW_DURATION,
           serverSignature,
           ZERO_PERMIT
         )
@@ -110,6 +122,7 @@ describe('Error Handling Integration', () => {
       const amount = parseUnits('1000000', token.decimals);
       const feeBps = 0;
 
+      const deadline = getDeadline(1);
       const paymentParams: PaymentParams = {
         paymentId,
         tokenAddress: token.address,
@@ -117,6 +130,8 @@ describe('Error Handling Integration', () => {
         recipientAddress: recipientAddress,
         merchantId,
         feeBps,
+        deadline,
+        escrowDuration: DEFAULT_ESCROW_DURATION,
       };
       const serverSignature = await signPaymentRequest(paymentParams, signerPrivateKey);
 
@@ -131,6 +146,8 @@ describe('Error Handling Integration', () => {
           recipientAddress,
           merchantId,
           feeBps,
+          deadline,
+          DEFAULT_ESCROW_DURATION,
           serverSignature,
           ZERO_PERMIT
         )
@@ -145,6 +162,7 @@ describe('Error Handling Integration', () => {
 
       await approveToken(token.address, gatewayAddress, approvalAmount, payerPrivateKey);
 
+      const deadline = getDeadline(1);
       const paymentParams: PaymentParams = {
         paymentId,
         tokenAddress: token.address,
@@ -152,6 +170,8 @@ describe('Error Handling Integration', () => {
         recipientAddress: recipientAddress,
         merchantId,
         feeBps,
+        deadline,
+        escrowDuration: DEFAULT_ESCROW_DURATION,
       };
       const serverSignature = await signPaymentRequest(paymentParams, signerPrivateKey);
 
@@ -166,6 +186,8 @@ describe('Error Handling Integration', () => {
           recipientAddress,
           merchantId,
           feeBps,
+          deadline,
+          DEFAULT_ESCROW_DURATION,
           serverSignature,
           ZERO_PERMIT
         )
@@ -182,6 +204,7 @@ describe('Error Handling Integration', () => {
 
       await approveToken(token.address, gatewayAddress, amount, payerPrivateKey);
 
+      const deadline = getDeadline(1);
       const paymentParams: PaymentParams = {
         paymentId,
         tokenAddress: token.address,
@@ -189,6 +212,8 @@ describe('Error Handling Integration', () => {
         recipientAddress: recipientAddress,
         merchantId,
         feeBps,
+        deadline,
+        escrowDuration: DEFAULT_ESCROW_DURATION,
       };
       const serverSignature = await signPaymentRequest(paymentParams, signerPrivateKey);
 
@@ -203,6 +228,8 @@ describe('Error Handling Integration', () => {
           recipientAddress,
           merchantId,
           feeBps,
+          deadline,
+          DEFAULT_ESCROW_DURATION,
           serverSignature,
           ZERO_PERMIT
         )
@@ -218,6 +245,7 @@ describe('Error Handling Integration', () => {
 
       await approveToken(token.address, gatewayAddress, amount * 2n, payerPrivateKey);
 
+      const deadline = getDeadline(1);
       const paymentParams: PaymentParams = {
         paymentId,
         tokenAddress: token.address,
@@ -225,6 +253,8 @@ describe('Error Handling Integration', () => {
         recipientAddress: recipientAddress,
         merchantId,
         feeBps,
+        deadline,
+        escrowDuration: DEFAULT_ESCROW_DURATION,
       };
       const serverSignature = await signPaymentRequest(paymentParams, signerPrivateKey);
 
@@ -238,6 +268,8 @@ describe('Error Handling Integration', () => {
         recipientAddress,
         merchantId,
         feeBps,
+        deadline,
+        DEFAULT_ESCROW_DURATION,
         serverSignature,
         ZERO_PERMIT
       );
@@ -251,6 +283,8 @@ describe('Error Handling Integration', () => {
           recipientAddress,
           merchantId,
           feeBps,
+          deadline,
+          DEFAULT_ESCROW_DURATION,
           serverSignature,
           ZERO_PERMIT
         )
@@ -267,6 +301,7 @@ describe('Error Handling Integration', () => {
       await approveToken(token.address, gatewayAddress, amount, payerPrivateKey);
 
       // Sign with wrong key (relayer instead of signer)
+      const deadline = getDeadline(1);
       const paymentParams: PaymentParams = {
         paymentId,
         tokenAddress: token.address,
@@ -274,6 +309,8 @@ describe('Error Handling Integration', () => {
         recipientAddress: recipientAddress,
         merchantId,
         feeBps,
+        deadline,
+        escrowDuration: DEFAULT_ESCROW_DURATION,
       };
       const wrongSignature = await signPaymentRequest(
         paymentParams,
@@ -291,6 +328,8 @@ describe('Error Handling Integration', () => {
           recipientAddress,
           merchantId,
           feeBps,
+          deadline,
+          DEFAULT_ESCROW_DURATION,
           wrongSignature,
           ZERO_PERMIT
         )
@@ -306,6 +345,7 @@ describe('Error Handling Integration', () => {
       await approveToken(token.address, gatewayAddress, tamperedAmount, payerPrivateKey);
 
       // Sign with original amount
+      const deadline = getDeadline(1);
       const paymentParams: PaymentParams = {
         paymentId,
         tokenAddress: token.address,
@@ -313,6 +353,8 @@ describe('Error Handling Integration', () => {
         recipientAddress: recipientAddress,
         merchantId,
         feeBps,
+        deadline,
+        escrowDuration: DEFAULT_ESCROW_DURATION,
       };
       const serverSignature = await signPaymentRequest(paymentParams, signerPrivateKey);
 
@@ -328,6 +370,8 @@ describe('Error Handling Integration', () => {
           recipientAddress,
           merchantId,
           feeBps,
+          deadline,
+          DEFAULT_ESCROW_DURATION,
           serverSignature,
           ZERO_PERMIT
         )

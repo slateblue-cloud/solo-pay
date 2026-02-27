@@ -23,6 +23,7 @@ describe('GET /payments/:id', () => {
     id: 1,
     payment_hash: 'payment-123',
     merchant_id: 1,
+    payment_method_id: 1,
     network_id: 31337,
     token_symbol: 'USDC',
     status: 'PENDING',
@@ -67,6 +68,7 @@ describe('GET /payments/:id', () => {
       updatePayerAddress: vi
         .fn()
         .mockResolvedValue({ ...mockPaymentData, payer_address: '0xpayer' }),
+      getTokenPermitSupported: vi.fn().mockResolvedValue(false),
     };
 
     merchantService = {
@@ -208,6 +210,7 @@ describe('GET /payments/:id', () => {
           ...mockPaymentData,
           status: status.toUpperCase(),
         });
+        paymentService.getTokenPermitSupported = vi.fn().mockResolvedValue(false);
         blockchainService.getPaymentStatus = vi.fn().mockResolvedValueOnce({
           ...mockPaymentStatus,
           status,

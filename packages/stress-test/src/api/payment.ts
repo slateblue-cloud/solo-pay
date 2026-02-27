@@ -17,7 +17,7 @@ const ERC20_PERMIT_ABI = [
 const FORWARDER_ABI = ['function nonces(address owner) external view returns (uint256)'];
 
 const PAYMENT_GATEWAY_ABI = [
-  'function pay(bytes32 paymentId, address tokenAddress, uint256 amount, address recipientAddress, bytes32 merchantId, uint16 feeBps, bytes calldata serverSignature, tuple(uint256 deadline, uint8 v, bytes32 r, bytes32 s) permit) external',
+  'function pay(bytes32 paymentId, address tokenAddress, uint256 amount, address recipientAddress, bytes32 merchantId, uint16 feeBps, uint256 deadline, uint256 escrowDuration, bytes calldata serverSignature, tuple(uint256 deadline, uint8 v, bytes32 r, bytes32 s) permit) external',
 ];
 
 // EIP-2612 Permit types
@@ -53,6 +53,8 @@ export interface CreatePaymentResponse {
   recipientAddress: string;
   merchantId: string;
   feeBps: number;
+  deadline: string;
+  escrowDuration: string;
   serverSignature: string;
   expiresAt: string;
   gatewayAddress: string;
@@ -195,6 +197,8 @@ function encodePayData(payment: CreatePaymentResponse, permit: PermitSignature):
     payment.recipientAddress,
     payment.merchantId,
     payment.feeBps,
+    BigInt(payment.deadline ?? Math.floor(Date.now() / 1000) + 3600),
+    BigInt(payment.escrowDuration ?? 86400),
     payment.serverSignature,
     {
       deadline: permit.deadline,

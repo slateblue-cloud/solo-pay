@@ -17,6 +17,11 @@ enum PaymentStatus {
   CONFIRMED
   FAILED
   EXPIRED
+  ESCROWED
+  FINALIZE_SUBMITTED
+  CANCEL_SUBMITTED
+  FINALIZED
+  CANCELLED
 }
 
 enum RelayStatus {
@@ -36,6 +41,13 @@ enum EventType {
   REFUND_SUBMITTED
   REFUND_CONFIRMED
   REFUND_FAILED
+  ESCROWED
+  FINALIZE_SUBMITTED
+  FINALIZE_CONFIRMED
+  CANCEL_SUBMITTED
+  CANCEL_CONFIRMED
+  FINALIZE_FAILED
+  CANCEL_FAILED
 }
 
 enum RefundStatus {
@@ -92,6 +104,7 @@ model Merchant {
   webhook_url       String?   @db.VarChar(500)
   fee_bps           Int       @default(0) // 0 ~ 10000 basis points (100% = 10000)
   recipient_address String?   @db.VarChar(42) // 0x... Ethereum address
+  escrow_duration   Int? // escrow duration in seconds; null = use DEFAULT_ESCROW_DURATION env var
   is_enabled        Boolean   @default(true)
   is_deleted        Boolean   @default(false)
   deleted_at        DateTime?
@@ -135,6 +148,9 @@ model Payment {
   webhook_url       String?       @db.VarChar(500) // per-payment webhook (fallback: merchant.webhook_url)
   origin            String?       @db.VarChar(500) // request origin for domain verification audit
   payer_address     String?       @db.VarChar(42) // payer wallet address
+  escrow_deadline   DateTime? // escrow expiration (set when ESCROWED)
+  finalized_at      DateTime? // finalization timestamp (set when FINALIZED)
+  cancelled_at      DateTime? // cancellation timestamp (set when CANCELLED)
   currency_code     String?       @db.VarChar(10) // fiat currency code (e.g., USD, KRW); null = direct token amount
   fiat_amount       Decimal?      @db.Decimal(20, 8) // original fiat amount before conversion
   token_price       Decimal?      @db.Decimal(20, 8) // token price at creation time
@@ -144,6 +160,7 @@ model Payment {
   @@unique([order_id, merchant_id])
   @@index([merchant_id])
   @@index([status])
+  @@index([status, escrow_deadline])
   @@map("payments")
 }
 

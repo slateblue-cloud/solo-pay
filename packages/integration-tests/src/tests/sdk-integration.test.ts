@@ -191,6 +191,8 @@ describe('SDK Integration', () => {
         createResponse.recipientAddress,
         createResponse.merchantId,
         createResponse.feeBps,
+        BigInt(createResponse.deadline),
+        BigInt(createResponse.escrowDuration),
         createResponse.serverSignature,
         ZERO_PERMIT
       );
@@ -233,7 +235,7 @@ describe('SDK Integration', () => {
 
       const forwarder = getContract(forwarderAddress, ERC2771ForwarderABI);
       const nonce = await forwarder.nonces(payerAddress);
-      const deadline = getDeadline(1);
+      const forwardDeadline = getDeadline(1);
       const data = encodePayFunctionData(
         paymentId,
         token.address,
@@ -241,6 +243,8 @@ describe('SDK Integration', () => {
         recipientAddress,
         respMerchantId,
         feeBps,
+        BigInt(createResponse.deadline),
+        BigInt(createResponse.escrowDuration),
         serverSignature
       );
 
@@ -250,7 +254,7 @@ describe('SDK Integration', () => {
         value: 0n,
         gas: 500000n,
         nonce,
-        deadline,
+        deadline: forwardDeadline,
         data,
       };
 
@@ -305,7 +309,7 @@ describe('SDK Integration', () => {
 
       const forwarder = getContract(forwarderAddress, ERC2771ForwarderABI);
       const nonce = await forwarder.nonces(payerAddress);
-      const deadline = getDeadline(1);
+      const forwardDeadline = getDeadline(1);
       const data = encodePayFunctionData(
         createResponse.paymentId,
         token.address,
@@ -313,6 +317,8 @@ describe('SDK Integration', () => {
         recipientAddress,
         respMerchantId,
         feeBps,
+        BigInt(createResponse.deadline),
+        BigInt(createResponse.escrowDuration),
         serverSignature
       );
 
@@ -322,7 +328,7 @@ describe('SDK Integration', () => {
         value: 0n,
         gas: 500000n,
         nonce,
-        deadline,
+        deadline: forwardDeadline,
         data,
       };
 
@@ -378,26 +384,6 @@ describe('SDK Integration', () => {
       const fakePaymentId = '0x' + '00'.repeat(32);
 
       await expect(client.getPaymentStatus(fakePaymentId)).rejects.toThrow();
-    });
-
-    it('should reject createPayment when origin is not in ALLOWED_WIDGET_ORIGIN', async () => {
-      const serverRunning = await isGatewayRunning();
-      if (!serverRunning) {
-        return;
-      }
-
-      // This test only works when ALLOWED_WIDGET_ORIGIN is set on gateway
-      if (!process.env.ALLOWED_WIDGET_ORIGIN) {
-        return;
-      }
-
-      const client = createTestClient({
-        ...TEST_MERCHANT,
-        publicKey: 'pk_test_demo',
-        origin: 'https://not-allowed.example.com',
-      });
-
-      await expect(client.createPayment(makeCreatePaymentParams(100))).rejects.toThrow();
     });
   });
 

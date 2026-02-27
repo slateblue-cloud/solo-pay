@@ -42,21 +42,24 @@ async function syncPaymentStatusFromChain(
   return false;
 }
 
-function buildPaymentDetailResponse(payment: {
-  payment_hash: string;
-  order_id: string | null;
-  status: string;
-  amount: { toString: () => string };
-  token_symbol: string;
-  token_decimals: number;
-  tx_hash: string | null;
-  payer_address: string | null;
-  currency_code: string | null;
-  fiat_amount: { toString: () => string } | null;
-  created_at: Date;
-  confirmed_at: Date | null;
-  expires_at: Date;
-}) {
+function buildPaymentDetailResponse(
+  payment: {
+    payment_hash: string;
+    order_id: string | null;
+    status: string;
+    amount: { toString: () => string };
+    token_symbol: string;
+    token_decimals: number;
+    tx_hash: string | null;
+    payer_address: string | null;
+    currency_code: string | null;
+    fiat_amount: { toString: () => string } | null;
+    created_at: Date;
+    confirmed_at: Date | null;
+    expires_at: Date;
+  },
+  tokenPermitSupported: boolean
+) {
   return {
     paymentId: payment.payment_hash,
     orderId: payment.order_id ?? undefined,
@@ -71,6 +74,7 @@ function buildPaymentDetailResponse(payment: {
     createdAt: payment.created_at.toISOString(),
     confirmedAt: payment.confirmed_at?.toISOString() ?? undefined,
     expiresAt: payment.expires_at.toISOString(),
+    tokenPermitSupported,
   };
 }
 
@@ -95,6 +99,10 @@ export async function merchantPaymentRoute(
       payerAddress: { type: 'string' },
       currencyCode: { type: 'string', description: 'Fiat currency code (e.g. USD)' },
       fiatAmount: { type: 'string', description: 'Original fiat amount before conversion' },
+      tokenPermitSupported: {
+        type: 'boolean',
+        description: 'Whether the token supports EIP-2612 permit (gasless approval)',
+      },
       createdAt: { type: 'string', format: 'date-time' },
       confirmedAt: { type: 'string', format: 'date-time' },
       expiresAt: { type: 'string', format: 'date-time' },
@@ -150,8 +158,11 @@ export async function merchantPaymentRoute(
         }
 
         await syncPaymentStatusFromChain(blockchainService, paymentService, payment);
+        const tokenPermitSupported = await paymentService.getTokenPermitSupported(
+          payment.payment_method_id
+        );
 
-        return reply.code(200).send(buildPaymentDetailResponse(payment));
+        return reply.code(200).send(buildPaymentDetailResponse(payment, tokenPermitSupported));
       } catch (error) {
         const message = error instanceof Error ? error.message : 'Failed to get payment';
         return reply.code(500).send({ code: 'INTERNAL_ERROR', message });
@@ -210,8 +221,11 @@ export async function merchantPaymentRoute(
         }
 
         await syncPaymentStatusFromChain(blockchainService, paymentService, payment);
+        const tokenPermitSupported = await paymentService.getTokenPermitSupported(
+          payment.payment_method_id
+        );
 
-        return reply.code(200).send(buildPaymentDetailResponse(payment));
+        return reply.code(200).send(buildPaymentDetailResponse(payment, tokenPermitSupported));
       } catch (error) {
         const message = error instanceof Error ? error.message : 'Failed to get payment';
         return reply.code(500).send({ code: 'INTERNAL_ERROR', message });
