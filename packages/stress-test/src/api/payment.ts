@@ -113,8 +113,12 @@ async function createPayment(
   if (!response.ok) {
     const errorData = (await response.json().catch(() => ({ message: 'Unknown error' }))) as {
       message?: string;
+      code?: string;
+      details?: unknown;
     };
-    throw new Error(`Create payment failed: ${errorData.message || response.statusText}`);
+    throw new Error(
+      `Create payment failed: ${errorData.message || response.statusText} (code: ${errorData.code || 'UNKNOWN'})`
+    );
   }
 
   return response.json() as Promise<CreatePaymentResponse>;
@@ -286,10 +290,13 @@ async function submitRelay(
   if (!response.ok) {
     const errorData = (await response.json().catch(() => ({ message: 'Unknown error' }))) as {
       message?: string;
+      code?: string;
       details?: unknown;
     };
     const details = errorData.details ? ` Details: ${JSON.stringify(errorData.details)}` : '';
-    throw new Error(`Relay failed: ${errorData.message || response.statusText}${details}`);
+    throw new Error(
+      `Relay failed: ${errorData.message || response.statusText} (code: ${errorData.code || 'UNKNOWN'})${details}`
+    );
   }
 
   return response.json() as Promise<RelayResponse>;
@@ -297,7 +304,11 @@ async function submitRelay(
 
 const CONFIRM_POLL_INTERVAL_MS = 3000;
 const CONFIRM_TIMEOUT_MS = 120_000;
-const TERMINAL_STATUSES = ['CONFIRMED', 'FAILED', 'EXPIRED'];
+// Terminal statuses: payment flow is complete (no further action needed for stress test)
+// ESCROWED: payment successful and held in escrow (merchant can finalize later)
+// FINALIZED: payment finalized (escrow released to merchant)
+// CONFIRMED: payment confirmed (for backwards compatibility / direct payment without escrow)
+const TERMINAL_STATUSES = ['ESCROWED', 'FINALIZED', 'CONFIRMED', 'FAILED', 'EXPIRED'];
 
 interface PaymentStatusResponse {
   success: boolean;
@@ -309,7 +320,7 @@ interface PaymentStatusResponse {
 }
 
 /**
- * Poll GET /payments/:id until status reaches a terminal state (CONFIRMED, FAILED, EXPIRED)
+ * Poll GET /payments/:id until status reaches a terminal state (ESCROWED, FINALIZED, CONFIRMED, FAILED, EXPIRED)
  */
 async function pollPaymentStatus(
   config: NetworkConfig,
@@ -424,21 +435,27 @@ export async function executePayment(
       durationMs: Date.now() - relayStart,
     };
 
-    // Step 4: Poll for on-chain confirmation
+    // Step 4: Poll for on-chain confirmation (wait for ESCROWED)
     const confirmResult = await pollPaymentStatus(config, payment.paymentId);
 
+    // ESCROWED is success for user payment flow (merchant will finalize later)
+    const successStatuses = ['ESCROWED', 'FINALIZED', 'CONFIRMED'];
+    const isSuccess = successStatuses.includes(confirmResult.status);
+
     result.steps.confirm = {
-      success: confirmResult.status === 'CONFIRMED',
+      success: isSuccess,
       durationMs: confirmResult.durationMs,
       finalStatus: confirmResult.status,
     };
 
-    if (confirmResult.status !== 'CONFIRMED') {
+    if (!isSuccess) {
       throw new Error(
-        `Payment not confirmed: status=${confirmResult.status} after ${confirmResult.durationMs}ms`
+        `Payment failed: status=${confirmResult.status} after ${confirmResult.durationMs}ms`
       );
     }
 
+    // Success! ESCROWED means user payment is complete (tokens held in escrow).
+    // Merchant finalize is a separate flow tested elsewhere.
     result.success = true;
   } catch (error) {
     result.error = error instanceof Error ? error.message : 'Unknown error';

@@ -48,7 +48,7 @@ export const NETWORKS: Record<string, NetworkConfig> = {
     chainId: 80002,
     rpcUrl: process.env.RPC_URL || 'https://rpc-amoy.polygon.technology',
     gatewayUrl: process.env.GATEWAY_URL || 'https://gateway-dev.home201.com',
-    paymentGatewayAddress: '0x2e1fAFd7d30FD625a546f0221705baE97a925a6C',
+    paymentGatewayAddress: '0x3a88752837ccA9e5195d7175bbc926CB9C14c994',
     forwarderAddress: '0xE8a3C8e530dddd14e02DA1C81Df6a15f41ad78DE',
     tokenAddress: process.env.TOKEN_ADDRESS || '0x54F609AC69E3766a17c055c440A4c24B59e769e1',
     tokenDecimals: 18,
@@ -59,8 +59,7 @@ export const NETWORKS: Record<string, NetworkConfig> = {
     merchantUrl: process.env.MERCHANT_URL || 'https://sample-merchant-dev.home201.com',
     funding: {
       method: 'transfer',
-      sourcePrivateKey:
-        process.env.AMOY_MASTER_PRIVATE_KEY,
+      sourcePrivateKey: process.env.AMOY_MASTER_PRIVATE_KEY,
       useMulticall: true,
     },
   },
