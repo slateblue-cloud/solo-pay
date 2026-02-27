@@ -17,6 +17,19 @@ const mockBlockchainService = {
 
 const mockMerchantService = {
   findByPublicKey: vi.fn(),
+  findById: vi.fn(),
+};
+
+const mockChainService = {
+  findByNetworkId: vi.fn(),
+};
+
+const mockTokenService = {
+  findById: vi.fn(),
+};
+
+const mockPaymentMethodService = {
+  findById: vi.fn(),
 };
 
 vi.mock('../../../middleware/public-auth.middleware', () => ({
@@ -31,11 +44,37 @@ describe('GET /payments/:id', () => {
   beforeEach(async () => {
     vi.clearAllMocks();
     app = Fastify();
+    // Default mocks for details enrichment (merchant/chain/token lookups)
+    mockMerchantService.findById.mockResolvedValue({
+      id: 1,
+      merchant_key: 'merchant_demo_001',
+      recipient_address: '0x' + '1'.repeat(40),
+      fee_bps: 100,
+      escrow_duration: 300,
+    });
+    mockChainService.findByNetworkId.mockResolvedValue({
+      network_id: 31337,
+      gateway_address: '0x' + '2'.repeat(40),
+      forwarder_address: '0x' + '3'.repeat(40),
+    });
+    mockPaymentMethodService.findById.mockResolvedValue({
+      id: 1,
+      token_id: 1,
+    });
+    mockTokenService.findById.mockResolvedValue({
+      id: 1,
+      address: '0x' + '4'.repeat(40),
+      permit_enabled: false,
+    });
+
     await getPaymentStatusRoute(
       app,
       mockBlockchainService as never,
       mockPaymentService as never,
-      mockMerchantService as never
+      mockMerchantService as never,
+      mockChainService as never,
+      mockTokenService as never,
+      mockPaymentMethodService as never
     );
     await app.ready();
   });
@@ -54,8 +93,17 @@ describe('GET /payments/:id', () => {
         payment_method_id: 1,
         network_id: 31337,
         token_symbol: 'USDC',
+        token_decimals: 6,
         amount: new Decimal('1000000'),
         status: 'CREATED',
+        order_id: 'order_001',
+        success_url: 'https://example.com/success',
+        fail_url: 'https://example.com/fail',
+        expires_at: new Date('2099-01-01').toISOString(),
+        currency_code: 'USD',
+        fiat_amount: null,
+        token_price: null,
+        tx_hash: null,
       };
 
       mockPaymentService.findByHash.mockResolvedValue(mockPayment);
@@ -76,6 +124,14 @@ describe('GET /payments/:id', () => {
       expect(body.success).toBe(true);
       expect(body.data.payment_hash).toBe(paymentHash);
       expect(body.data.status).toBe('CREATED');
+      // Details fields should be present
+      expect(body.data.orderId).toBe('order_001');
+      expect(body.data.gatewayAddress).toBe('0x' + '2'.repeat(40));
+      expect(body.data.tokenAddress).toBe('0x' + '4'.repeat(40));
+      expect(body.data.amount).toBe('1000000');
+      expect(body.data.recipientAddress).toBe('0x' + '1'.repeat(40));
+      expect(body.data.feeBps).toBe(100);
+      expect(body.data.serverSignature).toBeDefined();
     });
 
     it('should return tokenPermitSupported in response', async () => {
@@ -87,8 +143,17 @@ describe('GET /payments/:id', () => {
         payment_method_id: 5,
         network_id: 31337,
         token_symbol: 'USDC',
+        token_decimals: 6,
         amount: new Decimal('1000000'),
         status: 'CREATED',
+        order_id: null,
+        success_url: null,
+        fail_url: null,
+        expires_at: new Date('2099-01-01').toISOString(),
+        currency_code: null,
+        fiat_amount: null,
+        token_price: null,
+        tx_hash: null,
       };
 
       mockPaymentService.findByHash.mockResolvedValue(mockPayment);
@@ -121,8 +186,17 @@ describe('GET /payments/:id', () => {
         payment_method_id: 1,
         network_id: 31337,
         token_symbol: 'USDT',
+        token_decimals: 6,
         amount: new Decimal('2000000'),
         status: 'CREATED',
+        order_id: null,
+        success_url: null,
+        fail_url: null,
+        expires_at: new Date('2099-01-01').toISOString(),
+        currency_code: null,
+        fiat_amount: null,
+        token_price: null,
+        tx_hash: null,
       };
 
       mockPaymentService.findByHash.mockResolvedValue(mockPayment);

@@ -5,6 +5,9 @@ import { getPaymentStatusRoute } from '../../../src/routes/payments/get-status';
 import { BlockchainService } from '../../../src/services/blockchain.service';
 import { PaymentService } from '../../../src/services/payment.service';
 import { MerchantService } from '../../../src/services/merchant.service';
+import { ChainService } from '../../../src/services/chain.service';
+import { TokenService } from '../../../src/services/token.service';
+import { PaymentMethodService } from '../../../src/services/payment-method.service';
 import { PaymentStatus } from '../../../src/schemas/payment.schema';
 import { API_V1_BASE_PATH } from '../../../src/constants';
 
@@ -18,6 +21,9 @@ describe('GET /payments/:id', () => {
   let blockchainService: Partial<BlockchainService>;
   let paymentService: Partial<PaymentService>;
   let merchantService: Partial<MerchantService>;
+  let chainService: Partial<ChainService>;
+  let tokenService: Partial<TokenService>;
+  let paymentMethodService: Partial<PaymentMethodService>;
 
   const mockPaymentData = {
     id: 1,
@@ -26,8 +32,17 @@ describe('GET /payments/:id', () => {
     payment_method_id: 1,
     network_id: 31337,
     token_symbol: 'USDC',
+    token_decimals: 6,
     status: 'PENDING',
     amount: '1000000000000000000', // 1 token in wei (18 decimals)
+    order_id: 'order_001',
+    success_url: 'https://example.com/success',
+    fail_url: 'https://example.com/fail',
+    expires_at: new Date('2099-01-01').toISOString(),
+    currency_code: null,
+    fiat_amount: null,
+    token_price: null,
+    tx_hash: null,
   };
 
   const mockPaymentStatus: PaymentStatus = {
@@ -74,11 +89,38 @@ describe('GET /payments/:id', () => {
     merchantService = {
       findById: vi.fn().mockResolvedValue({
         id: 1,
+        merchant_key: 'merchant_demo_001',
+        recipient_address: '0x' + '1'.repeat(40),
+        fee_bps: 100,
+        escrow_duration: 300,
         webhook_url: 'https://merchant.example/webhook',
       }),
       findByPublicKey: vi.fn().mockResolvedValue({
         id: 1,
         webhook_url: 'https://merchant.example/webhook',
+      }),
+    };
+
+    chainService = {
+      findByNetworkId: vi.fn().mockResolvedValue({
+        network_id: 31337,
+        gateway_address: '0x' + '2'.repeat(40),
+        forwarder_address: '0x' + '3'.repeat(40),
+      }),
+    };
+
+    tokenService = {
+      findById: vi.fn().mockResolvedValue({
+        id: 1,
+        address: '0x' + '4'.repeat(40),
+        permit_enabled: false,
+      }),
+    };
+
+    paymentMethodService = {
+      findById: vi.fn().mockResolvedValue({
+        id: 1,
+        token_id: 1,
       }),
     };
 
@@ -88,7 +130,10 @@ describe('GET /payments/:id', () => {
           scope,
           blockchainService as BlockchainService,
           paymentService as PaymentService,
-          merchantService as MerchantService
+          merchantService as MerchantService,
+          chainService as ChainService,
+          tokenService as TokenService,
+          paymentMethodService as PaymentMethodService
         );
       },
       { prefix: API_V1_BASE_PATH }

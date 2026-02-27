@@ -19,7 +19,6 @@ import { getPrismaClient, disconnectPrisma } from './db/client';
 import { getRedisClient, disconnectRedis } from './db/redis';
 import { createPaymentRoute } from './routes/payments/create';
 import { getPaymentStatusRoute } from './routes/payments/get-status';
-import { getPaymentDetailsRoute } from './routes/payments/get-details';
 import { submitGaslessRoute } from './routes/payments/gasless';
 import { getRelayStatusRoute as getPaymentRelayStatusRoute } from './routes/payments/relay-status';
 import { getMerchantRoute } from './routes/merchants/get';
@@ -152,9 +151,9 @@ const registerRoutes = async () => {
         currencyService,
         priceClient
       );
-      await getPaymentStatusRoute(scope, blockchainService, paymentService, merchantService);
-      await getPaymentDetailsRoute(
+      await getPaymentStatusRoute(
         scope,
+        blockchainService,
         paymentService,
         merchantService,
         chainService,

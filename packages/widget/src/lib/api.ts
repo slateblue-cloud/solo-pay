@@ -121,7 +121,7 @@ export async function createPaymentFromUrlParams(
 // ============================================================================
 
 /**
- * Get full payment details by paymentId (GET /payments/:id/details).
+ * Get full payment details by paymentId (GET /payments/:id).
  * Used to resume a payment flow after page refresh or when opening
  * a widget link with only pk and paymentId.
  */
@@ -131,7 +131,7 @@ export async function getPaymentDetails(
 ): Promise<PaymentDetails> {
   const apiBase = getGatewayApiBase();
 
-  const response = await fetch(`${apiBase}/payments/${paymentId}/details`, {
+  const response = await fetch(`${apiBase}/payments/${paymentId}`, {
     headers: { 'x-public-key': publicKey },
     cache: 'no-store',
   });
@@ -148,9 +148,8 @@ export async function getPaymentDetails(
     );
   }
 
-  if (data && typeof data === 'object' && 'success' in data) {
-    const { success: _success, ...rest } = data as Record<string, unknown>;
-    return rest as unknown as PaymentDetails;
+  if (data && data.success === true && data.data) {
+    return data.data as PaymentDetails;
   }
 
   return data as PaymentDetails;
