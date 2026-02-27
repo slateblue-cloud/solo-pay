@@ -122,7 +122,16 @@ export async function createPaymentFromUrlParams(
 
 export interface PaymentStatusResponse extends PaymentDetails {
   paymentId: string;
-  status: 'CREATED' | 'PENDING' | 'PROCESSING' | 'CONFIRMED' | 'FAILED' | 'EXPIRED' | 'ESCROWED' | 'FINALIZED' | 'CANCELLED';
+  status:
+    | 'CREATED'
+    | 'PENDING'
+    | 'PROCESSING'
+    | 'CONFIRMED'
+    | 'FAILED'
+    | 'EXPIRED'
+    | 'ESCROWED'
+    | 'FINALIZED'
+    | 'CANCELLED';
   txHash?: string;
   transactionHash?: string;
   confirmedAt?: string;
