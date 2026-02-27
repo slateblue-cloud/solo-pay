@@ -75,8 +75,7 @@ function buildWebhookBody(
  *
  *   Monitored transitions:
  *     CREATED/PENDING      → on-chain Escrowed  → DB ESCROWED   + webhook
- *     ESCROWED             → re-send ESCROWED webhook (merchant retry)
- *                          → on-chain Finalized → DB FINALIZED  + webhook
+ *     ESCROWED             → on-chain Finalized → DB FINALIZED  + webhook
  *                          → on-chain Cancelled → DB CANCELLED  + webhook
  *     FINALIZE_SUBMITTED   → on-chain Finalized → DB FINALIZED  + webhook
  *     CANCEL_SUBMITTED     → on-chain Cancelled → DB CANCELLED  + webhook
@@ -96,6 +95,15 @@ export function startPaymentMonitor(options: MonitorOptions): { stop: () => Prom
   let dbTimer: ReturnType<typeof setTimeout> | null = null;
 
   const maxAttempts = Math.max(Math.ceil(pollingIntervalMs / blockchainCheckIntervalMs), 3);
+
+  /** Invalidate gateway payment cache after DB update */
+  async function invalidatePaymentCache(paymentHash: string): Promise<void> {
+    try {
+      await redis.del(`payment:${paymentHash}`);
+    } catch {
+      // cache miss is not critical
+    }
+  }
 
   // ── Monitor queue ────────────────────────────────────────────────────
   const monitorQueue = new Queue<MonitorJobData>(MONITOR_QUEUE_NAME, {
@@ -214,6 +222,7 @@ export function startPaymentMonitor(options: MonitorOptions): { stop: () => Prom
       });
 
       if (updated.count === 0) return;
+      await invalidatePaymentCache(data.paymentHash);
 
       await prisma.paymentEvent.create({
         data: {
@@ -230,20 +239,16 @@ export function startPaymentMonitor(options: MonitorOptions): { stop: () => Prom
     }
   }
 
-  // ── ESCROWED → re-send webhook / detect finalize or cancel ─────────
+  // ── ESCROWED → detect payer-initiated cancel or direct finalize ────
   async function handleEscrowed(
     data: MonitorJobData,
     onChainStatus: number,
     details: import('./blockchain').OnChainPaymentDetails | null
   ): Promise<void> {
-    // On-chain already finalized → update DB directly (covers direct contract calls)
     if (onChainStatus === OnChainPaymentStatus.Finalized) {
       const txHash = details?.transactionHash ?? null;
       const updated = await prisma.payment.updateMany({
-        where: {
-          payment_hash: data.paymentHash,
-          status: 'ESCROWED',
-        },
+        where: { payment_hash: data.paymentHash, status: 'ESCROWED' },
         data: {
           status: 'FINALIZED',
           finalized_at: new Date(),
@@ -251,6 +256,7 @@ export function startPaymentMonitor(options: MonitorOptions): { stop: () => Prom
         },
       });
       if (updated.count === 0) return;
+      await invalidatePaymentCache(data.paymentHash);
 
       await prisma.paymentEvent.create({
         data: {
@@ -270,14 +276,10 @@ export function startPaymentMonitor(options: MonitorOptions): { stop: () => Prom
       return;
     }
 
-    // On-chain already cancelled → update DB directly
     if (onChainStatus === OnChainPaymentStatus.Cancelled) {
       const txHash = details?.transactionHash ?? null;
       const updated = await prisma.payment.updateMany({
-        where: {
-          payment_hash: data.paymentHash,
-          status: 'ESCROWED',
-        },
+        where: { payment_hash: data.paymentHash, status: 'ESCROWED' },
         data: {
           status: 'CANCELLED',
           cancelled_at: new Date(),
@@ -285,6 +287,7 @@ export function startPaymentMonitor(options: MonitorOptions): { stop: () => Prom
         },
       });
       if (updated.count === 0) return;
+      await invalidatePaymentCache(data.paymentHash);
 
       await prisma.paymentEvent.create({
         data: {
@@ -304,11 +307,7 @@ export function startPaymentMonitor(options: MonitorOptions): { stop: () => Prom
       return;
     }
 
-    // Still ESCROWED on-chain → re-send ESCROWED webhook so merchant can retry finalize/cancel
-    if (onChainStatus >= OnChainPaymentStatus.Escrowed) {
-      console.log('[monitor] re-sending escrowed webhook payment=%s', data.paymentHash);
-      await enqueueWebhook(data, JOB_NAME_PAYMENT_ESCROWED, 'ESCROWED', data.txHash);
-    }
+    // Still ESCROWED on-chain — nothing to do, waiting for merchant or payer action
   }
 
   // ── FINALIZE_SUBMITTED → FINALIZED ─────────────────────────────────
@@ -333,6 +332,7 @@ export function startPaymentMonitor(options: MonitorOptions): { stop: () => Prom
       });
 
       if (updated.count === 0) return;
+      await invalidatePaymentCache(data.paymentHash);
 
       await prisma.paymentEvent.create({
         data: {
@@ -376,6 +376,7 @@ export function startPaymentMonitor(options: MonitorOptions): { stop: () => Prom
       });
 
       if (updated.count === 0) return;
+      await invalidatePaymentCache(data.paymentHash);
 
       await prisma.paymentEvent.create({
         data: {
