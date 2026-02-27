@@ -101,16 +101,17 @@ export async function fundByMinting(
 }
 
 /**
- * Fund accounts by minting via Multicall3: many mints in one tx per batch. No contract change.
+ * Fund accounts via Multicall3: many mints or transfers in one tx per batch.
  */
-export async function fundByMulticallMinting(
+async function fundByMulticall(
   accounts: TestAccount[],
   config: NetworkConfig,
   amountPerAccount: string,
+  method: 'mint' | 'transfer',
   onProgress?: (progress: FundingProgress) => void
 ): Promise<FundingResult[]> {
   if (!config.funding.sourcePrivateKey) {
-    throw new Error('Source private key not configured for minting');
+    throw new Error(`Source private key not configured for ${method}`);
   }
 
   const provider = new JsonRpcProvider(config.rpcUrl);
@@ -127,7 +128,7 @@ export async function fundByMulticallMinting(
     const calls = chunk.map((account) => ({
       target: config.tokenAddress,
       allowFailure: false,
-      callData: iface.encodeFunctionData('mint', [account.address, amount]),
+      callData: iface.encodeFunctionData(method, [account.address, amount]),
     }));
 
     try {
@@ -161,65 +162,22 @@ export async function fundByMulticallMinting(
   return results;
 }
 
-/**
- * Fund accounts by transferring via Multicall3: many transfers in one tx per batch. No contract change.
- */
+export async function fundByMulticallMinting(
+  accounts: TestAccount[],
+  config: NetworkConfig,
+  amountPerAccount: string,
+  onProgress?: (progress: FundingProgress) => void
+): Promise<FundingResult[]> {
+  return fundByMulticall(accounts, config, amountPerAccount, 'mint', onProgress);
+}
+
 export async function fundByMulticallTransfer(
   accounts: TestAccount[],
   config: NetworkConfig,
   amountPerAccount: string,
   onProgress?: (progress: FundingProgress) => void
 ): Promise<FundingResult[]> {
-  if (!config.funding.sourcePrivateKey) {
-    throw new Error('Source private key not configured for transfer');
-  }
-
-  const provider = new JsonRpcProvider(config.rpcUrl);
-  const signer = new Wallet(config.funding.sourcePrivateKey, provider);
-  const amount = parseUnits(amountPerAccount, config.tokenDecimals);
-  const iface = new Interface(ERC20_MINT_ABI);
-  const multicall = new Contract(MULTICALL3_ADDRESS, MULTICALL3_ABI, signer);
-
-  const results: FundingResult[] = [];
-  let done = 0;
-
-  for (let start = 0; start < accounts.length; start += MULTICALL_BATCH_SIZE) {
-    const chunk = accounts.slice(start, start + MULTICALL_BATCH_SIZE);
-    const calls = chunk.map((account) => ({
-      target: config.tokenAddress,
-      allowFailure: false,
-      callData: iface.encodeFunctionData('transfer', [account.address, amount]),
-    }));
-
-    try {
-      const tx = await multicall.aggregate3(calls);
-      await tx.wait();
-      chunk.forEach((account) => {
-        results.push({ address: account.address, success: true });
-        done++;
-        onProgress?.({
-          current: done,
-          total: accounts.length,
-          address: account.address,
-          success: true,
-        });
-      });
-    } catch (error) {
-      const msg = error instanceof Error ? error.message : String(error);
-      chunk.forEach((account) => {
-        results.push({ address: account.address, success: false, error: msg });
-        done++;
-        onProgress?.({
-          current: done,
-          total: accounts.length,
-          address: account.address,
-          success: false,
-        });
-      });
-    }
-  }
-
-  return results;
+  return fundByMulticall(accounts, config, amountPerAccount, 'transfer', onProgress);
 }
 
 /**

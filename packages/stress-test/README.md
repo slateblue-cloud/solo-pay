@@ -71,7 +71,7 @@ pnpm execute:api
 # Custom count and options
 pnpm execute:api 10 --amount=10 --network=amoy
 pnpm execute:api 20 --amount=50 --network=amoy --concurrency=10
-pnpm execute:api 100000 --network=amoy --concurrency=0   # 100k in one process (concurrency capped to avoid OOM)
+pnpm execute:api 100000 --network=amoy --concurrency=0   # all at once in one process; likely to OOM. Use --workers for large counts.
 pnpm execute:api 100000 --network=amoy --workers=20      # 100k all at once: 20 processes, ≈5k in-flight per process (total ≈100k in-flight)
 pnpm execute:api 10 --amount=10 --network=amoy --fund-amount=2000   # override: fund 2000 per account (default: same as amount)
 ```
