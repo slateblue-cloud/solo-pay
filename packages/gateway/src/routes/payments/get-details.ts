@@ -128,8 +128,12 @@ For terminal statuses (CONFIRMED, FAILED, EXPIRED, FINALIZED, CANCELLED), return
           });
         }
 
-        // Look up merchant for derived fields
-        const merchant = await merchantService.findById(paymentData.merchant_id);
+        const [merchant, chain, paymentMethod] = await Promise.all([
+          merchantService.findById(paymentData.merchant_id),
+          chainService.findByNetworkId(paymentData.network_id),
+          paymentMethodService.findById(paymentData.payment_method_id),
+        ]);
+
         if (!merchant) {
           return reply.code(404).send({
             code: 'NOT_FOUND',
@@ -137,8 +141,6 @@ For terminal statuses (CONFIRMED, FAILED, EXPIRED, FINALIZED, CANCELLED), return
           });
         }
 
-        // Look up chain for gateway/forwarder addresses
-        const chain = await chainService.findByNetworkId(paymentData.network_id);
         if (!chain) {
           return reply.code(404).send({
             code: 'NOT_FOUND',
@@ -146,8 +148,6 @@ For terminal statuses (CONFIRMED, FAILED, EXPIRED, FINALIZED, CANCELLED), return
           });
         }
 
-        // Look up token via payment method
-        const paymentMethod = await paymentMethodService.findById(paymentData.payment_method_id);
         if (!paymentMethod) {
           return reply.code(404).send({
             code: 'NOT_FOUND',
@@ -164,7 +164,7 @@ For terminal statuses (CONFIRMED, FAILED, EXPIRED, FINALIZED, CANCELLED), return
         }
 
         const merchantId = ServerSigningService.merchantKeyToId(merchant.merchant_key);
-        const recipientAddress = (merchant.recipient_address ?? '') as Address;
+        const recipientAddress = merchant.recipient_address as Address | null;
         const amountInWei = BigInt(paymentData.amount.toString());
         const defaultEscrowDuration = Number(process.env.DEFAULT_ESCROW_DURATION) || 300;
         const escrowDuration = BigInt(merchant.escrow_duration ?? defaultEscrowDuration);
@@ -217,7 +217,7 @@ For terminal statuses (CONFIRMED, FAILED, EXPIRED, FINALIZED, CANCELLED), return
           successUrl: paymentData.success_url ?? '',
           failUrl: paymentData.fail_url ?? '',
           expiresAt: new Date(paymentData.expires_at).toISOString(),
-          recipientAddress,
+          recipientAddress: recipientAddress ?? '',
           merchantId,
           feeBps: merchant.fee_bps,
           deadline: deadline.toString(),
@@ -228,6 +228,7 @@ For terminal statuses (CONFIRMED, FAILED, EXPIRED, FINALIZED, CANCELLED), return
           fiatAmount: paymentData.fiat_amount ? Number(paymentData.fiat_amount) : undefined,
           tokenPrice: paymentData.token_price ? Number(paymentData.token_price) : undefined,
           status: paymentData.status,
+          txHash: paymentData.tx_hash ?? undefined,
         });
       } catch (error) {
         const message = error instanceof Error ? error.message : 'Failed to get payment details';

@@ -484,7 +484,7 @@ export default function PaymentStep({ urlParams }: PaymentStepProps) {
           amount={displayAmount}
           token={paymentDetails.tokenSymbol}
           date=""
-          txHash=""
+          txHash={paymentDetails.txHash || ''}
           onConfirm={handleConfirm}
         />
       );

@@ -105,6 +105,8 @@ export interface PaymentDetails {
     | 'EXPIRED'
     | 'FINALIZED'
     | 'CANCELLED';
+  /** Transaction hash */
+  txHash?: string;
 }
 
 /** Gas payment mode */
