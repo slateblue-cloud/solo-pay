@@ -2,29 +2,26 @@
 /**
  * API Stress Test Runner
  *
- * Runs payment stress tests using accounts from accounts.json.
- * The number of tests equals the number of accounts in accounts.json.
+ * One-time per run: generate N accounts, fund, run N payments. No reuse; each run uses fresh accounts.
  *
  * Usage:
- *   pnpm execute:api [options]
- *
- * Examples:
- *   pnpm execute:api                       # Test with all accounts in accounts.json
- *   pnpm execute:api --network=amoy        # Test on Amoy testnet
- *   pnpm execute:api --concurrency=20      # 20 parallel requests
- *   pnpm execute:api --amount=50           # 50 tokens per payment
- *
- * Prerequisites:
- *   pnpm accounts:generate 100             # Generate 100 accounts
- *   pnpm accounts:fund                     # Fund accounts with tokens
+ *   pnpm execute:api [count] [options]
+ *   pnpm execute:api 10 --amount=10 --network=amoy
+ *   pnpm execute:api 100000 --workers=20   # 100k in-flight across 20 processes
  */
 
+import { spawn } from 'child_process';
+import { writeFileSync, readFileSync } from 'fs';
+import { tmpdir } from 'os';
+import { join } from 'path';
+import { fileURLToPath } from 'url';
 import { getNetworkConfig } from '../../config';
-import { loadAccounts } from '../account-manager';
+import { setupAccountsForRun } from '../ensure-accounts';
+import { getAccountsRange, type TestAccount } from '../account-manager';
 import { executePaymentsParallel, type PaymentResult } from './payment';
 
 const DEFAULT_TEST_CONFIG = {
-  paymentAmount: '10',
+  paymentAmount: '1',
   concurrency: 10,
 };
 
@@ -32,7 +29,10 @@ interface CliOptions {
   network: string;
   concurrency: number;
   amount: string;
+  fundAmount: string;
   count?: number;
+  /** Number of worker processes; each runs its chunk with full concurrency. Total in-flight ≈ (count/workers) * workers = count. */
+  workers: number;
 }
 
 function parseArgs(): CliOptions {
@@ -42,23 +42,32 @@ function parseArgs(): CliOptions {
     network: 'hardhat',
     concurrency: DEFAULT_TEST_CONFIG.concurrency,
     amount: DEFAULT_TEST_CONFIG.paymentAmount,
+    fundAmount: '', // default: same as amount (set below)
+    workers: 1,
   };
 
   for (const arg of args) {
     if (arg.startsWith('--network=')) {
       options.network = arg.split('=')[1];
+    } else if (arg.startsWith('--workers=')) {
+      options.workers = parseInt(arg.split('=')[1], 10);
     } else if (arg.startsWith('--concurrency=')) {
       options.concurrency = parseInt(arg.split('=')[1], 10);
     } else if (arg.startsWith('--amount=')) {
       options.amount = arg.split('=')[1];
+    } else if (arg.startsWith('--fund-amount=')) {
+      options.fundAmount = arg.split('=')[1];
     } else if (arg.startsWith('--count=')) {
       options.count = parseInt(arg.split('=')[1], 10);
     } else if (/^\d+$/.test(arg)) {
-      // Support positional argument for count (e.g. "execute:api 10")
       options.count = parseInt(arg, 10);
     }
   }
 
+  // Default fund-amount to amount so each account gets exactly enough for one payment (tokens used up)
+  if (!options.fundAmount) {
+    options.fundAmount = options.amount;
+  }
   return options;
 }
 
@@ -164,66 +173,118 @@ function printSummary(results: PaymentResult[], durationMs: number) {
   }
   console.log('╚══════════════════════════════════════════════════════════╝');
 
-  if (failed.length > 0) {
-    console.log('\n┌─────────────────────────────────────────────────────────┐');
-    console.log('│  ERRORS (first 5):                                      │');
-    console.log('├─────────────────────────────────────────────────────────┤');
-    failed.slice(0, 5).forEach((r) => {
-      const shortError = r.error?.slice(0, 50) || 'Unknown';
-      console.log(`│  Wallet ${r.walletIndex}: ${shortError.padEnd(43)}│`);
-    });
-    console.log('└─────────────────────────────────────────────────────────┘');
-  }
-
   // Throughput
   const throughput = (successful.length / (durationMs / 1000)).toFixed(2);
   console.log(`\n📊 Throughput: ${throughput} successful payments/second`);
 }
 
+/** Run as worker: derive wallets for [start,end), run all in parallel, write results to file. */
+async function workerMain(): Promise<void> {
+  const start = parseInt(process.env.STRESS_START_INDEX!, 10);
+  const end = parseInt(process.env.STRESS_END_INDEX!, 10);
+  const network = process.env.STRESS_NETWORK!;
+  const amount = process.env.STRESS_AMOUNT!;
+  const resultsFile = process.env.STRESS_RESULTS_FILE!;
+  const config = getNetworkConfig(network);
+  const wallets = getAccountsRange(start, end);
+  const results = await executePaymentsParallel(wallets, config, amount, wallets.length);
+  writeFileSync(resultsFile, JSON.stringify(results), 'utf8');
+}
+
 async function main() {
+  if (process.env.STRESS_WORKER === '1') {
+    await workerMain();
+    return;
+  }
+
   const options = parseArgs();
   const config = getNetworkConfig(options.network);
+  const count = options.count ?? 10;
+  const workers = Math.max(1, options.workers);
 
-  // Load wallets from accounts.json
-  console.log('Loading accounts from accounts.json...');
-  const stored = loadAccounts();
-  if (!stored) {
-    console.error('No stored accounts found. Run "pnpm accounts:generate" first.');
-    process.exit(1);
+  const wallets = await setupAccountsForRun(count, options.network, options.fundAmount, {
+    onFundProgress: (current, total) => printProgress('Funding', current, total),
+  });
+
+  if (workers > 1) {
+    const chunkSize = Math.ceil(count / workers);
+    const startTime = Date.now();
+    const scriptRel = 'src/api/run.ts';
+    const resultFiles: string[] = [];
+
+    printHeader({ ...options, concurrency: count }, count);
+    console.log(
+      `Using ${count} wallet(s) across ${workers} worker(s) (≈ ${Math.min(chunkSize, count)} in-flight per worker)\n`
+    );
+    console.log('Executing payments (workers)...\n');
+
+    await Promise.all(
+      Array.from({ length: workers }, (_, w) => {
+        const start = w * chunkSize;
+        const end = Math.min(start + chunkSize, count);
+        if (start >= end) return Promise.resolve();
+        const outFile = join(tmpdir(), `solo-stress-results-${process.pid}-${w}.json`);
+        resultFiles.push(outFile);
+        return new Promise<void>((resolve, reject) => {
+          const child = spawn('pnpm', ['exec', 'tsx', scriptRel], {
+            env: {
+              ...process.env,
+              STRESS_WORKER: '1',
+              STRESS_START_INDEX: String(start),
+              STRESS_END_INDEX: String(end),
+              STRESS_NETWORK: options.network,
+              STRESS_AMOUNT: options.amount,
+              STRESS_RESULTS_FILE: outFile,
+            },
+            stdio: ['ignore', 'pipe', 'pipe'],
+            cwd: join(fileURLToPath(new URL('.', import.meta.url)), '../..'),
+          });
+          let stderr = '';
+          child.stderr?.on('data', (d) => (stderr += d.toString()));
+          child.on('close', (code) => {
+            if (code === 0) resolve();
+            else reject(new Error(`Worker ${w} exit ${code}: ${stderr.slice(-500)}`));
+          });
+        });
+      })
+    );
+
+    const results: PaymentResult[] = [];
+    for (const f of resultFiles) {
+      const data = readFileSync(f, 'utf8');
+      results.push(...(JSON.parse(data) as PaymentResult[]));
+    }
+    results.sort((a, b) => a.walletIndex - b.walletIndex);
+    printSummary(results, Date.now() - startTime);
+    return;
   }
-  if (stored.network !== options.network) {
-    console.error(`Stored accounts are for ${stored.network}, not ${options.network}`);
-    process.exit(1);
+
+  if (options.concurrency <= 0) {
+    options.concurrency = wallets.length;
   }
-
-  // Use all accounts or limit by count option
-  const wallets = options.count ? stored.accounts.slice(0, options.count) : stored.accounts;
-
   options.concurrency = Math.min(options.concurrency, wallets.length);
 
   printHeader(options, wallets.length);
-
-  console.log(`Loaded ${wallets.length} wallets from accounts.json`);
+  console.log(`Using ${wallets.length} wallet(s)`);
   console.log(`   First: ${wallets[0].address}`);
   console.log(`   Last:  ${wallets[wallets.length - 1].address}`);
 
-  // Execute Payments
   console.log('\nExecuting payments...');
   const startTime = Date.now();
-
   const results = await executePaymentsParallel(
     wallets,
     config,
     options.amount,
     options.concurrency,
-    (done, total) => {
+    (done, total, result) => {
+      if (result && !result.success) {
+        console.log('');
+        console.log(`  Wallet ${result.walletIndex}: ${(result.error || 'Unknown').slice(0, 100)}`);
+      }
       printProgress('Payments', done, total);
     }
   );
-
-  const totalDuration = Date.now() - startTime;
-
-  printSummary(results, totalDuration);
+  printSummary(results, Date.now() - startTime);
 }
 
 main().catch((error) => {

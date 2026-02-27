@@ -10,25 +10,19 @@
 
 import { test, expect, type Page } from '@playwright/test';
 import { loadAccounts } from '../account-manager';
-import { DEFAULT_HARDHAT_ACCOUNTS, MINT_OWNER } from '../../config/accounts';
+import { DEFAULT_HARDHAT_ACCOUNTS } from '../../config/accounts';
 
 const stored = loadAccounts();
 const accountsList = stored
   ? stored.accounts.map((a) => ({ address: a.address, privateKey: a.privateKey }))
   : DEFAULT_HARDHAT_ACCOUNTS.map((a) => ({ address: a.address, privateKey: a.privateKey }));
 
-// Configuration
+// Configuration (accounts are funded by run.ts setupAccountsForRun before tests)
 const CONFIG = {
   merchantUrl: process.env.MERCHANT_URL || 'http://localhost:3004',
   rpcUrl: process.env.RPC_URL || 'http://localhost:8545',
   chainId: parseInt(process.env.CHAIN_ID || '31337'),
   tokenAddress: process.env.STRESS_TOKEN_ADDRESS || '0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512',
-  mintOwner: MINT_OWNER,
-  mintAmountHex:
-    '0x' +
-    BigInt(1_000_000 * 1e18)
-      .toString(16)
-      .padStart(64, '0'),
   accounts: accountsList,
 };
 
@@ -43,62 +37,75 @@ function getMockProviderScript(params: {
 (function() {
   const RPC_URL = ${JSON.stringify(params.rpcUrl)};
   const ADDRESS = ${JSON.stringify(params.address.toLowerCase())};
+  const PRIVATE_KEY = ${JSON.stringify(params.privateKey)};
   const CHAIN_ID = ${JSON.stringify(params.chainId)};
   const CHAIN_ID_HEX = '0x' + CHAIN_ID.toString(16);
 
   let requestId = 0;
+  let ethersPromise = null;
+
+  async function getEthers() {
+    if (typeof window !== 'undefined' && window.ethers6) return window.ethers6;
+    if (!ethersPromise) {
+      ethersPromise = new Promise(function(resolve, reject) {
+        var s = document.createElement('script');
+        s.src = 'https://cdn.jsdelivr.net/npm/ethers@6.7.0/dist/ethers.umd.min.js';
+        s.onload = function() { resolve(window.ethers); };
+        s.onerror = reject;
+        document.head.appendChild(s);
+      });
+    }
+    var ethers = await ethersPromise;
+    if (typeof window !== 'undefined') window.ethers6 = ethers;
+    return ethers;
+  }
 
   async function rpcCall(method, params) {
-    const res = await fetch(RPC_URL, {
+    var res = await fetch(RPC_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ jsonrpc: '2.0', id: ++requestId, method, params: params || [] }),
     });
-    const json = await res.json();
+    var json = await res.json();
     if (json.error) throw new Error(json.error.message);
     return json.result;
   }
 
-  const listeners = {};
+  var listeners = {};
 
   function emit(event, data) {
-    if (listeners[event]) {
-      listeners[event].forEach(fn => fn(data));
-    }
+    if (listeners[event]) listeners[event].forEach(function(fn) { fn(data); });
   }
 
-  const provider = {
+  var provider = {
     isMetaMask: false,
     isTrustWallet: true,
     isTrust: true,
-    isConnected: () => true,
+    isConnected: function() { return true; },
     chainId: CHAIN_ID_HEX,
     networkVersion: String(CHAIN_ID),
     selectedAddress: ADDRESS,
 
-    on(event, fn) {
+    on: function(event, fn) {
       if (!listeners[event]) listeners[event] = [];
       listeners[event].push(fn);
       return provider;
     },
-
-    removeListener(event, fn) {
-      if (listeners[event]) {
-        listeners[event] = listeners[event].filter(f => f !== fn);
-      }
+    removeListener: function(event, fn) {
+      if (listeners[event]) listeners[event] = listeners[event].filter(function(f) { return f !== fn; });
       return provider;
     },
-
-    removeAllListeners(event) {
+    removeAllListeners: function(event) {
       if (event) delete listeners[event];
-      else Object.keys(listeners).forEach(k => delete listeners[k]);
+      else Object.keys(listeners).forEach(function(k) { delete listeners[k]; });
       return provider;
     },
 
-    async request({ method, params }) {
+    async request(_ref) {
+      var method = _ref.method, params = _ref.params;
       switch (method) {
         case 'eth_requestAccounts':
-          setTimeout(() => {
+          setTimeout(function() {
             emit('connect', { chainId: CHAIN_ID_HEX });
             emit('accountsChanged', [ADDRESS]);
           }, 100);
@@ -116,33 +123,39 @@ function getMockProviderScript(params: {
         case 'wallet_getPermissions':
           return [{ parentCapability: 'eth_accounts' }];
         case 'metamask_getProviderState':
-          return {
-            isUnlocked: true,
-            chainId: CHAIN_ID_HEX,
-            networkVersion: String(CHAIN_ID),
-            accounts: [ADDRESS],
-          };
+          return { isUnlocked: true, chainId: CHAIN_ID_HEX, networkVersion: String(CHAIN_ID), accounts: [ADDRESS] };
         case 'eth_signTypedData_v4': {
-          const [signerAddress, typedData] = params;
-          return rpcCall('eth_signTypedData_v4', [signerAddress, typedData]);
+          var ethers = await getEthers();
+          var wallet = new ethers.Wallet(PRIVATE_KEY);
+          var typedData = params[1];
+          var parsed = typeof typedData === 'string' ? JSON.parse(typedData) : typedData;
+          var domain = parsed.domain;
+          var types = {};
+          for (var k in parsed.types) {
+            if (k !== 'EIP712Domain') types[k] = parsed.types[k];
+          }
+          if (parsed.primaryType && types[parsed.primaryType]) {
+            types = { [parsed.primaryType]: types[parsed.primaryType] };
+          }
+          return wallet.signTypedData(domain, types, parsed.message);
         }
         case 'personal_sign': {
-          const [message, signerAddress] = params;
-          return rpcCall('personal_sign', [message, signerAddress]);
+          var ethers = await getEthers();
+          var wallet = new ethers.Wallet(PRIVATE_KEY);
+          var message = params[0];
+          return wallet.signMessage(ethers.getBytes ? ethers.getBytes(message) : message);
         }
         case 'eth_sendTransaction': {
-          const [tx] = params;
-          return rpcCall('eth_sendTransaction', [{ ...tx, from: tx.from || ADDRESS }]);
+          var tx = params[0];
+          return rpcCall('eth_sendTransaction', [{ from: tx.from || ADDRESS, to: tx.to, value: tx.value, data: tx.data, gasLimit: tx.gasLimit || tx.gas }]);
         }
         default:
           return rpcCall(method, params || []);
       }
     },
 
-    enable() { return Promise.resolve([ADDRESS]); },
-    send(method, params) {
-      return provider.request({ method, params });
-    },
+    enable: function() { return Promise.resolve([ADDRESS]); },
+    send: function(method, params) { return provider.request({ method: method, params: params }); },
   };
 
   Object.defineProperty(window, 'ethereum', {
@@ -166,58 +179,6 @@ function getMockProviderScript(params: {
   window.__E2E_TEST__ = true;
 })();
 `;
-}
-
-// Impersonate account on hardhat
-async function impersonateAccount(address: string): Promise<void> {
-  await fetch(CONFIG.rpcUrl, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      jsonrpc: '2.0',
-      id: 1,
-      method: 'hardhat_impersonateAccount',
-      params: [address],
-    }),
-  });
-}
-
-async function rpc(method: string, params: unknown[] | Record<string, unknown>): Promise<unknown> {
-  const res = await fetch(CONFIG.rpcUrl, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      jsonrpc: '2.0',
-      id: Math.floor(Math.random() * 1e9),
-      method,
-      params: Array.isArray(params) ? params : [params],
-    }),
-  });
-  const json = (await res.json()) as { result?: unknown; error?: { message: string } };
-  if (json.error) throw new Error(`RPC ${method}: ${json.error.message}`);
-  return json.result;
-}
-
-/** Mint test tokens to an address via Hardhat RPC (owner = Hardhat #0). */
-async function mintTokensToAccount(toAddress: string): Promise<void> {
-  const addr = toAddress.startsWith('0x')
-    ? toAddress.slice(2).toLowerCase()
-    : toAddress.toLowerCase();
-  const data =
-    '0x40c10f19' + addr.padStart(64, '0') + CONFIG.mintAmountHex.slice(2).padStart(64, '0');
-  await rpc('hardhat_impersonateAccount', [CONFIG.mintOwner]);
-  try {
-    await rpc('eth_sendTransaction', [
-      {
-        from: CONFIG.mintOwner,
-        to: CONFIG.tokenAddress,
-        data,
-        gas: '0x30d40',
-      },
-    ]);
-  } finally {
-    await rpc('hardhat_stopImpersonatingAccount', [CONFIG.mintOwner]);
-  }
 }
 
 // Single payment flow: sample-merchant (Order) → widget popup (connect, approve, pay)
@@ -366,15 +327,6 @@ async function completePayment(
 // Test configuration - use serial within describe but parallel across workers
 test.describe.configure({ mode: 'parallel' });
 
-// Track which accounts have been minted in this worker process
-const mintedAccounts = new Set<string>();
-
-async function ensureAccountMinted(address: string): Promise<void> {
-  if (mintedAccounts.has(address)) return;
-  await mintTokensToAccount(address);
-  mintedAccounts.add(address);
-}
-
 // Generate test cases
 const REPEAT = parseInt(process.env.REPEAT || '5');
 const WORKERS = parseInt(process.env.WORKERS || '3');
@@ -393,9 +345,6 @@ for (let i = 0; i < REPEAT; i++) {
       `[Worker ${workerIndex}][Parallel ${parallelIndex}] Iteration ${i + 1} using account ${account.address.slice(0, 10)}...`
     );
 
-    // Mint tokens for this test's account if not already done
-    await ensureAccountMinted(account.address);
-
     // Stagger to avoid overwhelming relayer (2000ms per worker)
     // Required because simple-relayer doesn't have optimistic nonce management
     // Tests still run faster than sequential (parallel with offset)
@@ -413,8 +362,8 @@ for (let i = 0; i < REPEAT; i++) {
     });
     await page.context().addInitScript({ content: script });
 
-    // Run payment flow - use different products to avoid conflicts
-    const productIndex = i % 3;
+    // Run payment flow - always first product (Ethiopia Yirgacheffe) so fund amount matches order
+    const productIndex = 0;
     const result = await completePayment(page, productIndex);
 
     // Log result for this test
