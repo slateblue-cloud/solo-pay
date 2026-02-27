@@ -581,6 +581,7 @@ describe('RefundService', () => {
         network_id: 31337,
         status: 'CONFIRMED',
         tx_hash: null,
+        release_tx_hash: null,
         expires_at: new Date(),
         confirmed_at: new Date(),
         order_id: null,

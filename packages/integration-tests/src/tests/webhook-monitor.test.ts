@@ -148,7 +148,7 @@ describe('Webhook Monitor Integration', () => {
     expectedStatus: string,
     timeoutMs: number = 30000,
     intervalMs: number = 1000
-  ): Promise<{ status: string; txHash?: string }> {
+  ): Promise<{ status: string; txHash?: string; releaseTxHash?: string }> {
     const startTime = Date.now();
 
     while (Date.now() - startTime < timeoutMs) {
@@ -158,7 +158,11 @@ describe('Webhook Monitor Integration', () => {
           signal: AbortSignal.timeout(5000),
         });
         if (res.ok) {
-          const body = (await res.json()) as { status: string; txHash?: string };
+          const body = (await res.json()) as {
+            status: string;
+            txHash?: string;
+            releaseTxHash?: string;
+          };
           if (body.status === expectedStatus) {
             return body;
           }
@@ -192,6 +196,11 @@ describe('Webhook Monitor Integration', () => {
       // Wait for webhook-manager to detect the on-chain Escrowed status
       const result = await waitForDbStatus(paymentHash, 'ESCROWED', 30000);
       expect(result.status).toBe('ESCROWED');
+      // txHash = escrow tx (pay)
+      expect(result.txHash).toBeDefined();
+      expect(result.txHash).toMatch(/^0x[a-fA-F0-9]{64}$/);
+      // No releaseTxHash for ESCROWED
+      expect(result.releaseTxHash).toBeUndefined();
     });
   });
 
@@ -260,8 +269,13 @@ describe('Webhook Monitor Integration', () => {
 
       const result = await waitForDbStatus(paymentHash, 'FINALIZED', 30000);
       expect(result.status).toBe('FINALIZED');
+      // txHash = escrow tx (pay)
       expect(result.txHash).toBeDefined();
       expect(result.txHash).toMatch(/^0x[a-fA-F0-9]{64}$/);
+      // releaseTxHash = finalize tx (separate from escrow tx)
+      expect(result.releaseTxHash).toBeDefined();
+      expect(result.releaseTxHash).toMatch(/^0x[a-fA-F0-9]{64}$/);
+      expect(result.releaseTxHash).not.toBe(result.txHash);
     });
   });
 
@@ -335,8 +349,13 @@ describe('Webhook Monitor Integration', () => {
 
       const result = await waitForDbStatus(paymentHash, 'CANCELLED', 30000);
       expect(result.status).toBe('CANCELLED');
+      // txHash = escrow tx (pay)
       expect(result.txHash).toBeDefined();
       expect(result.txHash).toMatch(/^0x[a-fA-F0-9]{64}$/);
+      // releaseTxHash = cancel tx (separate from escrow tx)
+      expect(result.releaseTxHash).toBeDefined();
+      expect(result.releaseTxHash).toMatch(/^0x[a-fA-F0-9]{64}$/);
+      expect(result.releaseTxHash).not.toBe(result.txHash);
     });
   });
 
