@@ -122,7 +122,7 @@ describe('GET /payments/:id', () => {
       expect(response.statusCode).toBe(200);
       const body = JSON.parse(response.payload);
       expect(body.success).toBe(true);
-      expect(body.data.payment_hash).toBe(paymentHash);
+      expect(body.data.paymentId).toBe(paymentHash);
       expect(body.data.status).toBe('CREATED');
       // Details fields should be present
       expect(body.data.orderId).toBe('order_001');

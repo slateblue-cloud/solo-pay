@@ -173,8 +173,7 @@ describe('GET /payments/:id', () => {
       expect(response.statusCode).toBe(200);
       const body = JSON.parse(response.body);
       expect(body.success).toBe(true);
-      expect(body.data.paymentId).toBe(mockPaymentStatus.paymentId);
-      expect(body.data.payment_hash).toBe(mockPaymentData.payment_hash);
+      expect(body.data.paymentId).toBe(mockPaymentData.payment_hash);
     });
 
     it('응답에 결제의 모든 필드가 포함되어야 함', async () => {
@@ -189,9 +188,8 @@ describe('GET /payments/:id', () => {
       const data = body.data;
 
       expect(data).toHaveProperty('paymentId');
-      expect(data).toHaveProperty('payment_hash');
-      expect(data).toHaveProperty('network_id');
-      expect(data).toHaveProperty('token_symbol');
+      expect(data).toHaveProperty('chainId');
+      expect(data).toHaveProperty('tokenSymbol');
       expect(data).toHaveProperty('status');
     });
   });
