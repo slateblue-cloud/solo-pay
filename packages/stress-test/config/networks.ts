@@ -46,7 +46,7 @@ export const NETWORKS: Record<string, NetworkConfig> = {
   amoy: {
     name: 'Polygon Amoy Testnet',
     chainId: 80002,
-    rpcUrl: process.env.RPC_URL || 'https://rpc-amoy.polygon.technology',
+    rpcUrl: process.env.RPC_URL || 'https://polygon-amoy-bor-rpc.publicnode.com',
     gatewayUrl: process.env.GATEWAY_URL || 'https://gateway-dev.home201.com',
     paymentGatewayAddress: '0x3a88752837ccA9e5195d7175bbc926CB9C14c994',
     forwarderAddress: '0xE8a3C8e530dddd14e02DA1C81Df6a15f41ad78DE',
