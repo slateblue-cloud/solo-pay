@@ -22,6 +22,7 @@ interface MonitorJobData {
   orderId: string | null;
   webhookUrl: string | null;
   status: string;
+  txHash: string | null;
 }
 
 export interface WebhookQueueForMonitor {
@@ -255,7 +256,7 @@ export function startPaymentMonitor(options: MonitorOptions): { stop: () => Prom
       });
 
       console.log('[monitor] finalized payment=%s release_tx=%s', data.paymentHash, txHash);
-      await enqueueWebhook(data, JOB_NAME_PAYMENT_FINALIZED, 'FINALIZED', null, txHash);
+      await enqueueWebhook(data, JOB_NAME_PAYMENT_FINALIZED, 'FINALIZED', data.txHash, txHash);
       return;
     }
 
@@ -298,7 +299,7 @@ export function startPaymentMonitor(options: MonitorOptions): { stop: () => Prom
       });
 
       console.log('[monitor] cancelled payment=%s release_tx=%s', data.paymentHash, txHash);
-      await enqueueWebhook(data, JOB_NAME_PAYMENT_CANCELLED, 'CANCELLED', null, txHash);
+      await enqueueWebhook(data, JOB_NAME_PAYMENT_CANCELLED, 'CANCELLED', data.txHash, txHash);
       return;
     }
 
@@ -337,6 +338,7 @@ export function startPaymentMonitor(options: MonitorOptions): { stop: () => Prom
             orderId: payment.order_id ?? null,
             webhookUrl: payment.webhook_url ?? null,
             status: payment.status,
+            txHash: payment.tx_hash ?? null,
           },
           { jobId: `${payment.payment_hash}-${payment.status}` }
         );
