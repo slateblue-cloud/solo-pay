@@ -28,10 +28,15 @@ export interface PaymentStatus {
     | 'failed'
     | 'completed'
     | 'CREATED'
-    | 'PENDING'
-    | 'CONFIRMED'
-    | 'FAILED'
-    | 'EXPIRED';
+    | 'ESCROWED'
+    | 'FINALIZE_SUBMITTED'
+    | 'FINALIZED'
+    | 'CANCEL_SUBMITTED'
+    | 'CANCELLED'
+    | 'REFUND_SUBMITTED'
+    | 'REFUNDED'
+    | 'EXPIRED'
+    | 'FAILED';
   transactionHash?: string;
   blockNumber?: number;
   createdAt: string;

@@ -190,7 +190,7 @@ export async function createPaymentFromUrlParams(
  */
 export interface PaymentStatusResponse {
   paymentId: string;
-  status: 'PENDING' | 'PROCESSING' | 'CONFIRMED' | 'FAILED' | 'EXPIRED';
+  status: 'CREATED' | 'ESCROWED' | 'FINALIZE_SUBMITTED' | 'FINALIZED' | 'CANCEL_SUBMITTED' | 'CANCELLED' | 'REFUND_SUBMITTED' | 'REFUNDED' | 'EXPIRED' | 'FAILED';
   txHash?: string;
   confirmedAt?: string;
 }
@@ -215,7 +215,7 @@ export interface GetPaymentStatusOptions {
  * @example
  * ```typescript
  * const status = await getPaymentStatus(payment.paymentId, { publicKey: pk, origin: window.location.origin });
- * if (status.status === 'CONFIRMED') {
+ * if (status.status === 'FINALIZED') {
  *   // Payment completed
  * }
  * ```
@@ -306,7 +306,7 @@ export async function pollPaymentStatus(
 
     onStatusChange?.(status);
 
-    if (status.status === 'CONFIRMED') {
+    if (status.status === 'FINALIZED') {
       return status;
     }
 

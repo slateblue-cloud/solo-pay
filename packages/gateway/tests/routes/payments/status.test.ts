@@ -27,7 +27,7 @@ describe('GET /payment/:id', () => {
     merchant_id: 1,
     network_id: 31337,
     token_symbol: 'USDC',
-    status: 'PENDING',
+    status: 'CREATED',
     amount: '1000000000000000000', // 1 token in wei (18 decimals)
   };
 
@@ -238,7 +238,7 @@ describe('GET /payment/:id', () => {
   });
 
   describe('Webhook enqueue', () => {
-    it('when status syncs to CONFIRMED and merchant has webhook_url, enqueues webhook job', async () => {
+    it('when status syncs to FINALIZED and merchant has webhook_url, enqueues webhook job', async () => {
       const paymentCreated = {
         ...mockPaymentData,
         status: 'CREATED',
@@ -249,7 +249,7 @@ describe('GET /payment/:id', () => {
       };
       const updatedPayment = {
         ...paymentCreated,
-        status: 'CONFIRMED',
+        status: 'FINALIZED',
         tx_hash: '0xtxhash',
         confirmed_at: new Date('2024-01-26T12:00:00.000Z'),
       };
@@ -281,7 +281,7 @@ describe('GET /payment/:id', () => {
         body: expect.objectContaining({
           paymentId: 'payment-123',
           orderId: 'order-1',
-          status: 'CONFIRMED',
+          status: 'FINALIZED',
           txHash: '0xtxhash',
           tokenSymbol: 'USDC',
           amount: '1000000000000000000',
@@ -291,7 +291,7 @@ describe('GET /payment/:id', () => {
 
     it('when merchant has no webhook_url, does not call addPaymentConfirmed', async () => {
       const paymentCreated = { ...mockPaymentData, status: 'CREATED' };
-      const updatedPayment = { ...paymentCreated, status: 'CONFIRMED' };
+      const updatedPayment = { ...paymentCreated, status: 'FINALIZED' };
       paymentService.findByHash = vi.fn().mockResolvedValue(paymentCreated);
       paymentService.updateStatusByHash = vi.fn().mockResolvedValue(updatedPayment);
       paymentService.updatePayerAddress = vi.fn().mockResolvedValue(updatedPayment);

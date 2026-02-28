@@ -40,7 +40,7 @@ const mockPayment = {
   token_decimals: 18,
   token_symbol: 'TEST',
   network_id: 31337,
-  status: 'CONFIRMED' as const,
+  status: 'FINALIZED' as const,
   tx_hash: '0x' + 'b'.repeat(64),
   expires_at: new Date(Date.now() + 3600000),
   confirmed_at: new Date(),
@@ -267,8 +267,8 @@ describe('POST /refund', () => {
       expect(body.code).toBe('FORBIDDEN');
     });
 
-    it('CONFIRMED 상태가 아닌 결제에 대해 환불 요청하면 400 상태 코드를 반환해야 함', async () => {
-      const testStatuses = ['CREATED', 'PENDING', 'FAILED', 'EXPIRED'];
+    it('FINALIZED 상태가 아닌 결제에 대해 환불 요청하면 400 상태 코드를 반환해야 함', async () => {
+      const testStatuses = ['CREATED', 'ESCROWED', 'FAILED', 'EXPIRED'];
 
       for (const status of testStatuses) {
         paymentService.findByHash = vi.fn().mockResolvedValue({
@@ -287,7 +287,7 @@ describe('POST /refund', () => {
 
         expect(response.statusCode).toBe(400);
         const body = JSON.parse(response.body);
-        expect(body.code).toBe('PAYMENT_NOT_CONFIRMED');
+        expect(body.code).toBe('PAYMENT_NOT_FINALIZED');
       }
     });
 

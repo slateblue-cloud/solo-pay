@@ -65,8 +65,6 @@ describe('PaymentService', () => {
       id: 1,
       payment_id: 1,
       event_type: 'CREATED',
-      old_status: null,
-      new_status: null,
       metadata: null,
       created_at: new Date(),
     });
@@ -178,7 +176,7 @@ describe('PaymentService', () => {
 
     const mockUpdated = {
       ...mockExisting,
-      status: PaymentStatus.CONFIRMED,
+      status: PaymentStatus.FINALIZED,
       confirmed_at: new Date(),
     };
 
@@ -187,16 +185,14 @@ describe('PaymentService', () => {
     mockPrisma.paymentEvent.create.mockResolvedValue({
       id: 2,
       payment_id: 4,
-      event_type: 'STATUS_CHANGED',
-      old_status: PaymentStatus.CREATED,
-      new_status: PaymentStatus.CONFIRMED,
+      event_type: 'FINALIZED',
       metadata: null,
       created_at: new Date(),
     });
 
-    const updated = await paymentService.updateStatus(4, 'CONFIRMED');
+    const updated = await paymentService.updateStatus(4, 'FINALIZED');
 
-    expect(updated.status).toBe('CONFIRMED');
+    expect(updated.status).toBe('FINALIZED');
     expect(updated.confirmed_at).toBeDefined();
     expect(mockPrisma.payment.update).toHaveBeenCalledOnce();
   });
@@ -212,7 +208,7 @@ describe('PaymentService', () => {
         token_decimals: 6,
         token_symbol: 'USDC',
         network_id: 31337,
-        status: PaymentStatus.CONFIRMED,
+        status: PaymentStatus.FINALIZED,
         payer_address: null,
         tx_hash: null,
         order_id: null,
@@ -229,10 +225,10 @@ describe('PaymentService', () => {
 
     mockPrisma.payment.findMany.mockResolvedValue(mockPayments);
 
-    const result = await paymentService.findByStatus('CONFIRMED');
+    const result = await paymentService.findByStatus('FINALIZED');
 
     expect(result.length).toBe(1);
-    expect(result[0].status).toBe('CONFIRMED');
+    expect(result[0].status).toBe('FINALIZED');
     expect(mockPrisma.payment.findMany).toHaveBeenCalledOnce();
   });
 
@@ -270,8 +266,6 @@ describe('PaymentService', () => {
       id: 3,
       payment_id: 7,
       event_type: 'CREATED',
-      old_status: null,
-      new_status: null,
       metadata: null,
       created_at: new Date(),
     });
@@ -329,7 +323,7 @@ describe('PaymentService', () => {
   it('should throw error when updating status of non-existent payment', async () => {
     mockPrisma.payment.findUnique.mockResolvedValue(null);
 
-    await expect(paymentService.updateStatus(999, 'CONFIRMED')).rejects.toThrow(
+    await expect(paymentService.updateStatus(999, 'FINALIZED')).rejects.toThrow(
       'Payment not found'
     );
   });
@@ -362,7 +356,7 @@ describe('PaymentService', () => {
 
       const mockUpdated = {
         ...mockExisting,
-        status: PaymentStatus.CONFIRMED,
+        status: PaymentStatus.FINALIZED,
         tx_hash: '0x' + 'h'.repeat(64),
         confirmed_at: new Date(),
       };
@@ -372,20 +366,18 @@ describe('PaymentService', () => {
       mockPrisma.paymentEvent.create.mockResolvedValue({
         id: 4,
         payment_id: 9,
-        event_type: 'STATUS_CHANGED',
-        old_status: PaymentStatus.CREATED,
-        new_status: PaymentStatus.CONFIRMED,
+        event_type: 'FINALIZED',
         metadata: null,
         created_at: new Date(),
       });
 
       const result = await paymentService.updateStatusByHash(
         paymentHash,
-        'CONFIRMED',
+        'FINALIZED',
         '0x' + 'h'.repeat(64)
       );
 
-      expect(result.status).toBe('CONFIRMED');
+      expect(result.status).toBe('FINALIZED');
       expect(result.tx_hash).toBe('0x' + 'h'.repeat(64));
       expect(result.confirmed_at).toBeDefined();
     });
@@ -394,7 +386,7 @@ describe('PaymentService', () => {
       mockPrisma.payment.findUnique.mockResolvedValue(null);
 
       await expect(
-        paymentService.updateStatusByHash('0x' + 'z'.repeat(64), 'CONFIRMED')
+        paymentService.updateStatusByHash('0x' + 'z'.repeat(64), 'FINALIZED')
       ).rejects.toThrow('Payment not found');
     });
 
@@ -433,9 +425,7 @@ describe('PaymentService', () => {
       mockPrisma.paymentEvent.create.mockResolvedValue({
         id: 5,
         payment_id: 10,
-        event_type: 'STATUS_CHANGED',
-        old_status: PaymentStatus.CREATED,
-        new_status: PaymentStatus.FAILED,
+        event_type: 'FAILED',
         metadata: null,
         created_at: new Date(),
       });

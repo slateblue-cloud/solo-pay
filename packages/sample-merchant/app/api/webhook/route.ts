@@ -76,9 +76,9 @@ export async function POST(request: NextRequest) {
     }
 
     // 3. Verify status is actually CONFIRMED
-    if (gatewayPayment.status !== 'CONFIRMED') {
+    if (gatewayPayment.status !== 'FINALIZED') {
       console.error(
-        `[webhook] Gateway status mismatch: expected CONFIRMED, got ${gatewayPayment.status}`
+        `[webhook] Gateway status mismatch: expected FINALIZED, got ${gatewayPayment.status}`
       );
       return NextResponse.json({ error: 'Payment not confirmed on gateway' }, { status: 400 });
     }
@@ -106,7 +106,7 @@ export async function POST(request: NextRequest) {
     await prisma.payment.update({
       where: { id: Number(orderId) },
       data: {
-        status: 'CONFIRMED',
+        status: 'FINALIZED',
         tx_hash: gatewayPayment.txHash ?? null,
         confirmed_at: gatewayPayment.confirmedAt
           ? new Date(gatewayPayment.confirmedAt)

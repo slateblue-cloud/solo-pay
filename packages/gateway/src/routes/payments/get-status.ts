@@ -32,9 +32,15 @@ Retrieves the current status of a payment by its payment hash. Requires x-public
 
 **Status Values:**
 - \`CREATED\` - Payment created, awaiting on-chain transaction
-- \`PENDING\` - Transaction submitted, awaiting confirmation
-- \`CONFIRMED\` - Payment confirmed on-chain
-- \`FAILED\` - Payment failed
+- \`ESCROWED\` - Funds locked in escrow contract
+- \`FINALIZE_SUBMITTED\` - Finalize transaction submitted
+- \`FINALIZED\` - Payment finalized, merchant paid
+- \`CANCEL_SUBMITTED\` - Cancel transaction submitted
+- \`CANCELLED\` - Escrow cancelled, funds returned
+- \`REFUND_SUBMITTED\` - Refund transaction submitted
+- \`REFUNDED\` - Refund confirmed on-chain
+- \`EXPIRED\` - Payment expired before escrow
+- \`FAILED\` - Transaction failed
 
 **Note:** This endpoint syncs on-chain status with database status.
         `,
@@ -132,17 +138,17 @@ Retrieves the current status of a payment by its payment hash. Requires x-public
         let finalStatus = paymentData.status;
         if (
           paymentStatus.status === 'completed' &&
-          ['CREATED', 'PENDING'].includes(paymentData.status)
+          paymentData.status === 'CREATED'
         ) {
           const updatedPayment = await paymentService.updateStatusByHash(
             paymentData.payment_hash,
-            'CONFIRMED',
+            'FINALIZED',
             paymentStatus.transactionHash
           );
           if (paymentStatus.payerAddress) {
             await paymentService.updatePayerAddress(id, paymentStatus.payerAddress);
           }
-          finalStatus = 'CONFIRMED';
+          finalStatus = 'FINALIZED';
 
           const merchant = await merchantService.findById(updatedPayment.merchant_id);
           enqueuePaymentConfirmedWebhook(webhookQueue, updatedPayment, merchant, (err, paymentId) =>

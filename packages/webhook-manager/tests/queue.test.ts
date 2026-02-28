@@ -34,7 +34,7 @@ describe('createWebhookQueue', () => {
       body: {
         paymentId: '0xabc',
         orderId: 'order-1',
-        status: 'CONFIRMED',
+        status: 'FINALIZED',
         txHash: '0xtx',
         amount: '1000000',
         tokenSymbol: 'USDC',

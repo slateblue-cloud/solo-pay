@@ -13,10 +13,15 @@ datasource db {
 
 enum PaymentStatus {
   CREATED
-  PENDING
-  CONFIRMED
-  FAILED
+  ESCROWED
+  FINALIZE_SUBMITTED
+  FINALIZED
+  CANCEL_SUBMITTED
+  CANCELLED
+  REFUND_SUBMITTED
+  REFUNDED
   EXPIRED
+  FAILED
 }
 
 enum RelayStatus {
@@ -28,14 +33,15 @@ enum RelayStatus {
 
 enum EventType {
   CREATED
-  STATUS_CHANGED
-  RELAY_SUBMITTED
-  RELAY_CONFIRMED
-  EXPIRED
-  REFUND_REQUESTED
+  ESCROWED
+  FINALIZE_SUBMITTED
+  FINALIZED
+  CANCEL_SUBMITTED
+  CANCELLED
   REFUND_SUBMITTED
-  REFUND_CONFIRMED
-  REFUND_FAILED
+  REFUNDED
+  EXPIRED
+  FAILED
 }
 
 enum RefundStatus {
@@ -165,8 +171,6 @@ model PaymentEvent {
   id          Int       @id @default(autoincrement())
   payment_id  Int
   event_type  EventType
-  old_status  String?   @db.VarChar(20)
-  new_status  String?   @db.VarChar(20)
   metadata    Json?
   created_at  DateTime  @default(now())
 

@@ -231,7 +231,7 @@ export const PaymentStatusResponseSchema = {
         },
         status: {
           type: 'string',
-          enum: ['CREATED', 'PENDING', 'CONFIRMED', 'FAILED'],
+          enum: ['CREATED', 'ESCROWED', 'FINALIZE_SUBMITTED', 'FINALIZED', 'CANCEL_SUBMITTED', 'CANCELLED', 'REFUND_SUBMITTED', 'REFUNDED', 'EXPIRED', 'FAILED'],
           description: 'Payment status from database',
         },
         createdAt: { type: 'string', description: 'Creation timestamp' },

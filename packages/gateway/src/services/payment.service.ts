@@ -115,17 +115,16 @@ export class PaymentService {
       where: { id },
       data: {
         status: newStatus,
-        ...(newStatus === 'CONFIRMED' && { confirmed_at: new Date() }),
+        ...(newStatus === 'FINALIZED' && { confirmed_at: new Date() }),
       },
     });
 
-    // Create status change event
+    // Create event with specific type matching the new status
     await this.prisma.paymentEvent.create({
       data: {
         payment_id: id,
-        event_type: 'STATUS_CHANGED',
-        old_status: oldStatus,
-        new_status: newStatus,
+        event_type: newStatus as string as import('@solo-pay/database').EventType,
+        metadata: { old_status: oldStatus },
       },
     });
 
@@ -150,23 +149,22 @@ export class PaymentService {
 
     const oldStatus = payment.status;
 
-    // Update payment with status, optional tx_hash, and confirmed_at if CONFIRMED
+    // Update payment with status, optional tx_hash, and confirmed_at if FINALIZED
     const updatedPayment = await this.prisma.payment.update({
       where: { payment_hash: paymentHash },
       data: {
         status: newStatus,
         ...(txHash && { tx_hash: txHash }),
-        ...(newStatus === 'CONFIRMED' && { confirmed_at: new Date() }),
+        ...(newStatus === 'FINALIZED' && { confirmed_at: new Date() }),
       },
     });
 
-    // Create status change event
+    // Create event with specific type matching the new status
     await this.prisma.paymentEvent.create({
       data: {
         payment_id: payment.id,
-        event_type: 'STATUS_CHANGED',
-        old_status: oldStatus,
-        new_status: newStatus,
+        event_type: newStatus as string as import('@solo-pay/database').EventType,
+        metadata: { old_status: oldStatus },
       },
     });
 

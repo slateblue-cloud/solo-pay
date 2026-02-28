@@ -264,7 +264,7 @@ export function PaymentModal({ product, onClose, onSuccess }: PaymentModalProps)
         const response = await getPaymentStatus(paymentId);
 
         if (response.success && response.data) {
-          if (response.data.status === 'CONFIRMED' || response.data.status === 'completed') {
+          if (response.data.status === 'FINALIZED' || response.data.status === 'completed') {
             return;
           }
           if (response.data.status === 'FAILED' || response.data.status === 'failed') {
@@ -504,7 +504,7 @@ export function PaymentModal({ product, onClose, onSuccess }: PaymentModalProps)
 
       setRelayRequestId(submitResponse.data.relayRequestId);
 
-      // 6. Poll payment status until CONFIRMED (gateway no longer exposes relay status endpoint)
+      // 6. Poll payment status until FINALIZED (gateway no longer exposes relay status endpoint)
       await pollPaymentStatus(paymentId);
 
       // 7. Get final status for txHash

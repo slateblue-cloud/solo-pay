@@ -12,8 +12,8 @@ import { ErrorResponseSchema } from '../../docs/schemas';
 
 /**
  * Syncs payment status from blockchain: if on-chain status is completed and DB status is
- * CREATED or PENDING, updates DB to CONFIRMED and mutates the payment object in place.
- * @returns true if status was updated to CONFIRMED (caller may enqueue webhook).
+ * CREATED, updates DB to FINALIZED and mutates the payment object in place.
+ * @returns true if status was updated to FINALIZED (caller may enqueue webhook).
  */
 async function syncPaymentStatusFromChain(
   blockchainService: BlockchainService,
@@ -25,10 +25,10 @@ async function syncPaymentStatusFromChain(
     return false;
   }
   const paymentStatus = await blockchainService.getPaymentStatus(chainId, payment.payment_hash);
-  if (paymentStatus?.status === 'completed' && ['CREATED', 'PENDING'].includes(payment.status)) {
+  if (paymentStatus?.status === 'completed' && payment.status === 'CREATED') {
     const updated = await paymentService.updateStatusByHash(
       payment.payment_hash,
-      'CONFIRMED',
+      'FINALIZED',
       paymentStatus.transactionHash ?? undefined
     );
     payment.status = updated.status;
@@ -88,7 +88,7 @@ export async function merchantPaymentRoute(
     properties: {
       paymentId: { type: 'string' },
       orderId: { type: 'string' },
-      status: { type: 'string', enum: ['CREATED', 'PENDING', 'CONFIRMED', 'FAILED', 'EXPIRED'] },
+      status: { type: 'string', enum: ['CREATED', 'ESCROWED', 'FINALIZE_SUBMITTED', 'FINALIZED', 'CANCEL_SUBMITTED', 'CANCELLED', 'REFUND_SUBMITTED', 'REFUNDED', 'EXPIRED', 'FAILED'] },
       amount: { type: 'string', description: 'Wei' },
       tokenSymbol: { type: 'string' },
       tokenDecimals: { type: 'integer' },
@@ -153,7 +153,7 @@ export async function merchantPaymentRoute(
           paymentService,
           payment
         );
-        if (statusJustConfirmed && payment.status === 'CONFIRMED') {
+        if (statusJustConfirmed && payment.status === 'FINALIZED') {
           const merchantForWebhook = await merchantService.findById(payment.merchant_id);
           enqueuePaymentConfirmedWebhook(
             webhookQueue,
@@ -226,7 +226,7 @@ export async function merchantPaymentRoute(
           paymentService,
           payment
         );
-        if (statusJustConfirmed && payment.status === 'CONFIRMED') {
+        if (statusJustConfirmed && payment.status === 'FINALIZED') {
           const merchantForWebhook = await merchantService.findById(payment.merchant_id);
           enqueuePaymentConfirmedWebhook(
             webhookQueue,

@@ -204,7 +204,7 @@ export interface DeletePaymentMethodResponse {
 export interface MerchantPaymentDetailResponse {
   paymentId: string;
   orderId?: string;
-  status: 'CREATED' | 'PENDING' | 'CONFIRMED' | 'FAILED' | 'EXPIRED';
+  status: 'CREATED' | 'ESCROWED' | 'FINALIZE_SUBMITTED' | 'FINALIZED' | 'CANCEL_SUBMITTED' | 'CANCELLED' | 'REFUND_SUBMITTED' | 'REFUNDED' | 'EXPIRED' | 'FAILED';
   amount: string;
   tokenSymbol: string;
   tokenDecimals: number;
