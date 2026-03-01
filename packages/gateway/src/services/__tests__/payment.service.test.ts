@@ -780,8 +780,6 @@ describe('PaymentService', () => {
         id: 100,
         payment_id: 100,
         event_type: 'CREATED',
-        old_status: null,
-        new_status: null,
         metadata: null,
         created_at: new Date(),
       });
@@ -1006,7 +1004,7 @@ describe('PaymentService', () => {
         token_decimals: 6,
         token_symbol: 'USDC',
         network_id: 31337,
-        status: PaymentStatus.CONFIRMED,
+        status: PaymentStatus.FINALIZED,
         payer_address: '0x' + 'payer'.padEnd(40, '0'),
         tx_hash: '0x' + 'tx'.padEnd(64, '0'),
         release_tx_hash: null,

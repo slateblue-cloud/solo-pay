@@ -122,7 +122,7 @@ export async function merchantPaymentRoute(
         type: 'string',
         enum: [
           'CREATED',
-          
+
           'ESCROWED',
           'FINALIZE_SUBMITTED',
           'CANCEL_SUBMITTED',

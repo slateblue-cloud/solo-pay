@@ -156,7 +156,6 @@ export function startPaymentMonitor(options: MonitorOptions): { stop: () => Prom
 
       switch (data.status) {
         case 'CREATED':
-        case 'CREATED':
           await handleCreatedPending(data, onChainStatus, details);
           break;
 

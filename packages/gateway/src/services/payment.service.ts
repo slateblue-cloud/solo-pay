@@ -116,7 +116,6 @@ export class PaymentService {
       throw new Error('Payment not found');
     }
 
-
     // Update payment
     const updatedPayment = await this.prisma.payment.update({
       where: { id },
@@ -155,7 +154,6 @@ export class PaymentService {
     if (!payment) {
       throw new Error('Payment not found');
     }
-
 
     // Determine which tx_hash column to write:
     // ESCROWED/PENDING → tx_hash (escrow tx), FINALIZED/CANCELLED → release_tx_hash
