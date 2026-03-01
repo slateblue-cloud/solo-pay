@@ -34,10 +34,10 @@ export interface MerchantConfig {
   /** 토큰 소수점 자릿수 */
   tokenDecimals: number;
 
-  /** Public key for POST /payments/create (must be in merchant allowed_domains) */
+  /** Public key for POST /payments (must be in merchant allowed_domains) */
   publicKey: string;
 
-  /** Origin for POST /payments/create (must match one of merchant allowed_domains) */
+  /** Origin for POST /payments (must match one of merchant allowed_domains) */
   origin: string;
 }
 
@@ -88,7 +88,7 @@ export function getMerchantConfig(): MerchantConfig {
 
   const publicKey =
     process.env.SOLO_PAY_PUBLIC_KEY || process.env.NEXT_PUBLIC_SOLO_PAY_PUBLIC_KEY || '';
-  // Origin for POST /payments/create. Server-side requests do not send Origin automatically;
+  // Origin for POST /payments. Server-side requests do not send Origin automatically;
   // this value is sent by the SDK. Only browser requests send Origin automatically.
   const origin =
     process.env.SOLO_PAY_ORIGIN ||

@@ -64,12 +64,32 @@ const PAYMENT_GATEWAY_ABI = [
       { name: 'recipientAddress', type: 'address' },
       { name: 'merchantId', type: 'bytes32' },
       { name: 'feeBps', type: 'uint16' },
+      { name: 'deadline', type: 'uint256' },
+      { name: 'escrowDuration', type: 'uint256' },
       { name: 'serverSignature', type: 'bytes' },
+      {
+        name: 'permit',
+        type: 'tuple',
+        components: [
+          { name: 'deadline', type: 'uint256' },
+          { name: 'v', type: 'uint8' },
+          { name: 'r', type: 'bytes32' },
+          { name: 's', type: 'bytes32' },
+        ],
+      },
     ],
     outputs: [],
     stateMutability: 'nonpayable',
   },
 ] as const;
+
+// Empty permit for non-permit (approve-based) payments
+const EMPTY_PERMIT = {
+  deadline: BigInt(0),
+  v: 0,
+  r: '0x0000000000000000000000000000000000000000000000000000000000000000' as `0x${string}`,
+  s: '0x0000000000000000000000000000000000000000000000000000000000000000' as `0x${string}`,
+} as const;
 
 // ERC2771Forwarder ABI - only nonces function needed for gasless payments
 const FORWARDER_ABI = [
@@ -119,7 +139,6 @@ export function PaymentModal({ product, onClose, onSuccess }: PaymentModalProps)
   const [pendingTxHash, setPendingTxHash] = useState<Address | undefined>(undefined);
   const [approveTxHash, setApproveTxHash] = useState<Address | undefined>(undefined);
   const [currentPaymentId, setCurrentPaymentId] = useState<string | null>(null);
-  const [relayRequestId, setRelayRequestId] = useState<string | null>(null);
   // ⚠️ SECURITY: serverConfig contains server-verified price (not from client)
   const [serverConfig, setServerConfig] = useState<CheckoutResponse | null>(null);
   const [isLoadingConfig, setIsLoadingConfig] = useState<boolean>(false);
@@ -264,7 +283,7 @@ export function PaymentModal({ product, onClose, onSuccess }: PaymentModalProps)
         const response = await getPaymentStatus(paymentId);
 
         if (response.success && response.data) {
-          if (response.data.status === 'FINALIZED' || response.data.status === 'completed') {
+          if (response.data.status === 'FINALIZED') {
             return;
           }
           if (response.data.status === 'FAILED' || response.data.status === 'failed') {
@@ -367,7 +386,10 @@ export function PaymentModal({ product, onClose, onSuccess }: PaymentModalProps)
           serverConfig.recipientAddress as Address,
           serverConfig.merchantId as `0x${string}`,
           serverConfig.feeBps ?? 0,
+          BigInt(serverConfig.deadline ?? Math.floor(Date.now() / 1000) + 3600),
+          BigInt(serverConfig.escrowDuration ?? 86400),
           serverConfig.serverSignature as `0x${string}`,
+          EMPTY_PERMIT,
         ],
         ...gasConfig,
       });
@@ -432,7 +454,10 @@ export function PaymentModal({ product, onClose, onSuccess }: PaymentModalProps)
           serverConfig.recipientAddress as Address,
           serverConfig.merchantId as `0x${string}`,
           serverConfig.feeBps ?? 0,
+          BigInt(serverConfig.deadline ?? Math.floor(Date.now() / 1000) + 3600),
+          BigInt(serverConfig.escrowDuration ?? 86400),
           serverConfig.serverSignature as `0x${string}`,
+          EMPTY_PERMIT,
         ],
       });
 
@@ -502,9 +527,7 @@ export function PaymentModal({ product, onClose, onSuccess }: PaymentModalProps)
         throw new Error(submitResponse.message || 'Failed to submit gasless payment');
       }
 
-      setRelayRequestId(submitResponse.data.relayRequestId);
-
-      // 6. Poll payment status until FINALIZED (gateway no longer exposes relay status endpoint)
+      // 6. Poll payment status until CONFIRMED
       await pollPaymentStatus(paymentId);
 
       // 7. Get final status for txHash
@@ -704,22 +727,6 @@ export function PaymentModal({ product, onClose, onSuccess }: PaymentModalProps)
                         {pendingTxHash.slice(0, 10)}...{pendingTxHash.slice(-8)}
                       </span>
                       <CopyButton text={pendingTxHash} />
-                    </span>
-                  </div>
-                )}
-
-                {/* Relay Request ID (Gasless only) */}
-                {gasMode === 'gasless' && relayRequestId && (
-                  <div className="flex justify-between items-center">
-                    <span className="text-gray-600 dark:text-gray-400">Relay ID:</span>
-                    <span className="flex items-center">
-                      <span
-                        className="font-mono text-gray-900 dark:text-gray-100"
-                        title={relayRequestId}
-                      >
-                        {relayRequestId.slice(0, 10)}...{relayRequestId.slice(-8)}
-                      </span>
-                      <CopyButton text={relayRequestId} />
                     </span>
                   </div>
                 )}

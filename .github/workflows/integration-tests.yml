@@ -4,11 +4,7 @@ on:
   pull_request:
     branches: ['main']
     paths:
-      - 'packages/integration-tests/**'
-      - 'packages/gateway/**'
-      - 'packages/simple-relayer/**'
-      - 'packages/gateway-sdk/**'
-      - 'packages/contracts/**'
+      - 'packages/**'
       - 'docker/**'
       - '.github/workflows/integration-tests.yml'
   workflow_dispatch:
@@ -79,9 +75,24 @@ jobs:
           pnpm --filter @solo-pay/contracts exec hardhat compile
           pnpm build
 
-      - name: Initialize database
+      - name: Initialize databases
         run: |
-          mysql -h 127.0.0.1 -u root -ppass solopay < docker/init.sql
+          mysql -h 127.0.0.1 -u root -ppass -e "
+            CREATE DATABASE IF NOT EXISTS solopay_sample_merchant CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+            GRANT ALL PRIVILEGES ON solopay_sample_merchant.* TO 'solopay'@'%';
+            GRANT CREATE, DROP ON *.* TO 'solopay'@'%';
+            FLUSH PRIVILEGES;
+          "
+
+      - name: Push database schemas
+        run: |
+          pnpm --filter @solo-pay/database exec prisma db push
+          DATABASE_URL=mysql://solopay:pass@127.0.0.1:3306/solopay_sample_merchant pnpm --filter sample-merchant exec prisma db push
+
+      - name: Seed databases
+        run: |
+          pnpm --filter @solo-pay/database exec prisma db seed
+          DATABASE_URL=mysql://solopay:pass@127.0.0.1:3306/solopay_sample_merchant pnpm --filter sample-merchant exec prisma db seed
 
       - name: Start Hardhat node
         run: |
@@ -95,9 +106,9 @@ jobs:
           cd packages/contracts
           pnpm exec hardhat run scripts/check-and-deploy.ts --network localhost
 
-      - name: Update database with localhost RPC
+      - name: Update database with localhost URLs
         run: |
-          mysql -h 127.0.0.1 -u root -ppass solopay -e "UPDATE chains SET rpc_url = '$BLOCKCHAIN_RPC_URL' WHERE network_id = $CHAIN_ID;"
+          mysql -h 127.0.0.1 -u root -ppass solopay -e "UPDATE chains SET rpc_url = '$BLOCKCHAIN_RPC_URL', relayer_url = '$RELAY_API_URL' WHERE network_id = $CHAIN_ID;"
 
       - name: Start gateway
         env:

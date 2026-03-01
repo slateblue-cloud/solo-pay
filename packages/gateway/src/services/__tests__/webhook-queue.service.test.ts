@@ -36,7 +36,6 @@ describe('webhook-queue.service', () => {
     api_key_hash: 'hash',
     public_key: null,
     public_key_hash: null,
-    allowed_domains: null,
     is_enabled: true,
     is_deleted: false,
     webhook_url: 'https://merchant.example/webhook',
@@ -90,10 +89,10 @@ describe('webhook-queue.service', () => {
       expect(body.orderId).toBeNull();
     });
 
-    it('uses ISO string for confirmedAt when confirmed_at is null', () => {
+    it('returns undefined confirmedAt when confirmed_at is null', () => {
       const payment = { ...basePayment, confirmed_at: null };
       const body = buildPaymentConfirmedBody(payment);
-      expect(body.confirmedAt).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/);
+      expect(body.confirmedAt).toBeUndefined();
     });
   });
 });

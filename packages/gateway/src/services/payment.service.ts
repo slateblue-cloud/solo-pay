@@ -1,4 +1,4 @@
-import { PrismaClient, Payment, PaymentStatus } from '@solo-pay/database';
+import { PrismaClient, Payment, PaymentStatus, EventType, Prisma } from '@solo-pay/database';
 import { Decimal } from '@solo-pay/database';
 import { getCache, setCache, deleteCache } from '../db/redis';
 
@@ -16,6 +16,10 @@ export interface CreatePaymentInput {
   fail_url?: string;
   webhook_url?: string;
   origin?: string;
+  currency_code?: string;
+  fiat_amount?: Decimal;
+  token_price?: Decimal;
+  escrow_deadline?: Date;
 }
 
 export class PaymentService {
@@ -42,6 +46,10 @@ export class PaymentService {
         fail_url: input.fail_url,
         webhook_url: input.webhook_url,
         origin: input.origin,
+        currency_code: input.currency_code,
+        fiat_amount: input.fiat_amount,
+        token_price: input.token_price,
+        escrow_deadline: input.escrow_deadline,
       },
     });
 
@@ -108,7 +116,6 @@ export class PaymentService {
       throw new Error('Payment not found');
     }
 
-    const oldStatus = payment.status;
 
     // Update payment
     const updatedPayment = await this.prisma.payment.update({
@@ -116,15 +123,17 @@ export class PaymentService {
       data: {
         status: newStatus,
         ...(newStatus === 'FINALIZED' && { confirmed_at: new Date() }),
+        ...(newStatus === 'ESCROWED' && { confirmed_at: new Date() }),
+        ...(newStatus === 'FINALIZED' && { finalized_at: new Date() }),
+        ...(newStatus === 'CANCELLED' && { cancelled_at: new Date() }),
       },
     });
 
-    // Create event with specific type matching the new status
+    // Create status change event
     await this.prisma.paymentEvent.create({
       data: {
         payment_id: id,
         event_type: newStatus as string as import('@solo-pay/database').EventType,
-        metadata: { old_status: oldStatus },
       },
     });
 
@@ -147,24 +156,33 @@ export class PaymentService {
       throw new Error('Payment not found');
     }
 
-    const oldStatus = payment.status;
 
-    // Update payment with status, optional tx_hash, and confirmed_at if FINALIZED
+    // Determine which tx_hash column to write:
+    // ESCROWED/PENDING → tx_hash (escrow tx), FINALIZED/CANCELLED → release_tx_hash
+    const isRelease = newStatus === 'FINALIZED' || newStatus === 'CANCELLED';
+    const txHashField = txHash
+      ? isRelease
+        ? { release_tx_hash: txHash }
+        : { tx_hash: txHash }
+      : {};
+
     const updatedPayment = await this.prisma.payment.update({
       where: { payment_hash: paymentHash },
       data: {
         status: newStatus,
-        ...(txHash && { tx_hash: txHash }),
+        ...txHashField,
         ...(newStatus === 'FINALIZED' && { confirmed_at: new Date() }),
+        ...(newStatus === 'ESCROWED' && { confirmed_at: new Date() }),
+        ...(newStatus === 'FINALIZED' && { finalized_at: new Date() }),
+        ...(newStatus === 'CANCELLED' && { cancelled_at: new Date() }),
       },
     });
 
-    // Create event with specific type matching the new status
+    // Create status change event
     await this.prisma.paymentEvent.create({
       data: {
         payment_id: payment.id,
         event_type: newStatus as string as import('@solo-pay/database').EventType,
-        metadata: { old_status: oldStatus },
       },
     });
 
@@ -243,5 +261,56 @@ export class PaymentService {
     });
     await deleteCache(this.getCacheKey(paymentHash));
     return updated;
+  }
+
+  /**
+   * Look up whether the token behind a payment supports EIP-2612 permit.
+   * Follows Payment → MerchantPaymentMethod → Token.
+   */
+  async getTokenPermitSupported(paymentMethodId: number): Promise<boolean> {
+    const pm = await this.prisma.merchantPaymentMethod.findUnique({
+      where: { id: paymentMethodId },
+      select: { token_id: true },
+    });
+    if (!pm) return false;
+    const token = await this.prisma.token.findFirst({
+      where: { id: pm.token_id },
+      select: { permit_enabled: true },
+    });
+    return token?.permit_enabled ?? false;
+  }
+
+  /**
+   * Optimistic lock: atomically verify the payment is still in the expected status.
+   * Uses updateMany with a WHERE clause on both id and status so that only one
+   * concurrent request can succeed. Returns true if the lock was acquired.
+   */
+  async claimForProcessing(
+    id: number,
+    expectedStatus: PaymentStatus,
+    targetStatus: PaymentStatus
+  ): Promise<boolean> {
+    const result = await this.prisma.payment.updateMany({
+      where: { id, status: expectedStatus },
+      data: { status: targetStatus, updated_at: new Date() },
+    });
+    return result.count > 0;
+  }
+
+  /**
+   * Create a PaymentEvent for audit logging.
+   */
+  async createEvent(
+    paymentId: number,
+    eventType: EventType,
+    metadata?: Prisma.InputJsonValue
+  ): Promise<void> {
+    await this.prisma.paymentEvent.create({
+      data: {
+        payment_id: paymentId,
+        event_type: eventType,
+        ...(metadata !== undefined ? { metadata } : {}),
+      },
+    });
   }
 }

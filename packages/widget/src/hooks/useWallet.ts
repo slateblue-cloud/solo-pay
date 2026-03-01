@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useAccount, useConnect, useDisconnect } from 'wagmi';
-
-// ============================================================================
-// Types
-// ============================================================================
+import {
+  getMetaMaskProvider,
+  getTrustWalletProvider,
+  requestEIP6963Providers,
+} from '../lib/wallet-providers';
 
 export interface WalletState {
   /** Connected wallet address */
@@ -39,36 +40,7 @@ export interface WalletActions {
 
 export interface UseWalletReturn extends WalletState, WalletActions {}
 
-// ============================================================================
-// Provider Types
-// ============================================================================
-
-interface EthereumProvider {
-  request: (args: { method: string; params?: unknown[] }) => Promise<unknown>;
-  on?: (event: string, handler: (...args: unknown[]) => void) => void;
-  removeListener?: (event: string, handler: (...args: unknown[]) => void) => void;
-  isMetaMask?: boolean;
-  isTrust?: boolean;
-  isTrustWallet?: boolean;
-  isRainbow?: boolean;
-  isCoinbaseWallet?: boolean;
-  providers?: EthereumProvider[];
-}
-
-// Type-safe window access
-function getWindowEthereum(): EthereumProvider | undefined {
-  if (typeof window === 'undefined') return undefined;
-  return (window as { ethereum?: EthereumProvider }).ethereum;
-}
-
-function getWindowTrustWallet(): EthereumProvider | undefined {
-  if (typeof window === 'undefined') return undefined;
-  return (window as { trustwallet?: EthereumProvider }).trustwallet;
-}
-
-// ============================================================================
-// Detection Helpers (matching msqpay.js logic)
-// ============================================================================
+/** Device and wallet detection; provider resolution is in lib/wallet-providers. */
 
 /**
  * Detect if device is mobile or tablet (touchscreen without extension support)
@@ -105,64 +77,6 @@ function detectMobile(): boolean {
   return false;
 }
 
-/**
- * Get Trust Wallet provider from window
- * Checks: window.trustwallet, providers array, window.ethereum
- */
-function getTrustWalletProvider(): EthereumProvider | null {
-  // Check dedicated trustwallet object first
-  const trustwallet = getWindowTrustWallet();
-  if (trustwallet) {
-    return trustwallet;
-  }
-
-  const ethereum = getWindowEthereum();
-  if (!ethereum) return null;
-
-  // Check providers array (when multiple extensions installed)
-  const providers = ethereum.providers || [];
-  for (const p of providers) {
-    if (p.isTrust || p.isTrustWallet) {
-      return p;
-    }
-  }
-
-  // Fallback: check window.ethereum directly (if no providers array)
-  if (providers.length === 0) {
-    if (ethereum.isTrust || ethereum.isTrustWallet) {
-      return ethereum;
-    }
-  }
-
-  return null;
-}
-
-/**
- * Get MetaMask provider from window
- * Excludes Trust Wallet and other wallets
- */
-function getMetaMaskProvider(): EthereumProvider | null {
-  const ethereum = getWindowEthereum();
-  if (!ethereum) return null;
-
-  // Check providers array first (when multiple extensions installed)
-  const providers = ethereum.providers || [];
-  for (const p of providers) {
-    if (p.isMetaMask && !p.isTrust && !p.isTrustWallet && !p.isRainbow && !p.isCoinbaseWallet) {
-      return p;
-    }
-  }
-
-  // Fallback: check window.ethereum directly (if no providers array)
-  if (providers.length === 0) {
-    if (ethereum.isMetaMask && !ethereum.isTrust && !ethereum.isTrustWallet) {
-      return ethereum;
-    }
-  }
-
-  return null;
-}
-
 function detectTrustWallet(): boolean {
   return getTrustWalletProvider() !== null;
 }
@@ -170,10 +84,6 @@ function detectTrustWallet(): boolean {
 function detectMetaMask(): boolean {
   return getMetaMaskProvider() !== null;
 }
-
-// ============================================================================
-// Deeplink Generators
-// ============================================================================
 
 /**
  * Generate Trust Wallet deeplink to open current page in Trust Wallet browser
@@ -183,10 +93,6 @@ export function getTrustWalletDeeplink(url?: string): string {
   const targetUrl = url ?? (typeof window !== 'undefined' ? window.location.href : '');
   return `trust://open_url?coin_id=60&url=${encodeURIComponent(targetUrl)}`;
 }
-
-// ============================================================================
-// Hook
-// ============================================================================
 
 export function useWallet(): UseWalletReturn {
   const { address, isConnected, chain } = useAccount();
@@ -204,56 +110,43 @@ export function useWallet(): UseWalletReturn {
     setIsMetaMaskBrowser(detectMetaMask());
   }, []);
 
-  // Find MetaMask connector
   const metaMaskConnector = useMemo(
     () => connectors.find((c) => c.id === 'metaMaskSDK' || c.id === 'metaMask'),
     [connectors]
   );
-
-  // Find injected connector (for use inside wallet browsers or extensions)
   const injectedConnector = useMemo(
     () => connectors.find((c) => c.id === 'injected'),
     [connectors]
   );
 
-  // Connect via MetaMask (SDK handles mobile deeplinks automatically)
+  const trustWalletConnector = useMemo(
+    () => connectors.find((c) => c.id === 'trustWallet'),
+    [connectors]
+  );
+
   const connectMetaMask = useCallback(() => {
-    if (metaMaskConnector) {
-      connect({ connector: metaMaskConnector });
-    }
+    if (metaMaskConnector) connect({ connector: metaMaskConnector });
   }, [connect, metaMaskConnector]);
 
-  // Connect via Trust Wallet (desktop: extension only, mobile: deeplink)
   const connectTrustWallet = useCallback(() => {
     if (typeof window === 'undefined') return;
 
-    const isMobileDevice = detectMobile();
-    const trustProvider = getTrustWalletProvider();
-
-    // If Trust Wallet provider is detected, use wagmi's injected connector
-    if (trustProvider && injectedConnector) {
-      connect({ connector: injectedConnector });
+    if (trustWalletConnector) {
+      requestEIP6963Providers();
+      connect({ connector: trustWalletConnector });
       return;
     }
-
-    // On mobile/tablet without Trust Wallet browser, use deeplink to open Trust Wallet app
-    if (isMobileDevice) {
+    if (detectMobile()) {
       window.location.href = getTrustWalletDeeplink();
       return;
     }
-
-    // Desktop without Trust Wallet extension - open download page
     window.open('https://trustwallet.com/browser-extension', '_blank');
-  }, [connect, injectedConnector]);
+  }, [connect, trustWalletConnector]);
 
-  // Connect using injected provider
   const connectInjected = useCallback(() => {
-    if (injectedConnector) {
-      connect({ connector: injectedConnector });
-    }
+    if (injectedConnector) connect({ connector: injectedConnector });
   }, [connect, injectedConnector]);
 
-  // Disconnect
   const disconnect = useCallback(() => {
     wagmiDisconnect();
   }, [wagmiDisconnect]);

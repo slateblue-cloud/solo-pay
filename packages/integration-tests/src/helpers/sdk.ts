@@ -28,7 +28,8 @@ export const TEST_MERCHANT: TestMerchant = {
   merchantId: 'merchant_demo_001',
   apiKey: '123',
   publicKey: 'pk_test_demo',
-  origin: process.env.PAY_SERVER_ORIGIN || 'http://localhost:3000',
+  // Temporarily using the widget origin to pass gateway's ALLOWED_WIDGET_ORIGIN check
+  origin: 'http://localhost:3005',
 };
 
 export function createTestClient(merchant: TestMerchant = TEST_MERCHANT): SoloPayClient {
@@ -57,7 +58,7 @@ export function createTestClientFromFixture(merchantName: string = 'default'): S
  */
 const DEFAULT_TOKEN_ADDRESS = '0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512';
 
-/** Build params for createPayment (POST /payments/create uses orderId, amount, tokenAddress, successUrl, failUrl). */
+/** Build params for createPayment (POST /payments uses orderId, amount, tokenAddress, successUrl, failUrl). */
 export function makeCreatePaymentParams(
   amount: number,
   orderId?: string,

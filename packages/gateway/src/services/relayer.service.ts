@@ -287,6 +287,56 @@ export class RelayerService {
   }
 
   /**
+   * Submit a direct contract call transaction via relayer.
+   * Uses the relayer's /relay/direct endpoint (relayer signs & pays gas).
+   */
+  async submitDirectTransaction(
+    to: Address,
+    data: `0x${string}`,
+    gasLimit?: string
+  ): Promise<RelayerResponse> {
+    if (!to || !data) {
+      throw new Error('to and data are required');
+    }
+
+    try {
+      const requestBody: Record<string, string> = { to, data };
+      if (gasLimit) requestBody.gasLimit = gasLimit;
+
+      const response = await fetch(`${this.baseUrl}${API_V1_BASE_PATH}/relay/direct`, {
+        method: 'POST',
+        headers: this.getHeaders(),
+        body: JSON.stringify(requestBody),
+      });
+
+      if (!response.ok) {
+        const errorData = (await response.json().catch(() => ({}))) as { message?: string };
+        throw new Error(errorData.message || `HTTP ${response.status}`);
+      }
+
+      const tx = (await response.json()) as RelayerApiResponse;
+
+      this.logger.info(`Direct transaction submitted: to=${to}, txId=${tx.transactionId}`);
+
+      return {
+        relayRequestId: tx.transactionId,
+        transactionHash: tx.transactionHash,
+        status: this.mapStatus(tx.status),
+      };
+    } catch (error) {
+      this.logger.error({ err: error }, 'Direct transaction submission failed');
+
+      if (error instanceof Error) {
+        if (error.message.includes('insufficient funds')) {
+          throw new Error('Relayer has insufficient funds');
+        }
+      }
+
+      throw new Error('Failed to submit direct transaction');
+    }
+  }
+
+  /**
    * 거래 데이터 인코딩 검증
    */
   validateTransactionData(data: string): boolean {

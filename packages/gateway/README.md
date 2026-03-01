@@ -126,11 +126,10 @@ Response example:
 
 ### Payment API
 
-- `POST /payments/create` - Create payment
-- `GET /payments/:paymentId/status` - Check payment status
-- `POST /payments/:paymentId/gasless` - Submit gasless payment
-- `POST /payments/:paymentId/relay` - Execute relay transaction
-- `GET /payments/history` - Query payment history
+- `POST /payments` - Create payment
+- `GET /payments/:id` - Check payment status
+- `POST /payments/:id/relay` - Submit gasless payment
+- `GET /payments/:id/relay` - Check relay status
 
 ### Chain Configuration API
 

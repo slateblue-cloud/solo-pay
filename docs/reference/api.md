@@ -17,14 +17,13 @@ Complete reference for all SoloPay REST API endpoints.
 
 ### Payment API
 
-| Endpoint                | Method | Description                      |
-| ----------------------- | ------ | -------------------------------- |
-| `/payments/create`      | POST   | Create payment, issue paymentId  |
-| `/api/checkout`         | POST   | Product-based payment (Demo App) |
-| `/payments/:id/status`  | GET    | Query payment status             |
-| `/payments/:id/gasless` | POST   | Submit gasless transaction       |
-| `/payments/:id/relay`   | POST   | Execute relay transaction        |
-| `/payments/history`     | GET    | Query payment history            |
+| Endpoint              | Method | Description                      |
+| --------------------- | ------ | -------------------------------- |
+| `/payments`           | POST   | Create payment, issue paymentId  |
+| `/api/checkout`       | POST   | Product-based payment (Demo App) |
+| `/payments/:id`       | GET    | Query payment status             |
+| `/payments/:id/relay` | POST   | Submit gasless relay transaction |
+| `/payments/:id/relay` | GET    | Check relay transaction status   |
 
 ### Token API
 
@@ -43,7 +42,7 @@ Complete reference for all SoloPay REST API endpoints.
 
 ## Payment API
 
-### POST /payments/create
+### POST /payments
 
 Create a new payment.
 
@@ -52,7 +51,7 @@ Create a new payment.
 #### Request
 
 ```http
-POST /payments/create
+POST /payments
 Content-Type: application/json
 x-api-key: sk_test_abc123
 ```
@@ -153,7 +152,7 @@ Create payment based on product array (internal store server API route only).
 }
 ```
 
-### GET /payments/:id/status
+### GET /payments/:id
 
 Query payment status.
 
@@ -185,9 +184,9 @@ Query payment status.
 - `completed`: Completed
 - `failed`: Failed
 
-### POST /payments/:id/gasless
+### POST /payments/:id/relay
 
-Submit gasless transaction.
+Submit gasless relay transaction.
 
 #### Request
 
@@ -217,13 +216,9 @@ Submit gasless transaction.
 }
 ```
 
-### POST /payments/:id/relay
+### GET /payments/:id/relay
 
-Execute relay transaction. (Same request/response format as Gasless API)
-
-### GET /payments/history
-
-Query user's payment history.
+Check relay transaction status.
 
 #### Query Parameters
 
@@ -399,7 +394,7 @@ See [Error Code Reference](errors.md) for complete error code list.
 
 ```bash
 # Create payment
-curl -X POST http://localhost:3001/payments/create \
+curl -X POST http://localhost:3001/api/v1/payments \
   -H "Content-Type: application/json" \
   -H "x-api-key: sk_test_abc123" \
   -d '{
@@ -410,7 +405,7 @@ curl -X POST http://localhost:3001/payments/create \
   }'
 
 # Query payment status
-curl http://localhost:3001/payments/pay_123/status
+curl http://localhost:3001/api/v1/payments/pay_123
 
 # Query token balance
 curl "http://localhost:3001/tokens/0xE4C687167705Abf55d709395f92e254bdF5825a2/balance?chainId=80002&address=0x..."

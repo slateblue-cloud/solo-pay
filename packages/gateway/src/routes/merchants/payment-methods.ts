@@ -29,9 +29,9 @@ export async function paymentMethodsRoute(
 ) {
   const authMiddleware = createAuthMiddleware(merchantService);
 
-  // GET /merchant/payment-method - List all payment methods
+  // GET /merchant/payment-methods - List all payment methods
   app.get(
-    '/merchant/payment-method',
+    '/merchant/payment-methods',
     {
       schema: {
         operationId: 'listPaymentMethods',
@@ -117,9 +117,9 @@ export async function paymentMethodsRoute(
     }
   );
 
-  // POST /merchant/payment-method - Create payment method
+  // POST /merchant/payment-methods - Create payment method
   app.post<{ Body: z.infer<typeof CreatePaymentMethodSchema> }>(
-    '/merchant/payment-method',
+    '/merchant/payment-methods',
     {
       schema: {
         operationId: 'createPaymentMethod',
@@ -300,9 +300,9 @@ export async function paymentMethodsRoute(
     }
   );
 
-  // PATCH /merchant/payment-method/:id - Update payment method
+  // PATCH /merchant/payment-methods/:id - Update payment method
   app.patch<{ Params: { id: string }; Body: z.infer<typeof UpdatePaymentMethodSchema> }>(
-    '/merchant/payment-method/:id',
+    '/merchant/payment-methods/:id',
     {
       schema: {
         operationId: 'updatePaymentMethod',
@@ -471,9 +471,9 @@ export async function paymentMethodsRoute(
     }
   );
 
-  // DELETE /merchant/payment-method/:id - Delete payment method
+  // DELETE /merchant/payment-methods/:id - Delete payment method
   app.delete<{ Params: { id: string } }>(
-    '/merchant/payment-method/:id',
+    '/merchant/payment-methods/:id',
     {
       schema: {
         operationId: 'deletePaymentMethod',

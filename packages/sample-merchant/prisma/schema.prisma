@@ -28,27 +28,27 @@ enum PaymentStatus {
 }
 
 model Product {
-  id              Int       @id @default(autoincrement())
-  name            String    
-  roast           String    
-  weight          String    
-  price           Int        
-  description     String
-  image_url       String?
-  created_at      DateTime  @default(now())
-  updated_at      DateTime  @default(now()) @updatedAt
+  id          Int      @id @default(autoincrement())
+  name        String
+  roast       String
+  weight      String
+  price       Int
+  description String
+  image_url   String?
+  created_at  DateTime @default(now())
+  updated_at  DateTime @default(now()) @updatedAt
 }
 
 model Payment {
-  id                    Int           @id @default(autoincrement())
-  product_id            Int           // FK to product.id
-  amount                Decimal       @db.Decimal(65, 0)  // wei (max uint256)
-  token_symbol          String        @db.VarChar(20)
-  status                PaymentStatus @default(CREATED)
-  tx_hash               String?       @db.VarChar(66)
-  confirmed_at          DateTime?
-  created_at            DateTime      @default(now())
-  updated_at            DateTime @default(now()) @updatedAt
+  id           Int           @id @default(autoincrement())
+  product_id   Int // FK to product.id
+  amount       Decimal       @db.Decimal(65, 0) // wei (max uint256)
+  token_symbol String        @db.VarChar(20)
+  status       PaymentStatus @default(CREATED)
+  tx_hash      String?       @db.VarChar(66)
+  confirmed_at DateTime?
+  created_at   DateTime      @default(now())
+  updated_at   DateTime      @default(now()) @updatedAt
 
   @@index([product_id])
   @@index([status])

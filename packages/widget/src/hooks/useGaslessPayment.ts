@@ -32,6 +32,8 @@ export interface UseGaslessPaymentReturn {
   isGaslessSupported: boolean;
   /** Whether the token supports EIP-2612 permit */
   isPermitSupported: boolean | undefined;
+  /** Whether permit support is still being checked (token contract reads in progress) */
+  isCheckingPermit: boolean;
 }
 
 // ============================================================================
@@ -64,17 +66,22 @@ export function useGaslessPayment({
   const recipientAddress = paymentDetails?.recipientAddress as `0x${string}` | undefined;
   const merchantId = paymentDetails?.merchantId as `0x${string}` | undefined;
   const feeBps = paymentDetails?.feeBps ?? 0;
+  const payDeadline = paymentDetails?.deadline ? BigInt(paymentDetails.deadline) : undefined;
+  const escrowDuration = paymentDetails?.escrowDuration
+    ? BigInt(paymentDetails.escrowDuration)
+    : undefined;
   const serverSignature = paymentDetails?.serverSignature as `0x${string}` | undefined;
 
   // Check if gasless is supported
   const isGaslessSupported = !!forwarderAddress;
 
   // EIP-2612 Permit support
-  const { isPermitSupported, signPermit } = usePermit({
+  const { isPermitSupported, isCheckingPermit, signPermit } = usePermit({
     tokenAddress,
     spenderAddress: gatewayAddress,
     amount,
     chainId: paymentDetails?.chainId,
+    serverPermitSupported: paymentDetails?.tokenPermitSupported,
   });
 
   // Get nonce from forwarder contract
@@ -83,6 +90,7 @@ export function useGaslessPayment({
     abi: FORWARDER_ABI,
     functionName: 'nonces',
     args: walletClient?.account?.address ? [walletClient.account.address] : undefined,
+    chainId: paymentDetails?.chainId,
     query: {
       enabled: !!forwarderAddress && !!walletClient?.account?.address,
     },
@@ -99,6 +107,8 @@ export function useGaslessPayment({
       !amount ||
       !recipientAddress ||
       !merchantId ||
+      !payDeadline ||
+      !escrowDuration ||
       !serverSignature
     ) {
       console.error('Missing gasless payment details');
@@ -154,6 +164,8 @@ export function useGaslessPayment({
           recipientAddress,
           merchantId,
           feeBps,
+          payDeadline,
+          escrowDuration,
           serverSignature,
           permitData,
         ],
@@ -216,18 +228,13 @@ export function useGaslessPayment({
       setIsPayingGasless(false);
       setIsRelayConfirming(true);
 
-      const origin = typeof window !== 'undefined' ? window.location.origin : undefined;
-      await submitGaslessPayment(paymentId, forwarderAddress, forwardRequest, publicKey ?? '', {
-        origin,
-      });
+      await submitGaslessPayment(paymentId, forwarderAddress, forwardRequest, publicKey ?? '');
 
       // 7. Poll relay status until CONFIRMED/FAILED
-      const relayOrigin = typeof window !== 'undefined' ? window.location.origin : undefined;
       const relayResult = await waitForRelayTransaction(paymentId, {
         timeout: 120000,
         interval: 3000,
         publicKey: publicKey ?? undefined,
-        origin: relayOrigin,
       });
 
       setRelayTxHash(relayResult.transactionHash ?? '');
@@ -247,6 +254,8 @@ export function useGaslessPayment({
     recipientAddress,
     merchantId,
     feeBps,
+    payDeadline,
+    escrowDuration,
     serverSignature,
     paymentDetails?.chainId,
     publicKey,
@@ -263,5 +272,6 @@ export function useGaslessPayment({
     error,
     isGaslessSupported,
     isPermitSupported,
+    isCheckingPermit,
   };
 }

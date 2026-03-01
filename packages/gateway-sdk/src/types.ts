@@ -5,13 +5,13 @@ export interface SoloPayConfig {
   /** API key for admin routes (merchant, payment methods, refunds, payment detail, history, info) */
   apiKey: string;
   apiUrl?: string;
-  /** Public key (pk_live_xxx or pk_test_xxx) for POST /payment. Required when using createPayment(). */
+  /** Public key (pk_live_xxx or pk_test_xxx) for POST /payments. Required when using createPayment(). */
   publicKey?: string;
-  /** Origin header value; must match one of merchant allowed_domains. Required when using createPayment(). */
+  /** @deprecated Origin is now verified by the browser automatically via ALLOWED_WIDGET_ORIGIN on gateway. No need to set manually. */
   origin?: string;
 }
 
-/** Params for POST /payment (public key + Origin auth). tokenAddress must be whitelisted and enabled for merchant. */
+/** Params for POST /payments (public key + Origin auth). tokenAddress must be whitelisted and enabled for merchant. */
 export interface CreatePaymentParams {
   /** Merchant order ID */
   orderId: string;
@@ -23,8 +23,8 @@ export interface CreatePaymentParams {
   successUrl: string;
   /** Redirect URL on failure */
   failUrl: string;
-  /** Optional per-payment webhook URL */
-  webhookUrl?: string;
+  /** Fiat currency code (e.g., USD, KRW). When provided, amount is treated as fiat amount. */
+  currency?: string;
 }
 
 /**
@@ -48,7 +48,7 @@ export interface GaslessParams {
   forwardRequest: ForwardRequest;
 }
 
-// Response types (matches gateway POST /payment 201 response)
+// Response types (matches gateway POST /payments 201 response)
 export interface CreatePaymentResponse {
   /** Present when gateway returns 201; omitted in error paths */
   success?: true;
@@ -68,11 +68,23 @@ export interface CreatePaymentResponse {
   recipientAddress: string;
   merchantId: string;
   feeBps: number;
+  /** Payment deadline (unix timestamp) included in server signature */
+  deadline: string;
+  /** Escrow duration (seconds) included in server signature */
+  escrowDuration: string;
   /** ERC2771Forwarder address for gasless payments */
   forwarderAddress?: string;
+  /** Whether the token supports EIP-2612 permit (gasless approval) */
+  tokenPermitSupported: boolean;
+  /** Fiat currency code used for conversion */
+  currency?: string;
+  /** Original fiat amount before conversion */
+  fiatAmount?: number;
+  /** Token price at creation time */
+  tokenPrice?: number;
 }
 
-/** Response from GET /payment/:id */
+/** Response from GET /payments/:id */
 export interface PaymentStatusResponse {
   success: true;
   data: {
@@ -92,17 +104,19 @@ export interface PaymentStatusResponse {
     payment_hash: string;
     network_id: number;
     token_symbol: string;
+    /** Whether the token supports EIP-2612 permit (gasless approval) */
+    tokenPermitSupported: boolean;
   };
 }
 
-/** Response from POST /payment/:id/relay (202) */
+/** Response from POST /payments/:id/relay (202) */
 export interface GaslessResponse {
   success: true;
   status: 'submitted' | 'mined' | 'failed';
   message: string;
 }
 
-/** Response from GET /payment/:id/relay */
+/** Response from GET /payments/:id/relay */
 export interface RelayStatusResponse {
   success: true;
   data: {
@@ -156,7 +170,6 @@ export interface MerchantInfoResponse {
     chain: ChainInfo | null;
     webhook_url: string | null;
     public_key: string | null;
-    allowed_domains: string[] | null;
     is_enabled: boolean;
     created_at: string;
     updated_at: string;
@@ -165,46 +178,59 @@ export interface MerchantInfoResponse {
   chainTokens: Array<ChainInfo & { tokens: TokenInfo[] }>;
 }
 
-/** Response from GET /merchant/payment-method */
+/** Response from GET /merchant/payment-methods */
 export interface PaymentMethodListResponse {
   success: true;
   payment_methods: PaymentMethod[];
 }
 
-/** Response from POST /merchant/payment-method */
+/** Response from POST /merchant/payment-methods */
 export interface CreatePaymentMethodResponse {
   success: true;
   payment_method: PaymentMethod;
 }
 
-/** Params for POST /merchant/payment-method */
+/** Params for POST /merchant/payment-methods */
 export interface CreatePaymentMethodParams {
   tokenAddress: string;
   is_enabled?: boolean;
 }
 
-/** Params for PATCH /merchant/payment-method/:id */
+/** Params for PATCH /merchant/payment-methods/:id */
 export interface UpdatePaymentMethodParams {
   is_enabled?: boolean;
 }
 
-/** Response from PATCH /merchant/payment-method/:id */
+/** Response from PATCH /merchant/payment-methods/:id */
 export interface UpdatePaymentMethodResponse {
   success: true;
   payment_method: PaymentMethod;
 }
 
-/** Response from DELETE /merchant/payment-method/:id */
+/** Response from DELETE /merchant/payment-methods/:id */
 export interface DeletePaymentMethodResponse {
   success: true;
   message: string;
 }
 
-/** Response from GET /merchant/payment (by orderId) and GET /merchant/payment/:id */
+/** All possible payment statuses */
+export type PaymentStatus =
+  | 'CREATED'
+  | 'ESCROWED'
+  | 'FINALIZE_SUBMITTED'
+  | 'FINALIZED'
+  | 'CANCEL_SUBMITTED'
+  | 'CANCELLED'
+  | 'REFUND_SUBMITTED'
+  | 'REFUNDED'
+  | 'EXPIRED'
+  | 'FAILED';
+
+/** Response from GET /merchant/payments (by orderId) and GET /merchant/payments/:id */
 export interface MerchantPaymentDetailResponse {
   paymentId: string;
   orderId?: string;
-  status: 'CREATED' | 'ESCROWED' | 'FINALIZE_SUBMITTED' | 'FINALIZED' | 'CANCEL_SUBMITTED' | 'CANCELLED' | 'REFUND_SUBMITTED' | 'REFUNDED' | 'EXPIRED' | 'FAILED';
+  status: PaymentStatus;
   amount: string;
   tokenSymbol: string;
   tokenDecimals: number;
@@ -213,19 +239,46 @@ export interface MerchantPaymentDetailResponse {
   createdAt: string;
   confirmedAt?: string;
   expiresAt: string;
+  escrowDeadline?: string;
+  finalizedAt?: string;
+  cancelledAt?: string;
+  /** Whether the token supports EIP-2612 permit (gasless approval) */
+  tokenPermitSupported: boolean;
+}
+
+/** Response from POST /payments/:id/finalize */
+export interface FinalizePaymentResponse {
+  success: true;
+  data: {
+    paymentId: string;
+    serverSignature: string;
+    gatewayAddress: string;
+    chainId: number;
+  };
+}
+
+/** Response from POST /payments/:id/cancel */
+export interface CancelPaymentResponse {
+  success: true;
+  data: {
+    paymentId: string;
+    serverSignature: string;
+    gatewayAddress: string;
+    chainId: number;
+  };
 }
 
 // ============================================================================
 // Refund types (x-api-key auth)
 // ============================================================================
 
-/** Params for POST /refund */
+/** Params for POST /refunds */
 export interface CreateRefundParams {
   paymentId: string;
   reason?: string;
 }
 
-/** Response from POST /refund */
+/** Response from POST /refunds */
 export interface CreateRefundResponse {
   success: true;
   data: {
@@ -241,7 +294,7 @@ export interface CreateRefundResponse {
   };
 }
 
-/** Response from GET /refund/:refundId */
+/** Response from GET /refunds/:refundId */
 export interface RefundStatusResponse {
   success: true;
   data: {
@@ -276,7 +329,7 @@ export interface RefundListItem {
   confirmedAt: string | null;
 }
 
-/** Params for GET /refund */
+/** Params for GET /refunds */
 export interface GetRefundListParams {
   page?: number;
   limit?: number;
@@ -284,7 +337,7 @@ export interface GetRefundListParams {
   paymentId?: string;
 }
 
-/** Response from GET /refund */
+/** Response from GET /refunds */
 export interface RefundListResponse {
   success: true;
   data: {

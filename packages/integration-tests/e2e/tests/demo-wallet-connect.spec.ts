@@ -25,8 +25,9 @@ test.describe('Wallet Connection (Demo)', () => {
 
     await connectWallet(walletPage);
 
-    // Verify address is shown
-    const shortenedAddress = HARDHAT_ACCOUNTS.payer.address.slice(0, 6);
-    await expect(walletPage.getByText(new RegExp(shortenedAddress, 'i'))).toBeVisible();
+    // Verify address is shown (RainbowKit: "0x90…b906" format)
+    const addr = HARDHAT_ACCOUNTS.payer.address;
+    const addrRegex = new RegExp(`${addr.slice(0, 4)}.*${addr.slice(-4)}`, 'i');
+    await expect(walletPage.getByText(addrRegex)).toBeVisible();
   });
 });

@@ -33,15 +33,16 @@ export async function registerRequestGasRoute(
         tags: ['Payments'],
         summary: 'Request one-time gas grant (faucet)',
         description:
-          'Sends native token to wallet for approve gas. Requires x-public-key and Origin. Conditions: payment exists, token balance >= amount, native balance < approve cost, no prior grant for (wallet, chain).',
+          'Sends native token to wallet for approve gas via the relayer API (oz-relayer funds). Requires x-public-key and Origin. Conditions: payment exists, token balance >= amount, native balance < approve cost, no prior grant for (wallet, chain).',
         headers: {
           type: 'object',
-          required: ['x-public-key', 'origin'],
+          required: ['x-public-key'],
           properties: {
             'x-public-key': { type: 'string', description: 'Merchant public key (pk_live_xxx)' },
             origin: {
               type: 'string',
-              description: 'Request origin (must be in merchant allowed_domains)',
+              description:
+                'Request origin (verified against ALLOWED_WIDGET_ORIGIN when configured)',
             },
           },
         },
@@ -184,8 +185,11 @@ export async function registerRequestGasRoute(
             details: err.errors,
           });
         }
-        const message = err instanceof Error ? err.message : 'Request gas failed';
-        return reply.code(500).send({ code: 'INTERNAL_ERROR', message });
+        request.log.error(err, 'Request gas failed');
+        return reply.code(500).send({
+          code: 'INTERNAL_ERROR',
+          message: 'Request gas failed',
+        });
       }
     }
   );

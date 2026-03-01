@@ -5,25 +5,34 @@ export type PaymentStepType =
   | 'payment-processing'
   | 'payment-complete';
 
+/** Supported UI locale (URL param lang). */
+export type WidgetLocale = 'en' | 'ko';
+
 /**
  * URL parameters for widget initialization
- * Matches: /?pk=xxx&orderId=xxx&amount=xxx&tokenAddress=xxx&successUrl=xxx&failUrl=xxx&webhookUrl=xxx
+ * Matches: /?pk=xxx&orderId=xxx&amount=xxx&tokenAddress=xxx&successUrl=xxx&failUrl=xxx&lang=en|ko
  */
 export interface WidgetUrlParams {
   /** Public key for merchant authentication (required) */
   pk: string;
-  /** Merchant order ID (required) */
+  /** Merchant order ID (required in creation mode) */
   orderId: string;
-  /** Payment amount in human readable format (required) */
+  /** Payment amount in human readable format (required in creation mode) */
   amount: string;
-  /** ERC-20 token contract address (required, must be whitelisted and enabled for merchant) */
+  /** ERC-20 token contract address (required in creation mode) */
   tokenAddress: string;
-  /** Redirect URL on success (required) */
+  /** Redirect URL on success (required in creation mode) */
   successUrl: string;
-  /** Redirect URL on failure (required) */
+  /** Redirect URL on failure (required in creation mode) */
   failUrl: string;
-  /** Server notification URL (optional) */
-  webhookUrl?: string;
+  /** Fiat currency code (optional, e.g., USD, KRW) */
+  currency?: string;
+  /** If true, only connect wallet — no gateway API or payment flow */
+  walletOnly?: boolean;
+  /** UI language: en (default) or ko. When changed in UI, URL is updated. */
+  lang?: WidgetLocale;
+  /** Payment ID for resume mode (skips creation and fetches existing payment) */
+  paymentId?: string;
 }
 
 /**
@@ -39,7 +48,7 @@ export interface UrlParamsValidationResult {
 }
 
 /**
- * API response from POST /payments/create
+ * Payment details returned by POST /payments and GET /payments/:id.
  */
 export interface PaymentDetails {
   /** Payment hash for smart contract */
@@ -72,8 +81,34 @@ export interface PaymentDetails {
   merchantId: string;
   /** Fee in basis points (e.g., 100 = 1%) */
   feeBps: number;
+  /** Deadline timestamp for server signature expiration */
+  deadline: string;
+  /** Escrow duration in seconds (bigint as string from API) */
+  escrowDuration: string;
   /** ERC2771Forwarder contract address (for gasless payments) */
   forwarderAddress?: string;
+  /** Whether the token supports EIP-2612 permit (from server, skips on-chain probing) */
+  tokenPermitSupported?: boolean;
+  /** Fiat currency code used for conversion */
+  currency?: string;
+  /** Original fiat amount before conversion */
+  fiatAmount?: number;
+  /** Token price at creation time */
+  tokenPrice?: number;
+  /** Payment status */
+  status?:
+    | 'CREATED'
+    | 'ESCROWED'
+    | 'FINALIZE_SUBMITTED'
+    | 'FINALIZED'
+    | 'CANCEL_SUBMITTED'
+    | 'CANCELLED'
+    | 'REFUND_SUBMITTED'
+    | 'REFUNDED'
+    | 'EXPIRED'
+    | 'FAILED';
+  /** Transaction hash */
+  txHash?: string;
 }
 
 /** Gas payment mode */

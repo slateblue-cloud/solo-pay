@@ -13,31 +13,22 @@ import {
 // ============================================================================
 
 export interface UsePaymentApiState {
-  /** Payment details from API (null until createPayment succeeds) */
   payment: PaymentDetails | null;
-  /** Current payment status */
   status: PaymentStatusResponse | null;
-  /** Loading state */
   isLoading: boolean;
-  /** Error message (null if no error) */
   error: string | null;
-  /** Error code (null if no error) */
   errorCode: string | null;
 }
 
 export interface UsePaymentApiActions {
-  /** Create a new payment from URL parameters */
   createPayment: (urlParams: WidgetUrlParams) => Promise<PaymentDetails | null>;
-  /** Check payment status */
+  fetchPayment: (paymentId: string, pk: string) => Promise<PaymentDetails | null>;
   checkStatus: (paymentId: string) => Promise<PaymentStatusResponse | null>;
-  /** Poll status until completion */
   waitForConfirmation: (
     paymentId: string,
     onStatusChange?: (status: PaymentStatusResponse) => void
   ) => Promise<PaymentStatusResponse | null>;
-  /** Clear error state */
   clearError: () => void;
-  /** Reset all state */
   reset: () => void;
 }
 
@@ -47,51 +38,14 @@ export interface UsePaymentApiReturn extends UsePaymentApiState, UsePaymentApiAc
 // Hook
 // ============================================================================
 
-/**
- * React hook for payment API operations
- *
- * Provides easy-to-use functions for creating payments, checking status,
- * and waiting for confirmation.
- *
- * @example
- * ```tsx
- * function PaymentComponent({ urlParams }: { urlParams: WidgetUrlParams }) {
- *   const {
- *     payment,
- *     status,
- *     isLoading,
- *     error,
- *     createPayment,
- *     waitForConfirmation,
- *   } = usePaymentApi();
- *
- *   useEffect(() => {
- *     createPayment(urlParams);
- *   }, [urlParams]);
- *
- *   if (isLoading) return <Loading />;
- *   if (error) return <Error message={error} />;
- *   if (!payment) return null;
- *
- *   return <PaymentInfo payment={payment} />;
- * }
- * ```
- */
 export function usePaymentApi(): UsePaymentApiReturn {
   const [payment, setPayment] = useState<PaymentDetails | null>(null);
   const [status, setStatus] = useState<PaymentStatusResponse | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [errorCode, setErrorCode] = useState<string | null>(null);
-  /** Stored for getPaymentStatus public auth (from urlParams when createPayment was called) */
-  const [publicAuth, setPublicAuth] = useState<{
-    publicKey: string;
-    origin: string;
-  } | null>(null);
+  const [publicKey, setPublicKey] = useState<string | null>(null);
 
-  /**
-   * Create a new payment
-   */
   const createPayment = useCallback(
     async (urlParams: WidgetUrlParams): Promise<PaymentDetails | null> => {
       setIsLoading(true);
@@ -101,10 +55,7 @@ export function usePaymentApi(): UsePaymentApiReturn {
       try {
         const result = await createPaymentFromUrlParams(urlParams);
         setPayment(result);
-        setPublicAuth({
-          publicKey: urlParams.pk,
-          origin: typeof window !== 'undefined' ? window.location.origin : '',
-        });
+        setPublicKey(urlParams.pk);
         return result;
       } catch (err) {
         console.error(err);
@@ -123,9 +74,34 @@ export function usePaymentApi(): UsePaymentApiReturn {
     []
   );
 
-  /**
-   * Check payment status once
-   */
+  const fetchPayment = useCallback(
+    async (paymentId: string, pk: string): Promise<PaymentDetails | null> => {
+      setIsLoading(true);
+      setError(null);
+      setErrorCode(null);
+
+      try {
+        const result = await getPaymentStatus(paymentId, { publicKey: pk });
+        setPayment(result);
+        setPublicKey(pk);
+        return result;
+      } catch (err) {
+        console.error(err);
+        if (err instanceof PaymentApiError) {
+          setError(err.message);
+          setErrorCode(err.code);
+        } else {
+          setError(err instanceof Error ? err.message : 'Failed to fetch payment details');
+          setErrorCode('UNKNOWN_ERROR');
+        }
+        return null;
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    []
+  );
+
   const checkStatus = useCallback(
     async (paymentId: string): Promise<PaymentStatusResponse | null> => {
       setIsLoading(true);
@@ -133,10 +109,7 @@ export function usePaymentApi(): UsePaymentApiReturn {
       setErrorCode(null);
 
       try {
-        const options =
-          publicAuth && (publicAuth.publicKey || publicAuth.origin)
-            ? { publicKey: publicAuth.publicKey, origin: publicAuth.origin }
-            : undefined;
+        const options = publicKey ? { publicKey } : undefined;
         const result = await getPaymentStatus(paymentId, options);
         setStatus(result);
         return result;
@@ -153,12 +126,9 @@ export function usePaymentApi(): UsePaymentApiReturn {
         setIsLoading(false);
       }
     },
-    [publicAuth]
+    [publicKey]
   );
 
-  /**
-   * Poll status until confirmed/failed
-   */
   const waitForConfirmation = useCallback(
     async (
       paymentId: string,
@@ -174,8 +144,7 @@ export function usePaymentApi(): UsePaymentApiReturn {
             setStatus(s);
             onStatusChange?.(s);
           },
-          publicKey: publicAuth?.publicKey,
-          origin: publicAuth?.origin,
+          publicKey: publicKey ?? undefined,
         });
         return result;
       } catch (err) {
@@ -191,38 +160,31 @@ export function usePaymentApi(): UsePaymentApiReturn {
         setIsLoading(false);
       }
     },
-    [publicAuth]
+    [publicKey]
   );
 
-  /**
-   * Clear error state
-   */
   const clearError = useCallback(() => {
     setError(null);
     setErrorCode(null);
   }, []);
 
-  /**
-   * Reset all state
-   */
   const reset = useCallback(() => {
     setPayment(null);
     setStatus(null);
-    setPublicAuth(null);
+    setPublicKey(null);
     setIsLoading(false);
     setError(null);
     setErrorCode(null);
   }, []);
 
   return {
-    // State
     payment,
     status,
     isLoading,
     error,
     errorCode,
-    // Actions
     createPayment,
+    fetchPayment,
     checkStatus,
     waitForConfirmation,
     clearError,

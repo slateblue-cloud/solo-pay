@@ -7,13 +7,22 @@ vi.mock('../src/lib/redis', () => ({
   setCache: vi.fn().mockResolvedValue(undefined),
 }));
 
+const mockChain = {
+  id: 1,
+  network_id: 137,
+  name: 'Polygon',
+  rpc_url: 'https://polygon-rpc.com',
+  created_at: new Date(),
+  updated_at: new Date(),
+};
+
 const mockToken = {
   id: 1,
-  chain_id: 137,
-  address: '0xdac17f958d2ee523a2206206994597c13d831ec7',
+  chain_id: 1,
+  address: '0xdAC17F958D2ee523a2206206994597C13D831ec7',
   symbol: 'USDT',
   decimals: 6,
-  cmc_id: 825,
+  cmc_slug: '825',
   is_enabled: true,
   is_deleted: false,
   deleted_at: null,
@@ -45,6 +54,9 @@ const mockCmcResponse = {
 
 function createMockPrisma() {
   return {
+    chain: {
+      findUnique: vi.fn(),
+    },
     token: {
       findUnique: vi.fn(),
     },
@@ -67,6 +79,7 @@ describe('PriceService', () => {
 
   describe('getPrice', () => {
     it('should look up token in DB and fetch price from CMC', async () => {
+      mockPrisma.chain.findUnique.mockResolvedValueOnce(mockChain);
       mockPrisma.token.findUnique.mockResolvedValueOnce(mockToken);
       const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce({
         ok: true,
@@ -76,25 +89,29 @@ describe('PriceService', () => {
       const service = createService();
       const result = await service.getPrice(137, '0xdAC17F958D2ee523a2206206994597C13D831ec7');
 
+      expect(mockPrisma.chain.findUnique).toHaveBeenCalledWith({
+        where: { network_id: 137 },
+      });
       expect(mockPrisma.token.findUnique).toHaveBeenCalledWith({
         where: {
           chain_id_address: {
-            chain_id: 137,
-            address: '0xdac17f958d2ee523a2206206994597c13d831ec7',
+            chain_id: 1,
+            address: '0xdAC17F958D2ee523a2206206994597C13D831ec7',
           },
         },
       });
 
       expect(fetchSpy).toHaveBeenCalledOnce();
-      expect(fetchSpy.mock.calls[0][0]).toContain('id=825');
+      expect(fetchSpy.mock.calls[0][0]).toContain('slug=825');
 
       expect(result.symbol).toBe('USDT');
-      expect(result.address).toBe('0xdac17f958d2ee523a2206206994597c13d831ec7');
+      expect(result.address).toBe('0xdAC17F958D2ee523a2206206994597C13D831ec7');
       expect(result.chain_id).toBe(137);
       expect(result.quote.USD.price).toBe(1.0001);
     });
 
     it('should pass API key and convert parameter', async () => {
+      mockPrisma.chain.findUnique.mockResolvedValueOnce(mockChain);
       mockPrisma.token.findUnique.mockResolvedValueOnce(mockToken);
       const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce({
         ok: true,
@@ -131,6 +148,7 @@ describe('PriceService', () => {
     });
 
     it('should cache fetched data with configured TTL', async () => {
+      mockPrisma.chain.findUnique.mockResolvedValueOnce(mockChain);
       mockPrisma.token.findUnique.mockResolvedValueOnce(mockToken);
       vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce({
         ok: true,
@@ -145,7 +163,17 @@ describe('PriceService', () => {
       expect(vi.mocked(setCache).mock.calls[0][2]).toBe(60);
     });
 
+    it('should throw TokenNotFoundError when chain not found', async () => {
+      mockPrisma.chain.findUnique.mockResolvedValueOnce(null);
+
+      const service = createService();
+      await expect(
+        service.getPrice(999, '0x0000000000000000000000000000000000000000')
+      ).rejects.toThrow(TokenNotFoundError);
+    });
+
     it('should throw TokenNotFoundError when token not in DB', async () => {
+      mockPrisma.chain.findUnique.mockResolvedValueOnce(mockChain);
       mockPrisma.token.findUnique.mockResolvedValueOnce(null);
 
       const service = createService();
@@ -155,6 +183,7 @@ describe('PriceService', () => {
     });
 
     it('should throw TokenNotFoundError when token is disabled', async () => {
+      mockPrisma.chain.findUnique.mockResolvedValueOnce(mockChain);
       mockPrisma.token.findUnique.mockResolvedValueOnce({
         ...mockToken,
         is_enabled: false,
@@ -166,10 +195,11 @@ describe('PriceService', () => {
       ).rejects.toThrow(TokenNotFoundError);
     });
 
-    it('should throw CmcIdMissingError when cmc_id is null', async () => {
+    it('should throw CmcIdMissingError when cmc_slug is null', async () => {
+      mockPrisma.chain.findUnique.mockResolvedValueOnce(mockChain);
       mockPrisma.token.findUnique.mockResolvedValueOnce({
         ...mockToken,
-        cmc_id: null,
+        cmc_slug: null,
       });
 
       const service = createService();
@@ -179,6 +209,7 @@ describe('PriceService', () => {
     });
 
     it('should throw on CMC API error response', async () => {
+      mockPrisma.chain.findUnique.mockResolvedValueOnce(mockChain);
       mockPrisma.token.findUnique.mockResolvedValueOnce(mockToken);
       vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce({
         ok: false,
@@ -190,26 +221,6 @@ describe('PriceService', () => {
       await expect(
         service.getPrice(137, '0xdAC17F958D2ee523a2206206994597C13D831ec7')
       ).rejects.toThrow('CMC API error: 401');
-    });
-
-    it('should normalize address to lowercase', async () => {
-      mockPrisma.token.findUnique.mockResolvedValueOnce(mockToken);
-      vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce({
-        ok: true,
-        json: async () => mockCmcResponse,
-      } as Response);
-
-      const service = createService();
-      await service.getPrice(137, '0xDAC17F958D2EE523A2206206994597C13D831EC7');
-
-      expect(mockPrisma.token.findUnique).toHaveBeenCalledWith({
-        where: {
-          chain_id_address: {
-            chain_id: 137,
-            address: '0xdac17f958d2ee523a2206206994597c13d831ec7',
-          },
-        },
-      });
     });
   });
 });

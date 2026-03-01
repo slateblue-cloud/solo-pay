@@ -1,62 +1,28 @@
 # Create Payment
 
-Create a payment and receive a unique ID.
+Create a payment and receive a unique payment ID.
 
 ## Overview
 
-Payment creation is the first step in SoloPay integration. Created payments **automatically expire after 30 minutes**.
+When using the SoloPay widget, **payment creation is handled automatically by the widget**. This page is a reference API spec for understanding the internals or for custom implementations.
 
-## Payment Flow
+Created payments **expire automatically after 30 minutes**.
 
-```
-┌─────────────┐         ┌─────────────┐         ┌─────────────┐
-│  Merchant   │         │  SoloPay API │         │  Blockchain │
-│  Server     │         │             │         │             │
-└──────┬──────┘         └──────┬──────┘         └──────┬──────┘
-       │                       │                       │
-       │  POST /payments/create│                       │
-       │──────────────────────▶│                       │
-       │                       │                       │
-       │  { paymentId }        │                       │
-       │◀──────────────────────│                       │
-       │                       │                       │
-       │         (User pays from wallet)               │
-       │                       │                       │
-       │                       │    TX Submit          │
-       │                       │──────────────────────▶│
-       │                       │                       │
-       │  Webhook: confirmed   │                       │
-       │◀──────────────────────│                       │
-       │                       │                       │
-```
+- Auth: `x-public-key` header required (pk_live_xxx or pk_test_xxx)
+- Chain and recipient address are determined by merchant configuration
+- `tokenAddress` must be whitelisted and enabled for the merchant
 
-## SDK Usage
-
-Authentication uses **public key + Origin** (set in client config). Chain and recipient come from merchant config; you must pass `tokenAddress` (whitelisted and enabled for the merchant).
-
-```typescript
-const payment = await client.createPayment({
-  orderId: 'order-001',
-  amount: 10.5, // token units (e.g. 10.5 USDC)
-  tokenAddress: '0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174', // must be whitelisted and enabled for merchant
-  successUrl: 'https://example.com/success',
-  failUrl: 'https://example.com/fail',
-});
-```
-
-## REST API Usage
-
-Auth: `x-public-key` header (pk_live_xxx or pk_test_xxx) and `Origin` header (must match one of merchant `allowed_domains`).
+## REST API
 
 ```bash
-curl -X POST http://localhost:3001/payments/create \
-  -H "x-public-key: pk_test_demo" \
-  -H "Origin: http://localhost:3000" \
+curl -X POST https://pay-api.staging.msq.com/api/v1/payments \
+  -H "x-public-key: pk_test_xxxxx" \
+  -H "Origin: https://yourshop.com" \
   -H "Content-Type: application/json" \
   -d '{
     "orderId": "order-001",
     "amount": 10.5,
-    "tokenAddress": "0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174",
+    "tokenAddress": "0xE4C687167705Abf55d709395f92e254bdF5825a2",
     "successUrl": "https://example.com/success",
     "failUrl": "https://example.com/fail"
   }'
@@ -64,18 +30,18 @@ curl -X POST http://localhost:3001/payments/create \
 
 ## Request Parameters
 
-| Field          | Type      | Required | Description                                                                  |
-| -------------- | --------- | -------- | ---------------------------------------------------------------------------- |
-| `orderId`      | `string`  | ✓        | Merchant order identifier                                                    |
-| `amount`       | `number`  | ✓        | Payment amount in token units (e.g. 10.5 USDC)                               |
-| `tokenAddress` | `address` | ✓        | ERC-20 token contract address (must be whitelisted and enabled for merchant) |
-| `successUrl`   | `string`  | ✓        | Redirect URL on success                                                      |
-| `failUrl`      | `string`  | ✓        | Redirect URL on failure                                                      |
-| `webhookUrl`   | `string`  |          | Optional per-payment webhook URL                                             |
+| Field          | Type      | Req. | Description                                                        |
+| -------------- | --------- | ---- | ------------------------------------------------------------------ |
+| `orderId`      | `string`  | ✓    | Merchant order ID (no duplicates per merchant)                     |
+| `amount`       | `number`  | ✓    | Payment amount (token units or fiat units)                         |
+| `tokenAddress` | `address` | ✓    | ERC-20 token contract address (whitelisted & enabled for merchant) |
+| `successUrl`   | `string`  | ✓    | Redirect URL on success                                            |
+| `failUrl`      | `string`  | ✓    | Redirect URL on failure                                            |
+| `currency`     | `string`  |      | Fiat currency code (e.g., `USD`, `KRW`). Triggers price conversion |
 
-::: tip Amount Input
-Enter amounts in token units. The server automatically converts to wei.
-Example: 10.5 USDC → 10500000 (6 decimals)
+::: tip currency option
+When `currency` is provided, `amount` is treated as a fiat amount. The server fetches the token price and converts automatically.
+Example: `amount: 10, currency: "USD"` → pays 10 USD worth of tokens
 :::
 
 ## Response
@@ -86,66 +52,56 @@ Example: 10.5 USDC → 10500000 (6 decimals)
 {
   "success": true,
   "paymentId": "0xabc123def456...",
+  "orderId": "order-001",
+  "serverSignature": "0x...",
   "chainId": 80002,
-  "tokenAddress": "0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174",
-  "tokenSymbol": "USDC",
-  "tokenDecimals": 6,
+  "tokenAddress": "0xE4C687167705Abf55d709395f92e254bdF5825a2",
+  "tokenSymbol": "SUT",
+  "tokenDecimals": 18,
   "gatewayAddress": "0x...",
   "forwarderAddress": "0x...",
-  "amount": "10500000",
-  "status": "created",
+  "amount": "10500000000000000000",
+  "recipientAddress": "0xMerchantWallet...",
+  "merchantId": "0x...",
+  "feeBps": 100,
+  "successUrl": "https://example.com/success",
+  "failUrl": "https://example.com/fail",
   "expiresAt": "2024-01-26T13:00:00.000Z"
 }
 ```
 
-### Error (400 Bad Request)
+### Error Responses
 
-```json
-{
-  "code": "TOKEN_NOT_ENABLED",
-  "message": "Token is not enabled for this merchant. Add and enable it in payment methods first."
-}
-```
+| HTTP | Code                       | Cause                                     |
+| ---- | -------------------------- | ----------------------------------------- |
+| 400  | `TOKEN_NOT_ENABLED`        | Token is not enabled for this merchant    |
+| 400  | `TOKEN_NOT_FOUND`          | Token not in whitelist                    |
+| 400  | `UNSUPPORTED_CHAIN`        | Unsupported chain                         |
+| 400  | `CHAIN_NOT_CONFIGURED`     | Merchant has no chain configured          |
+| 400  | `RECIPIENT_NOT_CONFIGURED` | Merchant recipient address not configured |
+| 400  | `VALIDATION_ERROR`         | Input validation failed                   |
+| 409  | `DUPLICATE_ORDER`          | orderId already used                      |
 
-Other possible codes: `TOKEN_NOT_FOUND` (not whitelisted), `VALIDATION_ERROR`, `UNSUPPORTED_TOKEN`.
+## Response Fields
 
-## Response Field Description
+| Field              | Type       | Description                                |
+| ------------------ | ---------- | ------------------------------------------ |
+| `paymentId`        | `string`   | Unique payment identifier (bytes32 hash)   |
+| `serverSignature`  | `string`   | Server EIP-712 signature for contract auth |
+| `amount`           | `string`   | Amount in wei                              |
+| `gatewayAddress`   | `address`  | PaymentGateway contract address            |
+| `forwarderAddress` | `address`  | ERC2771 Forwarder address (for Gasless)    |
+| `merchantId`       | `string`   | Merchant ID (bytes32)                      |
+| `feeBps`           | `number`   | Fee in basis points (100 = 1%)             |
+| `expiresAt`        | `datetime` | Payment expiry (30 minutes from creation)  |
 
-| Field              | Type       | Description                                     |
-| ------------------ | ---------- | ----------------------------------------------- |
-| `paymentId`        | `string`   | Payment unique identifier (bytes32 hash)        |
-| `amount`           | `string`   | Amount converted to wei                         |
-| `gatewayAddress`   | `address`  | PaymentGateway contract address                 |
-| `forwarderAddress` | `address`  | ERC2771 Forwarder address (for Gasless)         |
-| `expiresAt`        | `datetime` | Payment expiration time (30 min after creation) |
+## When Using the Widget
 
-## After Payment Creation
+When using the widget (`@solo-pay/widget-js` / `@solo-pay/widget-react`), there is no need to call this API directly — the widget handles it automatically.
 
-Once a payment is created, pass the `paymentId` and contract addresses to the frontend.
-
-The frontend can proceed with payment in two ways:
-
-### 1. Direct Payment
-
-User sends the transaction directly.
-
-```typescript
-// Frontend (wagmi example)
-await writeContract({
-  address: gatewayAddress,
-  abi: PaymentGatewayABI,
-  functionName: 'pay',
-  args: [paymentId, tokenAddress, amount],
-});
-```
-
-### 2. Gasless Payment
-
-User only signs, and the Relayer submits on their behalf.
-
-See the [Gasless Payment Guide](/en/gasless/)
+See [Client-Side Integration Guide](/en/developer/client-side)
 
 ## Next Steps
 
 - [Payment Status](/en/payments/status) - Check payment progress
-- [Webhook Setup](/en/webhook/) - Receive payment completion notifications
+- [How Payments Work](/en/developer/how-it-works) - Gasless architecture

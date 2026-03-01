@@ -1,22 +1,25 @@
-import type { WidgetUrlParams, UrlParamsValidationResult } from '../types';
+import type { WidgetUrlParams, UrlParamsValidationResult, WidgetLocale } from '../types';
 
 /**
  * Validate URL parameters for widget initialization
  *
- * Required params: pk, orderId, amount, tokenAddress, successUrl, failUrl
- * Optional params: webhookUrl
+ * Supports two modes:
+ * 1. **Creation mode**: pk + orderId + amount + tokenAddress + successUrl + failUrl (all required)
+ * 2. **Resume mode**: pk + paymentId (skips creation, fetches existing payment from server)
+ *
+ * Optional: currency, walletOnly, lang (en | ko)
  *
  * @example
  * ```tsx
- * // In any React component
- * const searchParams = useSearchParams();
  * const result = validateWidgetUrlParams(searchParams);
- *
  * if (!result.isValid) {
  *   return <ErrorPage errors={result.errors} />;
  * }
- *
- * const { pk, orderId, amount, successUrl, failUrl, webhookUrl } = result.params;
+ * if (result.params.paymentId) {
+ *   // Resume mode — fetch payment details from server
+ * } else {
+ *   // Creation mode — create new payment
+ * }
  * ```
  */
 export function validateWidgetUrlParams(
@@ -24,24 +27,59 @@ export function validateWidgetUrlParams(
 ): UrlParamsValidationResult {
   const errors: string[] = [];
 
-  // Extract all parameters
+  // Extract common parameters
   const pk = searchParams.get('pk');
-  const orderId = searchParams.get('orderId');
-  const amount = searchParams.get('amount');
-  const tokenAddress = searchParams.get('tokenAddress');
-  const successUrl = searchParams.get('successUrl');
-  const failUrl = searchParams.get('failUrl');
-  const webhookUrl = searchParams.get('webhookUrl');
+  const paymentId = searchParams.get('paymentId');
+  const currency = searchParams.get('currency');
+  const walletOnlyRaw = searchParams.get('walletOnly');
+  const walletOnly = walletOnlyRaw === '1' || walletOnlyRaw === 'true' || walletOnlyRaw === 'yes';
+  const langRaw = searchParams.get('lang');
+  const lang: WidgetLocale = langRaw === 'ko' || langRaw === 'en' ? langRaw : 'en';
 
-  // Validate required fields
+  // pk is always required
   if (!pk || pk.trim() === '') {
     errors.push('pk (public key) is required');
   } else if (!pk.startsWith('pk_')) {
     errors.push('pk must start with "pk_"');
   }
 
+  // Resume mode: only pk + paymentId required
+  if (paymentId && paymentId.trim() !== '') {
+    if (errors.length > 0) {
+      return { isValid: false, errors };
+    }
+
+    return {
+      isValid: true,
+      params: {
+        pk: pk!,
+        paymentId,
+        // Provide empty defaults for required fields — they will be populated from server
+        orderId: '',
+        amount: '',
+        tokenAddress: '',
+        successUrl: '',
+        failUrl: '',
+        lang,
+      },
+    };
+  }
+
+  // Creation mode: validate all required fields
+  const orderId = searchParams.get('orderId');
+  const amount = searchParams.get('amount');
+  const tokenAddress = searchParams.get('tokenAddress');
+  const successUrl = searchParams.get('successUrl');
+  const failUrl = searchParams.get('failUrl');
+
   if (!orderId || orderId.trim() === '') {
     errors.push('orderId is required');
+  } else if (orderId.length > 255) {
+    errors.push('orderId must be 255 characters or less');
+  } else if (!/^[a-zA-Z0-9_\-.:]+$/.test(orderId)) {
+    errors.push(
+      'orderId must contain only alphanumeric characters, hyphens, underscores, dots, and colons'
+    );
   }
 
   if (!amount || amount.trim() === '') {
@@ -71,11 +109,6 @@ export function validateWidgetUrlParams(
     errors.push('failUrl must be a valid URL');
   }
 
-  // Validate optional fields
-  if (webhookUrl && webhookUrl.trim() !== '' && !isValidUrl(webhookUrl)) {
-    errors.push('webhookUrl must be a valid URL');
-  }
-
   // Return result
   if (errors.length > 0) {
     return { isValid: false, errors };
@@ -90,7 +123,9 @@ export function validateWidgetUrlParams(
       tokenAddress: tokenAddress!,
       successUrl: successUrl!,
       failUrl: failUrl!,
-      webhookUrl: webhookUrl && webhookUrl.trim() !== '' ? webhookUrl : undefined,
+      ...(currency ? { currency } : {}),
+      ...(walletOnly ? { walletOnly: true } : {}),
+      lang,
     },
   };
 }

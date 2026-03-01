@@ -14,8 +14,9 @@
  */
 
 import { test, expect } from '../helpers/fixtures';
-import { HARDHAT_ACCOUNTS, DEMO_URL } from '../helpers/constants';
+import { DEMO_URL } from '../helpers/constants';
 import { ensurePayerHasTokens } from '../helpers/blockchain';
+import { connectWallet } from '../helpers/wallet-connect';
 
 test.describe('Direct Payment (Demo)', () => {
   test.beforeAll(async () => {
@@ -27,22 +28,8 @@ test.describe('Direct Payment (Demo)', () => {
     await walletPage.goto(DEMO_URL);
     await walletPage.waitForSelector('text=Solo Pay Demo', { timeout: 15_000 });
 
-    // 2. Connect wallet
-    const connectBtn = walletPage.getByTestId('rk-connect-button').first();
-    await expect(connectBtn).toBeVisible({ timeout: 15_000 });
-    await connectBtn.click();
-
-    // Click MetaMask in RainbowKit modal
-    const walletOption = walletPage.getByText(/metamask/i).first();
-    if (await walletOption.isVisible({ timeout: 5_000 }).catch(() => false)) {
-      await walletOption.click();
-    }
-
-    // Wait for connection
-    const shortenedAddress = HARDHAT_ACCOUNTS.payer.address.slice(0, 6);
-    await expect(walletPage.getByText(new RegExp(shortenedAddress, 'i'))).toBeVisible({
-      timeout: 15_000,
-    });
+    // 2. Connect wallet (handles auto-connection from mock provider)
+    await connectWallet(walletPage);
 
     // 3. Click "Buy Now" on first product (Digital Art Pack - 10 TOKEN)
     const buyButtons = walletPage.getByRole('button', { name: /buy now/i });
@@ -51,17 +38,16 @@ test.describe('Direct Payment (Demo)', () => {
 
     // 4. PaymentModal should open with "Checkout" header
     await expect(walletPage.getByText('Checkout')).toBeVisible({ timeout: 10_000 });
-    await expect(walletPage.getByText('Digital Art Pack')).toBeVisible();
-    await expect(walletPage.getByText(/10/)).toBeVisible();
+    await expect(walletPage.getByText('Digital Art Pack').first()).toBeVisible();
+    await expect(walletPage.getByText('10 TOKEN').first()).toBeVisible();
 
     // 5. Wait for server config to load (checkout API call)
     // The modal shows "Loading..." while fetching, then shows Approve/Pay buttons
-    // Wait for either Approve or Pay button to appear
-    const approveBtn = walletPage.getByRole('button', { name: /approve/i });
-    const payBtn = walletPage.getByRole('button', { name: /pay/i });
+    const approveBtn = walletPage.getByRole('button', { name: /^approve\b/i });
+    const payBtn = walletPage.getByRole('button', { name: /^pay\s+\d+/i });
 
-    // Wait for one of them to be visible
-    await expect(approveBtn.or(payBtn)).toBeVisible({ timeout: 30_000 });
+    // Wait for modal to fully load (either button becomes visible)
+    await approveBtn.or(payBtn).first().waitFor({ timeout: 30_000 });
 
     // 6. If Approve is needed, click it
     if (await approveBtn.isVisible().catch(() => false)) {
@@ -75,12 +61,13 @@ test.describe('Direct Payment (Demo)', () => {
     await payBtn.click();
 
     // 8. Wait for payment to complete — "Payment Successful!" should appear
-    await expect(walletPage.getByText('Payment Successful!')).toBeVisible({
+    // Use exact match to avoid strict mode violation with toast ("Payment successful!" lowercase)
+    await expect(walletPage.getByText('Payment Successful!', { exact: true })).toBeVisible({
       timeout: 60_000,
     });
 
     // 9. Verify payment details are shown
-    await expect(walletPage.getByText('Direct')).toBeVisible();
+    await expect(walletPage.getByText('Direct', { exact: true })).toBeVisible();
     await expect(walletPage.getByText(/TX Hash/)).toBeVisible();
 
     // 10. Close modal

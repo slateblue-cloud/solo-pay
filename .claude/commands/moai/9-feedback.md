@@ -1,24 +1,24 @@
 ---
 name: moai:9-feedback
-description: "Submit feedback or report issues"
-argument-hint: "[issue|suggestion|question]"
+description: 'Submit feedback or report issues'
+argument-hint: '[issue|suggestion|question]'
 allowed-tools: Read, Write, Edit, Grep, Glob, WebFetch, WebSearch, Bash, TodoWrite, AskUserQuestion, Task, Skill
 model: haiku
 ---
 
-##  Pre-execution Context
+## Pre-execution Context
 
 !git status --porcelain
 !git branch --show-current
 !git log --oneline -1
 
-##  Essential Files
+## Essential Files
 
 @.moai/config/config.json
 
 ---
 
-#  MoAI-ADK Step 9: Feedback Loop
+# MoAI-ADK Step 9: Feedback Loop
 
 > Architecture: Commands → Agents → Skills. This command orchestrates ONLY through `Task()` tool.
 > Delegation Model: Feedback collection delegated to `manager-quality` agent.
@@ -27,7 +27,7 @@ Workflow Integration: This command implements the feedback loop of the MoAI work
 
 ---
 
-##  Command Purpose
+## Command Purpose
 
 Collect user feedback, bug reports, or feature suggestions and create GitHub issues automatically.
 
@@ -35,7 +35,7 @@ Run on: `$ARGUMENTS` (Feedback type)
 
 ---
 
-##  Execution Philosophy
+## Execution Philosophy
 
 `/moai:9-feedback` performs feedback collection through agent delegation:
 
@@ -54,13 +54,13 @@ Output: Issue created with link
 
 This command uses ONLY these tools:
 
--  Task() for agent delegation
--  AskUserQuestion() for user interaction (delegated to agent)
--  No Bash (delegated to agent)
+- Task() for agent delegation
+- AskUserQuestion() for user interaction (delegated to agent)
+- No Bash (delegated to agent)
 
 ---
 
-##  Associated Agents & Skills
+## Associated Agents & Skills
 
 | Agent/Skill     | Purpose                                       |
 | --------------- | --------------------------------------------- |
@@ -68,7 +68,7 @@ This command uses ONLY these tools:
 
 ---
 
-##  Execution Process
+## Execution Process
 
 ### Step 1: Delegate to Quality Gate Agent
 
@@ -84,7 +84,6 @@ Context:
 Instructions:
 
 1. Determine Feedback Type:
-
    - If $ARGUMENTS is provided, use it.
    - If not, ask user to select type:
      - Bug Report
@@ -92,13 +91,11 @@ Instructions:
      - Question/Other
 
 2. Collect Details:
-
    - Ask for 'Title' (short summary)
    - Ask for 'Description' (detailed explanation)
    - Ask for 'Priority' (Low/Medium/High)
 
 3. Create GitHub Issue:
-
    - Use appropriate tools with GitHub CLI (`gh issue create`) to submit.
    - Add appropriate labels (bug, enhancement, question) via `--label` flag.
    - Format the body with standard templates.
@@ -114,7 +111,7 @@ Important:
 
 ---
 
-##  Summary: Your Execution Checklist
+## Summary: Your Execution Checklist
 
 Before you consider this command complete, verify:
 
@@ -125,7 +122,7 @@ Before you consider this command complete, verify:
 
 ---
 
-##  Quick Reference
+## Quick Reference
 
 | Scenario         | Entry Point                   | Expected Outcome                            |
 | ---------------- | ----------------------------- | ------------------------------------------- |
@@ -187,7 +184,7 @@ Important:
 
 ---
 
-##  EXECUTION DIRECTIVE
+## EXECUTION DIRECTIVE
 
 You must NOW execute the command following the "Execution Process" described above.
 

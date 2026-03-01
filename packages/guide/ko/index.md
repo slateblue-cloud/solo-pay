@@ -4,38 +4,17 @@ layout: home
 hero:
   name: SoloPay
   text: 블록체인 결제 게이트웨이
-  tagline: 쉽고 빠른 ERC-20 토큰 결제 통합
-  actions:
-    - theme: brand
-      text: 빠른 시작
-      link: /ko/getting-started/quick-start
-    - theme: alt
-      text: API Reference
-      link: /ko/api/
+  tagline: ERC-20 토큰 결제를 서비스에 손쉽게 통합하세요
 
 features:
-  - icon: 💳
-    title: 결제 API
-    details: 결제 생성, 상태 조회, 내역 관리를 위한 RESTful API를 제공합니다.
-    link: /ko/payments/create
-  - icon: ⚡
-    title: Gasless 결제
-    details: 사용자가 가스비 없이 서명만으로 결제할 수 있습니다. ERC-2771 메타트랜잭션 기반.
-    link: /ko/gasless/
-  - icon: 🔔
-    title: Webhook
-    details: 결제 상태 변경 시 실시간으로 알림을 받을 수 있습니다.
-    link: /ko/webhook/
-  - icon: 🔗
-    title: 멀티체인 지원
-    details: Polygon, Ethereum, BNB Chain 등 다양한 체인을 지원합니다.
-    link: /ko/getting-started/#supported-chains
+  - icon: 🛠️
+    title: 개발자 가이드
+    details: API, SDK, 결제 연동, Gasless 결제, Webhook 등 서비스 통합을 위한 기술 문서입니다.
+    link: /ko/developer/
+    linkText: 개발자 가이드 보기
+  - icon: 👤
+    title: 유저 가이드
+    details: SoloPay를 사용하는 방법을 안내합니다. 결제 진행, 지갑 연결 등 사용자 화면 기반 가이드입니다.
+    link: /ko/user/
+    linkText: 유저 가이드 보기
 ---
-
-## 지원 체인 {#supported-chains}
-
-| 체인      | 메인넷 | 테스트넷 |
-| --------- | ------ | -------- |
-| Polygon   | ✓      | Amoy     |
-| Ethereum  | ✓      | Sepolia  |
-| BNB Chain | ✓      | Testnet  |

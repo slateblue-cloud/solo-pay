@@ -4,19 +4,19 @@ SoloPay REST API 전체 명세입니다.
 
 ## Base URL
 
-| 환경        | URL                               |
-| ----------- | --------------------------------- |
-| Production  | `https://api.solopay.com`         |
-| Staging     | `https://staging-api.solopay.com` |
-| Development | `http://localhost:3001`           |
+| 환경        | URL                                      |
+| ----------- | ---------------------------------------- |
+| Production  | `https://pay-api.msq.com/api/v1`         |
+| Staging     | `https://pay-api.staging.msq.com/api/v1` |
+| Development | `http://localhost:3001/api/v1`           |
 
 ## 인증
 
-모든 API 요청에 `x-api-key` 헤더가 필요합니다.
-
-```bash
-curl -H "x-api-key: sk_test_xxxxx" https://api.solopay.com/...
-```
+| 방식       | 헤더           | 사용 엔드포인트                                                                      |
+| ---------- | -------------- | ------------------------------------------------------------------------------------ |
+| Public Key | `x-public-key` | POST /payments, GET /payments/:id, POST /payments/:id/relay, GET /payments/:id/relay |
+| API Key    | `x-api-key`    | GET /merchant/\*, POST /merchant/payment-methods, POST /refunds, GET /refunds        |
+| 없음       | -              | GET /chains, GET /chains/tokens                                                      |
 
 ## 공통 응답 형식
 
@@ -34,7 +34,8 @@ curl -H "x-api-key: sk_test_xxxxx" https://api.solopay.com/...
 ```json
 {
   "code": "ERROR_CODE",
-  "message": "Human readable message"
+  "message": "Human readable message",
+  "details": [...]
 }
 ```
 
@@ -42,9 +43,11 @@ curl -H "x-api-key: sk_test_xxxxx" https://api.solopay.com/...
 
 ## Payments
 
-### POST /payments/create
+### POST /payments
 
-결제를 생성합니다. 인증: `x-public-key`, `Origin` 헤더.
+결제를 생성합니다.
+
+**인증**: `x-public-key` + `Origin` 헤더
 
 **Request**
 
@@ -52,20 +55,21 @@ curl -H "x-api-key: sk_test_xxxxx" https://api.solopay.com/...
 {
   "orderId": "order-001",
   "amount": 10.5,
-  "tokenAddress": "0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174",
+  "tokenAddress": "0xE4C687167705Abf55d709395f92e254bdF5825a2",
   "successUrl": "https://example.com/success",
-  "failUrl": "https://example.com/fail"
+  "failUrl": "https://example.com/fail",
+  "currency": "USD"
 }
 ```
 
-| 필드           | 타입    | 필수 | 설명                                                    |
-| -------------- | ------- | ---- | ------------------------------------------------------- |
-| `orderId`      | string  | ✓    | 가맹점 주문 식별자                                      |
-| `amount`       | number  | ✓    | 결제 금액 (토큰 단위, 예: 10.5 USDC)                    |
-| `tokenAddress` | address | ✓    | ERC-20 토큰 주소 (whitelist 등록 및 가맹점 활성화 필수) |
-| `successUrl`   | string  | ✓    | 성공 시 리다이렉트 URL                                  |
-| `failUrl`      | string  | ✓    | 실패 시 리다이렉트 URL                                  |
-| `webhookUrl`   | string  |      | 결제별 웹훅 URL (선택)                                  |
+| 필드           | 타입    | 필수 | 설명                                                     |
+| -------------- | ------- | ---- | -------------------------------------------------------- |
+| `orderId`      | string  | ✓    | 가맹점 주문 ID (중복 불가)                               |
+| `amount`       | number  | ✓    | 결제 금액 (토큰 단위 또는 법정화폐 단위)                 |
+| `tokenAddress` | address | ✓    | ERC-20 토큰 주소 (화이트리스트 & 가맹점 활성화 필수)     |
+| `successUrl`   | string  | ✓    | 결제 성공 시 리다이렉트 URL                              |
+| `failUrl`      | string  | ✓    | 결제 실패 시 리다이렉트 URL                              |
+| `currency`     | string  |      | 법정화폐 코드 (예: `USD`, `KRW`). 입력 시 가격 변환 적용 |
 
 **Response (201)**
 
@@ -73,23 +77,31 @@ curl -H "x-api-key: sk_test_xxxxx" https://api.solopay.com/...
 {
   "success": true,
   "paymentId": "0xabc123def456...",
+  "orderId": "order-001",
+  "serverSignature": "0x...",
   "chainId": 80002,
-  "tokenAddress": "0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174",
-  "tokenSymbol": "USDC",
-  "tokenDecimals": 6,
+  "tokenAddress": "0xE4C687167705Abf55d709395f92e254bdF5825a2",
+  "tokenSymbol": "SUT",
+  "tokenDecimals": 18,
   "gatewayAddress": "0x...",
   "forwarderAddress": "0x...",
-  "amount": "10500000",
-  "status": "created",
+  "amount": "10500000000000000000",
+  "recipientAddress": "0xMerchantWallet...",
+  "merchantId": "0x...",
+  "feeBps": 100,
+  "successUrl": "https://example.com/success",
+  "failUrl": "https://example.com/fail",
   "expiresAt": "2024-01-26T13:00:00.000Z"
 }
 ```
 
 ---
 
-### GET /payments/:id/status
+### GET /payments/:id
 
 결제 상태를 조회합니다.
+
+**인증**: `x-public-key` 헤더 (GET 요청에서 Origin 대신 `x-origin` 헤더 사용 가능)
 
 **Response (200)**
 
@@ -99,68 +111,36 @@ curl -H "x-api-key: sk_test_xxxxx" https://api.solopay.com/...
   "data": {
     "paymentId": "0xabc123...",
     "status": "CONFIRMED",
-    "amount": "10500000",
-    "tokenAddress": "0x...",
-    "tokenSymbol": "USDC",
-    "recipientAddress": "0x...",
+    "amount": "10500000000000000000",
+    "tokenAddress": "0xE4C687167705Abf55d709395f92e254bdF5825a2",
+    "tokenSymbol": "SUT",
+    "payerAddress": "0x...",
+    "treasuryAddress": "0xMerchantWallet...",
     "transactionHash": "0xdef789...",
+    "blockNumber": 12345678,
+    "createdAt": "2024-01-26T12:30:00Z",
+    "updatedAt": "2024-01-26T12:35:42Z",
     "payment_hash": "0xabc123...",
     "network_id": 80002,
-    "createdAt": "2024-01-26T12:30:00Z",
-    "updatedAt": "2024-01-26T12:35:42Z"
+    "token_symbol": "SUT"
   }
 }
 ```
 
 ---
 
-### GET /payments/history
-
-결제 내역을 조회합니다.
-
-**Query Parameters**
-
-| 필드      | 타입    | 필수 | 설명                 |
-| --------- | ------- | ---- | -------------------- |
-| `chainId` | number  | ✓    | 블록체인 네트워크 ID |
-| `payer`   | address | ✓    | 결제자 지갑 주소     |
-| `limit`   | number  |      | 조회 개수            |
-
-**Response (200)**
-
-```json
-{
-  "success": true,
-  "data": [
-    {
-      "paymentId": "0x...",
-      "payer": "0x...",
-      "merchant": "0x...",
-      "token": "0x...",
-      "tokenSymbol": "USDC",
-      "decimals": 6,
-      "amount": "10500000",
-      "timestamp": "1706271342",
-      "transactionHash": "0x...",
-      "status": "CONFIRMED",
-      "isGasless": false
-    }
-  ]
-}
-```
-
----
-
-### POST /payments/:id/gasless
+### POST /payments/:id/relay
 
 Gasless 결제를 제출합니다.
+
+**인증**: `x-public-key` + `Origin` 헤더
 
 **Request**
 
 ```json
 {
   "paymentId": "0xabc123...",
-  "forwarderAddress": "0x5FbDB2315678afecb367f032d93F642f64180aa3",
+  "forwarderAddress": "0x...",
   "forwardRequest": {
     "from": "0x...",
     "to": "0x...",
@@ -174,19 +154,11 @@ Gasless 결제를 제출합니다.
 }
 ```
 
-| 필드                       | 타입    | 필수 | 설명                            |
-| -------------------------- | ------- | ---- | ------------------------------- |
-| `paymentId`                | string  | ✓    | 결제 해시 (bytes32)             |
-| `forwarderAddress`         | address | ✓    | ERC2771 Forwarder 컨트랙트 주소 |
-| `forwardRequest`           | object  | ✓    | EIP-712 서명된 요청 데이터      |
-| `forwardRequest.signature` | string  | ✓    | EIP-712 서명                    |
-
 **Response (202)**
 
 ```json
 {
   "success": true,
-  "relayRequestId": "relay_abc123",
   "status": "submitted",
   "message": "Gasless 거래가 제출되었습니다"
 }
@@ -194,121 +166,172 @@ Gasless 결제를 제출합니다.
 
 ---
 
-### GET /payments/relay/:id/status
+### GET /payments/:id/relay
 
 Relay 요청 상태를 조회합니다.
 
+**인증**: `x-public-key` 헤더
+
 **Response (200)**
 
 ```json
 {
   "success": true,
-  "relayRequestId": "relay_abc123",
-  "status": "confirmed",
-  "transactionHash": "0x..."
+  "data": {
+    "status": "CONFIRMED",
+    "transactionHash": "0xdef789...",
+    "errorMessage": null,
+    "createdAt": "2024-01-26T12:34:00Z",
+    "updatedAt": "2024-01-26T12:35:42Z"
+  }
 }
 ```
 
+| 상태        | 설명               |
+| ----------- | ------------------ |
+| `QUEUED`    | Relay 요청 대기 중 |
+| `SUBMITTED` | 트랜잭션 제출됨    |
+| `CONFIRMED` | 트랜잭션 확정 완료 |
+| `FAILED`    | 트랜잭션 실패      |
+
 ---
 
-## Merchants
+## Merchant
 
-### GET /merchants/me
+### GET /merchant
 
 현재 가맹점 정보를 조회합니다.
 
+**인증**: `x-api-key`
+
 **Response (200)**
 
 ```json
 {
   "success": true,
-  "data": {
+  "merchant": {
     "id": 1,
     "merchant_key": "my-store",
     "name": "My Store",
+    "chain_id": 80002,
+    "chain": { "id": 1, "network_id": 80002, "name": "Polygon Amoy", "is_testnet": true },
+    "webhook_url": null,
+    "public_key": "pk_test_xxx",
     "is_enabled": true,
-    "chain_id": 1,
     "created_at": "2024-01-01T00:00:00Z",
-    "updated_at": "2024-01-01T00:00:00Z"
-  }
+    "updated_at": "2024-01-01T00:00:00Z",
+    "payment_methods": [...]
+  },
+  "chainTokens": [...]
 }
 ```
 
 ---
 
-### GET /merchants/me/payment-methods
+### GET /merchant/payment-methods
 
 결제 수단 목록을 조회합니다.
 
-**Response (200)**
+**인증**: `x-api-key`
+
+---
+
+### POST /merchant/payment-methods
+
+결제 수단을 추가합니다.
+
+**인증**: `x-api-key`
 
 ```json
 {
-  "success": true,
-  "data": [
-    {
-      "tokenAddress": "0x...",
-      "tokenSymbol": "USDC",
-      "tokenDecimals": 6,
-      "recipientAddress": "0x...",
-      "chainId": 80002,
-      "chainName": "Polygon Amoy",
-      "enabled": true
-    }
-  ]
+  "tokenAddress": "0x...",
+  "is_enabled": true
 }
 ```
 
 ---
 
-## Tokens
+### PATCH /merchant/payment-methods/:id
 
-### GET /tokens/:tokenAddress/balance
+결제 수단을 수정합니다.
 
-토큰 잔액을 조회합니다.
+```json
+{ "is_enabled": false }
+```
 
-**Query Parameters**
+---
 
-| 필드      | 타입    | 필수 | 설명                 |
-| --------- | ------- | ---- | -------------------- |
-| `chainId` | number  | ✓    | 블록체인 네트워크 ID |
-| `address` | address | ✓    | 지갑 주소            |
+### GET /merchant/payments
 
-**Response (200)**
+결제 내역을 조회합니다.
+
+**인증**: `x-api-key`
+
+**Query Parameters**: `orderId` (특정 주문 조회)
+
+---
+
+### GET /merchant/payments/:id
+
+특정 결제 상세를 조회합니다.
+
+**인증**: `x-api-key`
+
+---
+
+## Refunds
+
+### POST /refunds
+
+환불을 요청합니다.
+
+**인증**: `x-api-key`
+
+```json
+{
+  "paymentId": "0xabc123...",
+  "reason": "고객 요청에 의한 환불"
+}
+```
+
+**Response (201)**
 
 ```json
 {
   "success": true,
   "data": {
-    "balance": "100000000"
+    "refundId": "uuid-...",
+    "paymentId": "0xabc123...",
+    "amount": "10500000000000000000",
+    "tokenAddress": "0x...",
+    "payerAddress": "0x...",
+    "status": "PENDING",
+    "serverSignature": "0x...",
+    "merchantId": "0x...",
+    "createdAt": "2024-01-26T12:40:00Z"
   }
 }
 ```
 
 ---
 
-### GET /tokens/:tokenAddress/allowance
+### GET /refunds/:refundId
 
-토큰 승인 금액을 조회합니다.
+환불 상태를 조회합니다.
 
-**Query Parameters**
+**인증**: `x-api-key`
 
-| 필드      | 타입    | 필수 | 설명                           |
-| --------- | ------- | ---- | ------------------------------ |
-| `chainId` | number  | ✓    | 블록체인 네트워크 ID           |
-| `owner`   | address | ✓    | 소유자 주소                    |
-| `spender` | address | ✓    | 승인받은 주소 (PaymentGateway) |
+**상태**: `PENDING` → `SUBMITTED` → `CONFIRMED` (또는 `FAILED`)
 
-**Response (200)**
+---
 
-```json
-{
-  "success": true,
-  "data": {
-    "allowance": "115792089237316195423570985008687907853269984665640564039457584007913129639935"
-  }
-}
-```
+### GET /refunds
+
+환불 목록을 조회합니다.
+
+**인증**: `x-api-key`
+
+**Query Parameters**: `page`, `limit`, `status`, `paymentId`
 
 ---
 
@@ -316,31 +339,24 @@ Relay 요청 상태를 조회합니다.
 
 ### GET /chains
 
-지원 체인 목록을 조회합니다.
-
-**Response (200)**
+지원 체인 목록을 조회합니다. (인증 없음)
 
 ```json
 {
   "success": true,
-  "data": [
-    {
-      "id": 1,
-      "networkId": 80002,
-      "name": "Polygon Amoy",
-      "gatewayAddress": "0x...",
-      "forwarderAddress": "0x...",
-      "tokens": [
-        {
-          "address": "0x...",
-          "symbol": "USDC",
-          "decimals": 6
-        }
-      ]
-    }
+  "chains": [
+    { "id": 1, "network_id": 80002, "name": "Polygon Amoy", "is_testnet": true },
+    { "id": 2, "network_id": 97, "name": "BSC Testnet", "is_testnet": true },
+    { "id": 3, "network_id": 11155111, "name": "Sepolia", "is_testnet": true }
   ]
 }
 ```
+
+---
+
+### GET /chains/tokens
+
+지원 체인과 토큰 전체 목록을 조회합니다. (인증 없음)
 
 ---
 
@@ -348,9 +364,7 @@ Relay 요청 상태를 조회합니다.
 
 ### GET /health
 
-서버 상태를 확인합니다.
-
-**Response (200)**
+서버 상태를 확인합니다. (인증 없음)
 
 ```json
 {
@@ -362,4 +376,3 @@ Relay 요청 상태를 조회합니다.
 ## 다음 단계
 
 - [에러 코드](/ko/api/errors) - 에러 처리
-- [SDK 사용법](/ko/sdk/) - SDK로 간편하게 사용

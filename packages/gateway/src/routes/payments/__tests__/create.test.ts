@@ -17,6 +17,7 @@ const mockChainTokens: ChainWithTokens[] = [
     rpc_url: 'https://rpc-amoy.polygon.technology',
     gateway_address: '0x0000000000000000000000000000000000000000',
     forwarder_address: '0x0000000000000000000000000000000000000000',
+    relayer_url: null,
     is_testnet: true,
     is_enabled: true,
     is_deleted: false,
@@ -30,7 +31,8 @@ const mockChainTokens: ChainWithTokens[] = [
         address: '0xE4C687167705Abf55d709395f92e254bdF5825a2',
         symbol: 'SUT',
         decimals: 18,
-        cmc_id: null,
+        cmc_slug: null,
+        permit_enabled: false,
         is_enabled: true,
         is_deleted: false,
         deleted_at: null,
@@ -46,6 +48,7 @@ const mockChainTokens: ChainWithTokens[] = [
     rpc_url: 'http://127.0.0.1:8545',
     gateway_address: '0xCf7Ed3AccA5a467e9e704C703E8D87F634fB0Fc9',
     forwarder_address: '0x5FbDB2315678afecb367f032d93F642f64180aa3',
+    relayer_url: null,
     is_testnet: true,
     is_enabled: true,
     is_deleted: false,
@@ -59,7 +62,8 @@ const mockChainTokens: ChainWithTokens[] = [
         address: '0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512',
         symbol: 'TEST',
         decimals: 18,
-        cmc_id: null,
+        cmc_slug: null,
+        permit_enabled: false,
         is_enabled: true,
         is_deleted: false,
         deleted_at: null,
@@ -102,7 +106,7 @@ const mockPaymentService = {
   }),
 } as Partial<PaymentService> as PaymentService;
 
-describe('POST /payment', () => {
+describe('POST /payments', () => {
   let blockchainService: BlockchainService;
 
   beforeEach(() => {
@@ -130,7 +134,7 @@ describe('POST /payment', () => {
       // Verify route was registered
       expect(mockApp.post).toHaveBeenCalled();
       const callArgs = (mockApp.post as ReturnType<typeof vi.fn>).mock.calls[0];
-      expect(callArgs[0]).toBe('/payment');
+      expect(callArgs[0]).toBe('/payments');
     });
   });
 

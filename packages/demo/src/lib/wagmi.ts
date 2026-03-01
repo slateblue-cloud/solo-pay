@@ -4,9 +4,14 @@ import { polygon, polygonAmoy, hardhat, type Chain } from 'wagmi/chains';
 import { injected } from 'wagmi/connectors';
 import type { ChainConfig } from '@/app/api/config/route';
 
+declare global {
+  interface Window {
+    __E2E_TEST__?: boolean;
+  }
+}
+
 /** E2E test mode — uses injected connector (mock window.ethereum) for auto-connect */
-const isE2ETest =
-  typeof window !== 'undefined' && !!(window as unknown as Record<string, unknown>).__E2E_TEST__;
+const isE2ETest = typeof window !== 'undefined' && !!window.__E2E_TEST__;
 
 // WalletConnect Project ID - Get one at https://cloud.walletconnect.com/
 const projectId = process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID || 'YOUR_PROJECT_ID';

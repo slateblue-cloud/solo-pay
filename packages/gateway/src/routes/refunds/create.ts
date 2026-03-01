@@ -25,14 +25,14 @@ export async function createRefundRoute(
   const authMiddleware = createAuthMiddleware(merchantService);
 
   app.post<{ Body: CreateRefundBody }>(
-    '/refund',
+    '/refunds',
     {
       schema: {
         operationId: 'createRefund',
         tags: ['Refund'],
         summary: 'Create a new refund request',
         description: `
-Creates a refund request for a confirmed payment.
+Creates a refund request for a finalized payment.
 
 **Requirements:**
 - Payment must be in FINALIZED status
@@ -224,13 +224,7 @@ Creates a refund request for a confirmed payment.
         // 11. Generate server signature
         const merchantId = ServerSigningService.merchantKeyToId(merchant.merchant_key);
 
-        const serverSignature = await signingService.signRefundRequest(
-          paymentId as Hex,
-          tokenConfig.address as Address,
-          BigInt(payment.amount.toString()),
-          payment.payer_address as Address,
-          merchantId
-        );
+        const serverSignature = await signingService.signRefundRequest(paymentId as Hex);
 
         // 12. TODO: Submit to relayer (for now, just return the signature)
         // In a full implementation, you would call relayerService here

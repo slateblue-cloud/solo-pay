@@ -1,3 +1,5 @@
+import { useLocale } from '../../context/LocaleContext';
+
 type StepStatus = 'waiting' | 'processing' | 'completed';
 
 interface StepProps {
@@ -71,13 +73,13 @@ export default function PaymentProcessing({
   isPending = true,
   error,
 }: PaymentProcessingProps) {
+  const { t } = useLocale();
+
   // Note: Auto-advance to payment-complete is handled in PaymentStep.tsx
   // based on actual transaction confirmation (txHash && !isConfirming)
 
-  // Determine step statuses based on isPending state
   const getStepStatus = (step: 'requesting' | 'signing' | 'confirming'): StepStatus => {
     if (error) {
-      // On error, show the signing step as where we stopped
       if (step === 'requesting') return 'completed';
       return 'waiting';
     }
@@ -86,7 +88,6 @@ export default function PaymentProcessing({
       if (step === 'signing') return 'processing';
       return 'waiting';
     }
-    // All done
     return 'completed';
   };
 
@@ -94,8 +95,8 @@ export default function PaymentProcessing({
     <div className="w-full p-4 sm:p-8">
       {/* Title */}
       <div className="text-center mb-6 sm:mb-8">
-        <h1 className="text-base sm:text-lg font-bold text-gray-900">Processing Payment</h1>
-        <p className="text-xs sm:text-sm text-gray-500 mt-1">Please wait a moment</p>
+        <h1 className="text-base sm:text-lg font-bold text-gray-900">{t('processing.title')}</h1>
+        <p className="text-xs sm:text-sm text-gray-500 mt-1">{t('processing.pleaseWait')}</p>
       </div>
 
       {!error && (
@@ -107,7 +108,7 @@ export default function PaymentProcessing({
 
           {/* Amount */}
           <div className="text-center mb-6 sm:mb-8">
-            <p className="text-xs text-gray-500 mb-1">Payment Amount</p>
+            <p className="text-xs text-gray-500 mb-1">{t('processing.paymentAmount')}</p>
             <p className="text-xl sm:text-2xl font-bold text-gray-900">
               {amount} {token}
             </p>
@@ -116,12 +117,21 @@ export default function PaymentProcessing({
           {/* Progress Steps */}
           <div className="rounded-xl bg-gray-50 border border-gray-100 p-4 sm:p-5">
             <h2 className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-3 sm:mb-4">
-              Payment Status
+              {t('processing.paymentStatus')}
             </h2>
             <div className="space-y-3 sm:space-y-4">
-              <StepItem label="Requesting Payment" status={getStepStatus('requesting')} />
-              <StepItem label="Signing Transaction" status={getStepStatus('signing')} />
-              <StepItem label="Confirming Payment" status={getStepStatus('confirming')} />
+              <StepItem
+                label={t('processing.requestingPayment')}
+                status={getStepStatus('requesting')}
+              />
+              <StepItem
+                label={t('processing.signingTransaction')}
+                status={getStepStatus('signing')}
+              />
+              <StepItem
+                label={t('processing.confirmingPayment')}
+                status={getStepStatus('confirming')}
+              />
             </div>
           </div>
         </>
@@ -145,7 +155,7 @@ export default function PaymentProcessing({
               />
             </svg>
             <div>
-              <p className="text-sm font-medium text-red-700">Transaction Failed</p>
+              <p className="text-sm font-medium text-red-700">{t('error.transactionFailed')}</p>
               <p className="text-xs text-red-600 mt-1">{error}</p>
             </div>
           </div>
@@ -161,7 +171,7 @@ export default function PaymentProcessing({
               className="w-full py-3 sm:py-3.5 rounded-xl bg-blue-600 text-white text-sm font-semibold hover:bg-blue-500 transition-colors cursor-pointer"
               onClick={onRetry}
             >
-              Try Again
+              {t('common.tryAgain')}
             </button>
           )}
           {onCancel && (
@@ -170,7 +180,7 @@ export default function PaymentProcessing({
               className="w-full py-3 sm:py-3.5 rounded-xl bg-gray-100 text-gray-700 text-sm font-semibold hover:bg-gray-200 transition-colors cursor-pointer"
               onClick={onCancel}
             >
-              Cancel
+              {t('common.cancel')}
             </button>
           )}
         </div>

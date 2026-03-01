@@ -581,6 +581,7 @@ describe('RefundService', () => {
         network_id: 31337,
         status: 'CONFIRMED',
         tx_hash: null,
+        release_tx_hash: null,
         expires_at: new Date(),
         confirmed_at: new Date(),
         order_id: null,
@@ -591,6 +592,12 @@ describe('RefundService', () => {
         payer_address: null,
         created_at: new Date(),
         updated_at: new Date(),
+        currency_code: null,
+        fiat_amount: null,
+        token_price: null,
+        escrow_deadline: null,
+        finalized_at: null,
+        cancelled_at: null,
       });
       mockPrisma.refund.findMany.mockResolvedValue([]);
       mockPrisma.refund.count.mockResolvedValue(0);

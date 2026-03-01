@@ -202,12 +202,11 @@ const relayResult = await client.executeRelay({
 
 | 엔드포인트                 | 메서드 | 용도                                |
 | -------------------------- | ------ | ----------------------------------- |
-| `/payments/create`         | POST   | 결제 생성, paymentId 발급           |
+| `/payments`                | POST   | 결제 생성, paymentId 발급           |
 | `/api/checkout`            | POST   | 상품 기반 결제 (Demo App API Route) |
-| `/payments/:id/status`     | GET    | 결제 상태 조회 (chainId 자동 결정)  |
-| `/payments/:id/gasless`    | POST   | Gasless 거래 제출                   |
-| `/payments/:id/relay`      | POST   | 릴레이 거래 실행                    |
-| `/payments/history`        | GET    | 결제 이력 조회 (payer 기반)         |
+| `/payments/:id`            | GET    | 결제 상태 조회 (chainId 자동 결정)  |
+| `/payments/:id/relay`      | POST   | Gasless 릴레이 거래 제출            |
+| `/payments/:id/relay`      | GET    | 릴레이 거래 상태 조회               |
 | `/tokens/balance`          | GET    | 토큰 잔액 조회                      |
 | `/tokens/allowance`        | GET    | 토큰 approval 금액 조회             |
 | `/transactions/:id/status` | GET    | 거래 상태 조회                      |

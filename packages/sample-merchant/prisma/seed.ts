@@ -12,7 +12,7 @@ const products = [
     name: 'Ethiopia Yirgacheffe',
     roast: 'Light Roast',
     weight: '250g',
-    price: 25,
+    price: 1,
     description: 'Bright citrus and floral jasmine with a clean, tea-like finish.',
     image_url: '/images/ethiopia-yirgacheffe.svg',
   },

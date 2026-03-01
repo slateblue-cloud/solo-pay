@@ -42,8 +42,8 @@ export type {
   SoloPayConfig,
   PaymentRequest,
   PaymentResult,
-  RedirectMode,
   TokenInfo,
+  WidgetLocale,
 } from './types';
 
 // Utilities (for advanced usage)

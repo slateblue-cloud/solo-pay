@@ -1,6 +1,5 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import { FastifyRequest, FastifyReply } from 'fastify';
-import { createPublicAuthMiddleware } from '../public-auth.middleware';
 import { MerchantService } from '../../services/merchant.service';
 
 const mockMerchant = {
@@ -11,10 +10,10 @@ const mockMerchant = {
   api_key_hash: 'hashed_key',
   public_key: 'pk_live_abc123',
   public_key_hash: 'hash_of_pk',
-  allowed_domains: ['https://checkout.example.com', 'https://shop.example.com'],
   webhook_url: null,
   fee_bps: 0,
   recipient_address: '0x70997970C51812dc3A010C7d01b50e0d17dc79C8',
+  escrow_duration: null,
   is_enabled: true,
   is_deleted: false,
   created_at: new Date(),
@@ -60,14 +59,36 @@ const createMockReply = (): FastifyReply => {
 
 describe('createPublicAuthMiddleware', () => {
   let mockMerchantService: MerchantService;
+  const originalEnv = process.env.ALLOWED_WIDGET_ORIGIN;
+
+  afterEach(() => {
+    if (originalEnv === undefined) {
+      delete process.env.ALLOWED_WIDGET_ORIGIN;
+    } else {
+      process.env.ALLOWED_WIDGET_ORIGIN = originalEnv;
+    }
+    vi.resetModules();
+  });
 
   beforeEach(() => {
     mockMerchantService = createMockMerchantService();
     vi.mocked(mockMerchantService.findByPublicKey).mockReset();
   });
 
+  async function loadMiddleware(origins?: string) {
+    if (origins !== undefined) {
+      process.env.ALLOWED_WIDGET_ORIGIN = origins;
+    } else {
+      delete process.env.ALLOWED_WIDGET_ORIGIN;
+    }
+    vi.resetModules();
+    const mod = await import('../public-auth.middleware');
+    return mod.createPublicAuthMiddleware;
+  }
+
   it('should return 401 when x-public-key header is missing', async () => {
-    const middleware = createPublicAuthMiddleware(mockMerchantService);
+    const createMiddleware = await loadMiddleware('');
+    const middleware = createMiddleware(mockMerchantService);
     const request = createMockRequest({});
     const reply = createMockReply();
 
@@ -82,7 +103,8 @@ describe('createPublicAuthMiddleware', () => {
   });
 
   it('should return 401 when x-public-key header is empty', async () => {
-    const middleware = createPublicAuthMiddleware(mockMerchantService);
+    const createMiddleware = await loadMiddleware('');
+    const middleware = createMiddleware(mockMerchantService);
     const request = createMockRequest({ 'x-public-key': '   ' });
     const reply = createMockReply();
 
@@ -96,10 +118,11 @@ describe('createPublicAuthMiddleware', () => {
   });
 
   it('should return 401 when public key is invalid (merchant not found)', async () => {
-    const middleware = createPublicAuthMiddleware(mockMerchantService);
+    const createMiddleware = await loadMiddleware('');
+    const middleware = createMiddleware(mockMerchantService);
     const request = createMockRequest({
       'x-public-key': 'pk_live_invalid',
-      origin: 'https://checkout.example.com',
+      origin: 'https://widget.solopay.com',
     });
     const reply = createMockReply();
 
@@ -115,31 +138,9 @@ describe('createPublicAuthMiddleware', () => {
     });
   });
 
-  it('should return 403 when allowed_domains is empty', async () => {
-    const middleware = createPublicAuthMiddleware(mockMerchantService);
-    const request = createMockRequest({
-      'x-public-key': 'pk_live_abc123',
-      origin: 'https://checkout.example.com',
-    });
-    const reply = createMockReply();
-
-    vi.mocked(mockMerchantService.findByPublicKey).mockResolvedValue({
-      ...mockMerchant,
-      allowed_domains: [],
-    });
-
-    await middleware(request, reply);
-
-    expect(reply.code).toHaveBeenCalledWith(403);
-    expect(reply.send).toHaveBeenCalledWith({
-      code: 'FORBIDDEN',
-      message: 'No allowed domains configured for this public key',
-    });
-    expect(request.merchant).toBeUndefined();
-  });
-
-  it('should return 403 when origin is not in allowed_domains', async () => {
-    const middleware = createPublicAuthMiddleware(mockMerchantService);
+  it('should return 403 when origin is not in ALLOWED_WIDGET_ORIGIN', async () => {
+    const createMiddleware = await loadMiddleware('https://widget.solopay.com');
+    const middleware = createMiddleware(mockMerchantService);
     const request = createMockRequest({
       'x-public-key': 'pk_live_abc123',
       origin: 'https://evil.example.com',
@@ -153,13 +154,13 @@ describe('createPublicAuthMiddleware', () => {
     expect(reply.code).toHaveBeenCalledWith(403);
     expect(reply.send).toHaveBeenCalledWith({
       code: 'FORBIDDEN',
-      message: 'Origin not allowed for this public key',
+      message: 'Origin not allowed',
     });
-    expect(request.merchant).toBeUndefined();
   });
 
-  it('should return 403 when origin header is missing', async () => {
-    const middleware = createPublicAuthMiddleware(mockMerchantService);
+  it('should return 403 when origin header is missing and ALLOWED_WIDGET_ORIGIN is set', async () => {
+    const createMiddleware = await loadMiddleware('https://widget.solopay.com');
+    const middleware = createMiddleware(mockMerchantService);
     const request = createMockRequest({ 'x-public-key': 'pk_live_abc123' });
     const reply = createMockReply();
 
@@ -170,15 +171,16 @@ describe('createPublicAuthMiddleware', () => {
     expect(reply.code).toHaveBeenCalledWith(403);
     expect(reply.send).toHaveBeenCalledWith({
       code: 'FORBIDDEN',
-      message: 'Origin not allowed for this public key',
+      message: 'Origin not allowed',
     });
   });
 
-  it('should attach merchant to request when public key and origin are valid', async () => {
-    const middleware = createPublicAuthMiddleware(mockMerchantService);
+  it('should attach merchant when origin matches ALLOWED_WIDGET_ORIGIN', async () => {
+    const createMiddleware = await loadMiddleware('https://widget.solopay.com');
+    const middleware = createMiddleware(mockMerchantService);
     const request = createMockRequest({
       'x-public-key': 'pk_live_abc123',
-      origin: 'https://checkout.example.com',
+      origin: 'https://widget.solopay.com',
     });
     const reply = createMockReply();
 
@@ -186,16 +188,33 @@ describe('createPublicAuthMiddleware', () => {
 
     await middleware(request, reply);
 
-    expect(mockMerchantService.findByPublicKey).toHaveBeenCalledWith('pk_live_abc123');
     expect(request.merchant).toEqual(mockMerchant);
     expect(reply.sent).toBe(false);
   });
 
-  it('should accept origin that matches second allowed domain', async () => {
-    const middleware = createPublicAuthMiddleware(mockMerchantService);
+  it('should skip origin check when ALLOWED_WIDGET_ORIGIN is empty', async () => {
+    const createMiddleware = await loadMiddleware('');
+    const middleware = createMiddleware(mockMerchantService);
     const request = createMockRequest({
       'x-public-key': 'pk_live_abc123',
-      origin: 'https://shop.example.com',
+      origin: 'https://anything.example.com',
+    });
+    const reply = createMockReply();
+
+    vi.mocked(mockMerchantService.findByPublicKey).mockResolvedValue(mockMerchant);
+
+    await middleware(request, reply);
+
+    expect(request.merchant).toEqual(mockMerchant);
+    expect(reply.sent).toBe(false);
+  });
+
+  it('should use x-origin header as fallback', async () => {
+    const createMiddleware = await loadMiddleware('https://widget.solopay.com');
+    const middleware = createMiddleware(mockMerchantService);
+    const request = createMockRequest({
+      'x-public-key': 'pk_live_abc123',
+      'x-origin': 'https://widget.solopay.com',
     });
     const reply = createMockReply();
 
@@ -208,10 +227,11 @@ describe('createPublicAuthMiddleware', () => {
   });
 
   it('should return 500 when findByPublicKey throws', async () => {
-    const middleware = createPublicAuthMiddleware(mockMerchantService);
+    const createMiddleware = await loadMiddleware('');
+    const middleware = createMiddleware(mockMerchantService);
     const request = createMockRequest({
       'x-public-key': 'pk_live_abc123',
-      origin: 'https://checkout.example.com',
+      origin: 'https://widget.solopay.com',
     });
     const reply = createMockReply();
 

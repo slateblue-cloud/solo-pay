@@ -70,29 +70,19 @@
       <div class="form-row">
         <div class="form-group">
           <label for="publicKey">Public Key</label>
-          <input type="text" id="publicKey" value="pk_live_YzYW8hmWtjmR29x21dCKhzrsDKnrqr0D">
+          <input type="text" id="publicKey" value="pk_live_xqKZ6PpVdfUaaVBJhS6qI8RbUbZUbvSq">
         </div>
         <div class="form-group">
           <label for="widgetUrl">Widget URL</label>
           <input type="text" id="widgetUrl" value="http://localhost:3000">
         </div>
       </div>
-      <div class="form-row">
-        <div class="form-group">
-          <label for="redirectMode">Redirect Mode</label>
-          <select id="redirectMode">
-            <option value="auto" selected>auto</option>
-            <option value="iframe">iframe</option>
-            <option value="redirect">redirect</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label for="debug">Debug</label>
-          <select id="debug">
-            <option value="true" selected>Enabled</option>
-            <option value="false">Disabled</option>
-          </select>
-        </div>
+      <div class="form-group">
+        <label for="debug">Debug</label>
+        <select id="debug">
+          <option value="true" selected>Enabled</option>
+          <option value="false">Disabled</option>
+        </select>
       </div>
     </div>
     <button class="btn btn-secondary" onclick="initSDK()">Re-initialize</button>
@@ -118,12 +108,19 @@
       <div class="form-row">
         <div class="form-group">
           <label for="successUrl">Success URL</label>
-          <input type="text" id="successUrl" placeholder="Current page">
+          <input type="text" id="successUrl" placeholder="Leave empty = return here with result">
         </div>
         <div class="form-group">
           <label for="failUrl">Fail URL</label>
-          <input type="text" id="failUrl" placeholder="Current page">
+          <input type="text" id="failUrl" placeholder="Leave empty = return here with result">
         </div>
+      </div>
+      <div class="form-group">
+        <label for="locale">Language</label>
+        <select id="locale">
+          <option value="en">English</option>
+          <option value="ko">한국어</option>
+        </select>
       </div>
     </div>
     <button class="btn btn-primary" onclick="pay()" style="width: 100%;">Pay</button>
@@ -154,12 +151,15 @@
       document.getElementById('logContainer').innerHTML = '<p class="log-entry info">Log cleared</p>';
     }
 
+    function getBaseUrl() {
+      return window.location.origin + window.location.pathname;
+    }
+
     function initSDK() {
       if (soloPay) { soloPay.destroy(); log('SDK destroyed', 'info'); }
       const config = {
         publicKey: document.getElementById('publicKey').value,
         widgetUrl: document.getElementById('widgetUrl').value,
-        redirectMode: document.getElementById('redirectMode').value,
         debug: document.getElementById('debug').value === 'true',
       };
       soloPay = new SoloPay(config);
@@ -168,6 +168,7 @@
 
     function pay() {
       if (!soloPay) { log('SDK not initialized!', 'error'); return; }
+      const localeVal = document.getElementById('locale').value;
       const req = {
         orderId: document.getElementById('orderId').value || `order-${Date.now()}`,
         amount: document.getElementById('amount').value || '10',
@@ -175,9 +176,12 @@
         successUrl: document.getElementById('successUrl').value || window.location.href,
         failUrl: document.getElementById('failUrl').value || window.location.href,
       };
+      if (localeVal === 'en' || localeVal === 'ko') {
+        req.locale = localeVal;
+      }
       log(`Payment: ${JSON.stringify(req)}`, 'info');
       try {
-        soloPay.requestPayment(req, undefined, {
+        soloPay.requestPayment(req, {
           onClose: () => log('Widget closed', 'info')
         });
       } catch (e) { log(`Error: ${e.message}`, 'error'); }

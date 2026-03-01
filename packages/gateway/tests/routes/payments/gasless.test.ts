@@ -20,7 +20,6 @@ const mockMerchant = {
   name: 'Demo Store',
   api_key_hash: 'hashed',
   public_key_hash: 'hashed_public',
-  allowed_domains: [TEST_ORIGIN],
   webhook_url: null,
   is_enabled: true,
   is_deleted: false,
@@ -30,10 +29,11 @@ const mockMerchant = {
 };
 
 // 유효한 pay() calldata 생성 헬퍼
-// Pay function: pay(paymentId, tokenAddress, amount, recipientAddress, merchantId, feeBps, serverSignature)
+// Pay function: pay(paymentId, tokenAddress, amount, recipientAddress, merchantId, feeBps, deadline, escrowDuration, serverSignature, permit)
 const createValidPayCalldata = (paymentId: string, amount: string) => {
   const paymentIdHash = keccak256(toHex(paymentId));
   const merchantId = keccak256(toHex('merchant_demo_001')); // bytes32 merchantId
+  const deadline = BigInt(Math.floor(Date.now() / 1000) + 3600);
   return encodeFunctionData({
     abi: PaymentGatewayV1Artifact.abi,
     functionName: 'pay',
@@ -44,6 +44,8 @@ const createValidPayCalldata = (paymentId: string, amount: string) => {
       '0x70997970C51812dc3A010C7d01b50e0d17dc79C8' as `0x${string}`, // address recipientAddress
       merchantId, // bytes32 merchantId
       0, // uint16 feeBps
+      deadline, // uint256 deadline
+      86400n, // uint256 escrowDuration (24 hours)
       ('0x' + 'ab'.repeat(65)) as `0x${string}`, // bytes serverSignature (dummy 65 bytes)
       {
         deadline: 0n,
@@ -88,14 +90,15 @@ const mockPaymentData = {
   merchant_id: 1,
   status: 'CREATED',
   amount: '1000000000000000000', // 1 token in wei (18 decimals)
-  chain_id: 80002,
+  network_id: 80002,
   token_address: '0xE4C687167705Abf55d709395f92e254bdF5825a2',
   recipient_address: '0x70997970C51812dc3A010C7d01b50e0d17dc79C8',
 };
 
-describe('POST /payment/:id/relay', () => {
+describe('POST /payments/:id/relay', () => {
   let app: FastifyInstance;
   let relayerService: Partial<RelayerService>;
+  let relayerServices: Map<number, RelayerService>;
   let relayService: Partial<RelayService>;
   let paymentService: Partial<PaymentService>;
   let merchantService: Partial<MerchantService>;
@@ -136,11 +139,14 @@ describe('POST /payment/:id/relay', () => {
       findByPublicKey: vi.fn().mockResolvedValue(mockMerchant),
     };
 
+    relayerServices = new Map();
+    relayerServices.set(80002, relayerService as RelayerService);
+
     await app.register(
       async (scope) => {
         await submitGaslessRoute(
           scope,
-          relayerService as RelayerService,
+          relayerServices,
           relayService as RelayService,
           paymentService as PaymentService,
           merchantService as MerchantService
@@ -156,7 +162,7 @@ describe('POST /payment/:id/relay', () => {
 
       const response = await app.inject({
         method: 'POST',
-        url: `${API_V1_BASE_PATH}/payment/payment-123/relay`,
+        url: `${API_V1_BASE_PATH}/payments/payment-123/relay`,
         headers: { 'x-public-key': TEST_PUBLIC_KEY, origin: TEST_ORIGIN },
         payload: validRequest,
       });
@@ -172,7 +178,7 @@ describe('POST /payment/:id/relay', () => {
 
       const response = await app.inject({
         method: 'POST',
-        url: `${API_V1_BASE_PATH}/payment/payment-456/relay`,
+        url: `${API_V1_BASE_PATH}/payments/payment-456/relay`,
         headers: { 'x-public-key': TEST_PUBLIC_KEY, origin: TEST_ORIGIN },
         payload: validRequest,
       });
@@ -193,7 +199,7 @@ describe('POST /payment/:id/relay', () => {
 
       const response = await app.inject({
         method: 'POST',
-        url: `${API_V1_BASE_PATH}/payment/payment-789/relay`,
+        url: `${API_V1_BASE_PATH}/payments/payment-789/relay`,
         headers: { 'x-public-key': TEST_PUBLIC_KEY, origin: TEST_ORIGIN },
         payload: invalidRequest,
       });
@@ -212,7 +218,7 @@ describe('POST /payment/:id/relay', () => {
 
       const response = await app.inject({
         method: 'POST',
-        url: `${API_V1_BASE_PATH}/payment/payment-101/relay`,
+        url: `${API_V1_BASE_PATH}/payments/payment-101/relay`,
         headers: { 'x-public-key': TEST_PUBLIC_KEY, origin: TEST_ORIGIN },
         payload: invalidRequest,
       });
@@ -231,7 +237,7 @@ describe('POST /payment/:id/relay', () => {
 
       const response = await app.inject({
         method: 'POST',
-        url: `${API_V1_BASE_PATH}/payment/payment-202/relay`,
+        url: `${API_V1_BASE_PATH}/payments/payment-202/relay`,
         headers: { 'x-public-key': TEST_PUBLIC_KEY, origin: TEST_ORIGIN },
         payload: incompleteRequest,
       });
@@ -246,7 +252,7 @@ describe('POST /payment/:id/relay', () => {
 
       const response = await app.inject({
         method: 'POST',
-        url: `${API_V1_BASE_PATH}/payment//relay`,
+        url: `${API_V1_BASE_PATH}/payments//relay`,
         headers: { 'x-public-key': TEST_PUBLIC_KEY, origin: TEST_ORIGIN },
         payload: validRequest,
       });
@@ -265,7 +271,7 @@ describe('POST /payment/:id/relay', () => {
 
       const response = await app.inject({
         method: 'POST',
-        url: `${API_V1_BASE_PATH}/payment/payment-404/relay`,
+        url: `${API_V1_BASE_PATH}/payments/payment-404/relay`,
         headers: { 'x-public-key': TEST_PUBLIC_KEY, origin: TEST_ORIGIN },
         payload: validRequest,
       });
@@ -286,7 +292,7 @@ describe('POST /payment/:id/relay', () => {
 
       const response = await app.inject({
         method: 'POST',
-        url: `${API_V1_BASE_PATH}/payment/payment-505/relay`,
+        url: `${API_V1_BASE_PATH}/payments/payment-505/relay`,
         headers: { 'x-public-key': TEST_PUBLIC_KEY, origin: TEST_ORIGIN },
         payload: invalidRequest,
       });
@@ -305,7 +311,7 @@ describe('POST /payment/:id/relay', () => {
 
       await app.inject({
         method: 'POST',
-        url: `${API_V1_BASE_PATH}/payment/payment-606/relay`,
+        url: `${API_V1_BASE_PATH}/payments/payment-606/relay`,
         headers: { 'x-public-key': TEST_PUBLIC_KEY, origin: TEST_ORIGIN },
         payload: validRequest,
       });

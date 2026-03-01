@@ -1,10 +1,13 @@
 import ProductCard from './components/ProductCard';
 import { prisma } from './lib/prisma';
+import type { Product } from './generated/prisma/client';
 
 export const dynamic = 'force-dynamic';
 
 export default async function Home() {
-  const products = await prisma.product.findMany({ orderBy: { id: 'asc' } });
+  const products: Product[] = await prisma.product.findMany({ orderBy: { id: 'asc' } });
+  const widgetUrl = process.env.WIDGET_PUBLIC_URL || 'http://localhost:3005';
+  const publicKey = process.env.SOLO_PAY_PUBLIC_KEY || '';
   return (
     <div className="min-h-screen bg-surface flex flex-col">
       {/* Header */}
@@ -59,7 +62,13 @@ export default async function Home() {
           {/* Product Grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
             {products.map((product, index) => (
-              <ProductCard key={product.id} product={product} index={index} />
+              <ProductCard
+                key={product.id}
+                product={product}
+                index={index}
+                widgetUrl={widgetUrl}
+                publicKey={publicKey}
+              />
             ))}
           </div>
         </div>

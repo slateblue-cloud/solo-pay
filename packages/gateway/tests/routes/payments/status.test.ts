@@ -5,7 +5,9 @@ import { getPaymentStatusRoute } from '../../../src/routes/payments/get-status';
 import { BlockchainService } from '../../../src/services/blockchain.service';
 import { PaymentService } from '../../../src/services/payment.service';
 import { MerchantService } from '../../../src/services/merchant.service';
-import type { WebhookQueueAdapter } from '../../../src/services/webhook-queue.service';
+import { ChainService } from '../../../src/services/chain.service';
+import { TokenService } from '../../../src/services/token.service';
+import { PaymentMethodService } from '../../../src/services/payment-method.service';
 import { PaymentStatus } from '../../../src/schemas/payment.schema';
 import { API_V1_BASE_PATH } from '../../../src/constants';
 
@@ -14,21 +16,33 @@ const TEST_ORIGIN = 'http://localhost:3011';
 
 const publicAuthHeaders = { 'x-public-key': TEST_PUBLIC_KEY, origin: TEST_ORIGIN };
 
-describe('GET /payment/:id', () => {
+describe('GET /payments/:id', () => {
   let app: FastifyInstance;
   let blockchainService: Partial<BlockchainService>;
   let paymentService: Partial<PaymentService>;
   let merchantService: Partial<MerchantService>;
-  let webhookQueue: WebhookQueueAdapter;
+  let chainService: Partial<ChainService>;
+  let tokenService: Partial<TokenService>;
+  let paymentMethodService: Partial<PaymentMethodService>;
 
   const mockPaymentData = {
     id: 1,
     payment_hash: 'payment-123',
     merchant_id: 1,
+    payment_method_id: 1,
     network_id: 31337,
     token_symbol: 'USDC',
+    token_decimals: 6,
     status: 'CREATED',
     amount: '1000000000000000000', // 1 token in wei (18 decimals)
+    order_id: 'order_001',
+    success_url: 'https://example.com/success',
+    fail_url: 'https://example.com/fail',
+    expires_at: new Date('2099-01-01').toISOString(),
+    currency_code: null,
+    fiat_amount: null,
+    token_price: null,
+    tx_hash: null,
   };
 
   const mockPaymentStatus: PaymentStatus = {
@@ -69,22 +83,45 @@ describe('GET /payment/:id', () => {
       updatePayerAddress: vi
         .fn()
         .mockResolvedValue({ ...mockPaymentData, payer_address: '0xpayer' }),
+      getTokenPermitSupported: vi.fn().mockResolvedValue(false),
     };
 
     merchantService = {
       findById: vi.fn().mockResolvedValue({
         id: 1,
+        merchant_key: 'merchant_demo_001',
+        recipient_address: '0x' + '1'.repeat(40),
+        fee_bps: 100,
+        escrow_duration: 300,
         webhook_url: 'https://merchant.example/webhook',
       }),
       findByPublicKey: vi.fn().mockResolvedValue({
         id: 1,
         webhook_url: 'https://merchant.example/webhook',
-        allowed_domains: [TEST_ORIGIN],
       }),
     };
 
-    webhookQueue = {
-      addPaymentConfirmed: vi.fn().mockResolvedValue(undefined),
+    chainService = {
+      findByNetworkId: vi.fn().mockResolvedValue({
+        network_id: 31337,
+        gateway_address: '0x' + '2'.repeat(40),
+        forwarder_address: '0x' + '3'.repeat(40),
+      }),
+    };
+
+    tokenService = {
+      findById: vi.fn().mockResolvedValue({
+        id: 1,
+        address: '0x' + '4'.repeat(40),
+        permit_enabled: false,
+      }),
+    };
+
+    paymentMethodService = {
+      findById: vi.fn().mockResolvedValue({
+        id: 1,
+        token_id: 1,
+      }),
     };
 
     await app.register(
@@ -94,7 +131,9 @@ describe('GET /payment/:id', () => {
           blockchainService as BlockchainService,
           paymentService as PaymentService,
           merchantService as MerchantService,
-          webhookQueue
+          chainService as ChainService,
+          tokenService as TokenService,
+          paymentMethodService as PaymentMethodService
         );
       },
       { prefix: API_V1_BASE_PATH }
@@ -105,7 +144,7 @@ describe('GET /payment/:id', () => {
     it('x-public-key 없이 요청하면 2xx가 아니어야 함', async () => {
       const response = await app.inject({
         method: 'GET',
-        url: `${API_V1_BASE_PATH}/payment/payment-123`,
+        url: `${API_V1_BASE_PATH}/payments/payment-123`,
         headers: { origin: TEST_ORIGIN },
       });
       // Schema validation (400) or middleware (401) must reject the request
@@ -113,15 +152,13 @@ describe('GET /payment/:id', () => {
       expect(response.statusCode).toBeLessThan(500);
     });
 
-    it('허용되지 않은 origin으로 요청하면 403을 반환해야 함', async () => {
+    it('ALLOWED_WIDGET_ORIGIN 미설정 시 origin 무관하게 통과해야 함', async () => {
       const response = await app.inject({
         method: 'GET',
-        url: `${API_V1_BASE_PATH}/payment/payment-123`,
-        headers: { 'x-public-key': TEST_PUBLIC_KEY, origin: 'https://not-allowed.example.com' },
+        url: `${API_V1_BASE_PATH}/payments/payment-123`,
+        headers: { 'x-public-key': TEST_PUBLIC_KEY, origin: 'https://any-origin.example.com' },
       });
-      expect(response.statusCode).toBe(403);
-      const body = JSON.parse(response.body);
-      expect(body.code).toBe('FORBIDDEN');
+      expect(response.statusCode).not.toBe(403);
     });
   });
 
@@ -129,21 +166,20 @@ describe('GET /payment/:id', () => {
     it('유효한 결제 ID로 요청하면 200 상태 코드와 함께 결제 정보를 반환해야 함', async () => {
       const response = await app.inject({
         method: 'GET',
-        url: `${API_V1_BASE_PATH}/payment/payment-123`,
+        url: `${API_V1_BASE_PATH}/payments/payment-123`,
         headers: publicAuthHeaders,
       });
 
       expect(response.statusCode).toBe(200);
       const body = JSON.parse(response.body);
       expect(body.success).toBe(true);
-      expect(body.data.paymentId).toBe(mockPaymentStatus.paymentId);
-      expect(body.data.payment_hash).toBe(mockPaymentData.payment_hash);
+      expect(body.data.paymentId).toBe(mockPaymentData.payment_hash);
     });
 
     it('응답에 결제의 모든 필드가 포함되어야 함', async () => {
       const response = await app.inject({
         method: 'GET',
-        url: `${API_V1_BASE_PATH}/payment/payment-123`,
+        url: `${API_V1_BASE_PATH}/payments/payment-123`,
         headers: publicAuthHeaders,
       });
 
@@ -152,9 +188,8 @@ describe('GET /payment/:id', () => {
       const data = body.data;
 
       expect(data).toHaveProperty('paymentId');
-      expect(data).toHaveProperty('payment_hash');
-      expect(data).toHaveProperty('network_id');
-      expect(data).toHaveProperty('token_symbol');
+      expect(data).toHaveProperty('chainId');
+      expect(data).toHaveProperty('tokenSymbol');
       expect(data).toHaveProperty('status');
     });
   });
@@ -166,7 +201,7 @@ describe('GET /payment/:id', () => {
 
       const response = await app.inject({
         method: 'GET',
-        url: `${API_V1_BASE_PATH}/payment/nonexistent-id`,
+        url: `${API_V1_BASE_PATH}/payments/nonexistent-id`,
         headers: publicAuthHeaders,
       });
 
@@ -178,7 +213,7 @@ describe('GET /payment/:id', () => {
     it('빈 결제 ID일 때 400 상태 코드를 반환해야 함', async () => {
       const response = await app.inject({
         method: 'GET',
-        url: `${API_V1_BASE_PATH}/payment/`,
+        url: `${API_V1_BASE_PATH}/payments/`,
         headers: publicAuthHeaders,
       });
 
@@ -195,7 +230,7 @@ describe('GET /payment/:id', () => {
 
       const response = await app.inject({
         method: 'GET',
-        url: `${API_V1_BASE_PATH}/payment/payment-123`,
+        url: `${API_V1_BASE_PATH}/payments/payment-123`,
         headers: publicAuthHeaders,
       });
 
@@ -218,6 +253,7 @@ describe('GET /payment/:id', () => {
           ...mockPaymentData,
           status: status.toUpperCase(),
         });
+        paymentService.getTokenPermitSupported = vi.fn().mockResolvedValue(false);
         blockchainService.getPaymentStatus = vi.fn().mockResolvedValueOnce({
           ...mockPaymentStatus,
           status,
@@ -225,7 +261,7 @@ describe('GET /payment/:id', () => {
 
         const response = await app.inject({
           method: 'GET',
-          url: `${API_V1_BASE_PATH}/payment/payment-${status}`,
+          url: `${API_V1_BASE_PATH}/payments/payment-${status}`,
           headers: publicAuthHeaders,
         });
 
@@ -237,87 +273,13 @@ describe('GET /payment/:id', () => {
     });
   });
 
-  describe('Webhook enqueue', () => {
-    it('when status syncs to FINALIZED and merchant has webhook_url, enqueues webhook job', async () => {
-      const paymentCreated = {
-        ...mockPaymentData,
-        status: 'CREATED',
-        order_id: 'order-1',
-        webhook_url: null,
-        tx_hash: null,
-        confirmed_at: null,
-      };
-      const updatedPayment = {
-        ...paymentCreated,
-        status: 'FINALIZED',
-        tx_hash: '0xtxhash',
-        confirmed_at: new Date('2024-01-26T12:00:00.000Z'),
-      };
-      const merchantWithWebhook = {
-        id: 1,
-        webhook_url: 'https://merchant.example/webhook',
-      };
-
-      paymentService.findByHash = vi.fn().mockResolvedValue(paymentCreated);
-      paymentService.updateStatusByHash = vi.fn().mockResolvedValue(updatedPayment);
-      paymentService.updatePayerAddress = vi.fn().mockResolvedValue(updatedPayment);
-      blockchainService.getPaymentStatus = vi.fn().mockResolvedValue({
-        ...mockPaymentStatus,
-        status: 'completed',
-        transactionHash: '0xtxhash',
-      });
-      merchantService.findById = vi.fn().mockResolvedValue(merchantWithWebhook);
-
-      const response = await app.inject({
-        method: 'GET',
-        url: `${API_V1_BASE_PATH}/payment/payment-123`,
-        headers: publicAuthHeaders,
-      });
-
-      expect(response.statusCode).toBe(200);
-      expect(webhookQueue.addPaymentConfirmed).toHaveBeenCalledTimes(1);
-      expect(webhookQueue.addPaymentConfirmed).toHaveBeenCalledWith({
-        url: 'https://merchant.example/webhook',
-        body: expect.objectContaining({
-          paymentId: 'payment-123',
-          orderId: 'order-1',
-          status: 'FINALIZED',
-          txHash: '0xtxhash',
-          tokenSymbol: 'USDC',
-          amount: '1000000000000000000',
-        }),
-      });
-    });
-
-    it('when merchant has no webhook_url, does not call addPaymentConfirmed', async () => {
-      const paymentCreated = { ...mockPaymentData, status: 'CREATED' };
-      const updatedPayment = { ...paymentCreated, status: 'FINALIZED' };
-      paymentService.findByHash = vi.fn().mockResolvedValue(paymentCreated);
-      paymentService.updateStatusByHash = vi.fn().mockResolvedValue(updatedPayment);
-      paymentService.updatePayerAddress = vi.fn().mockResolvedValue(updatedPayment);
-      blockchainService.getPaymentStatus = vi.fn().mockResolvedValue({
-        ...mockPaymentStatus,
-        status: 'completed',
-      });
-      merchantService.findById = vi.fn().mockResolvedValue({ id: 1, webhook_url: null });
-
-      await app.inject({
-        method: 'GET',
-        url: `${API_V1_BASE_PATH}/payment/payment-123`,
-        headers: publicAuthHeaders,
-      });
-
-      expect(webhookQueue.addPaymentConfirmed).not.toHaveBeenCalled();
-    });
-  });
-
   describe('성능 요구사항', () => {
     it('응답 시간이 500ms 이내여야 함', async () => {
       const startTime = performance.now();
 
       await app.inject({
         method: 'GET',
-        url: `${API_V1_BASE_PATH}/payment/payment-123`,
+        url: `${API_V1_BASE_PATH}/payments/payment-123`,
         headers: publicAuthHeaders,
       });
 

@@ -1,5 +1,5 @@
 # SoloPay Monorepo - Multi-stage Dockerfile (pnpm deploy pattern)
-# Targets: hardhat, contracts, gateway, demo, simple-relayer, sample-merchant, guide, price-service
+# Targets: hardhat, contracts, gateway, demo, simple-relayer, sample-merchant, guide, price-service, widget
 
 # === Dependencies Stage (tools + deps + contracts) ===
 FROM node:20-alpine AS deps
@@ -19,7 +19,11 @@ COPY packages/guide/package.json ./packages/guide/
 COPY packages/demo/package.json ./packages/demo/
 COPY packages/sample-merchant/package.json ./packages/sample-merchant/
 COPY packages/price-service/package.json ./packages/price-service/
+COPY packages/widget/package.json ./packages/widget/
+COPY packages/widget-js/package.json ./packages/widget-js/
+COPY packages/widget-react/package.json ./packages/widget-react/
 COPY packages/database/package.json ./packages/database/
+COPY packages/stress-test/package.json ./packages/stress-test/
 
 RUN pnpm install --frozen-lockfile
 
@@ -41,6 +45,7 @@ COPY packages/faucet-manager ./packages/faucet-manager
 
 # Sample merchant has its own independent schema (separate database)
 COPY packages/sample-merchant/prisma ./packages/sample-merchant/prisma
+COPY packages/sample-merchant/prisma.config.ts ./packages/sample-merchant/prisma.config.ts
 RUN cd /app/packages/sample-merchant && pnpm exec prisma generate
 
 # Helper script for copying .prisma/client to deploy targets
@@ -61,15 +66,26 @@ FROM deps AS contracts
 WORKDIR /app/packages/contracts
 CMD ["npx", "hardhat", "run", "scripts/check-and-deploy.ts", "--network", "localhost"]
 
-# === Database Migration ===
-FROM deps AS db-migrate
+# === Database Sync Builder ===
+FROM deps AS database-sync-builder
+
+WORKDIR /app
+RUN pnpm --filter @solo-pay/database deploy --legacy /deploy/database
+RUN cp -r /app/packages/database/dist /deploy/database/dist
+RUN cp -r /app/packages/database/prisma /deploy/database/prisma
+RUN cp -r /app/packages/database/prisma.config.ts /deploy/database/prisma.config.ts
+RUN cp -r /app/packages/database/src/generated /deploy/database/src/generated
+
+# === Database Migration (lightweight runtime) ===
+FROM node:20-alpine AS database-sync
 
 RUN apk add --no-cache curl
+WORKDIR /app
+COPY --from=database-sync-builder /deploy/database .
 
-WORKDIR /app/packages/database
 ENV NODE_ENV=production
 
-CMD ["sh", "-c", "npx prisma db push --accept-data-loss"]
+CMD ["sh", "-c", "npx prisma db push"]
 
 # === Webhook Manager Builder + Deploy ===
 FROM deps AS webhook-manager-builder
@@ -79,6 +95,7 @@ RUN pnpm build
 WORKDIR /app
 RUN pnpm --filter @solo-pay/webhook-manager --prod deploy --legacy /deploy/webhook-manager
 RUN cp -r /app/packages/webhook-manager/dist /deploy/webhook-manager/dist
+RUN cp -r /app/packages/database/dist /deploy/webhook-manager/node_modules/@solo-pay/database/dist
 
 # === Webhook Manager Runtime ===
 FROM node:20-alpine AS webhook-manager
@@ -235,21 +252,30 @@ CMD ["node_modules/.bin/next", "start"]
 FROM deps AS sample-merchant-builder
 
 WORKDIR /app
+# Build widget-js first, then widget-react (sample-merchant imports both)
+COPY packages/widget-js ./packages/widget-js
+RUN cd /app/packages/widget-js && pnpm build
+
+COPY packages/widget-react ./packages/widget-react
+RUN cd /app/packages/widget-react && pnpm build
+
 COPY eslint.config.ts ./
 COPY packages/sample-merchant ./packages/sample-merchant
 RUN cd /app/packages/sample-merchant && pnpm exec prisma generate
-ARG NEXT_PUBLIC_SOLO_PAY_PUBLIC_KEY
-ARG NEXT_PUBLIC_WIDGET_URL
-ENV NEXT_PUBLIC_SOLO_PAY_PUBLIC_KEY=${NEXT_PUBLIC_SOLO_PAY_PUBLIC_KEY}
-ENV NEXT_PUBLIC_WIDGET_URL=${NEXT_PUBLIC_WIDGET_URL}
 WORKDIR /app/packages/sample-merchant
 RUN pnpm build
 
-# === Sample Merchant DB Init (db push + seed) ===
-# Runs from full build stage (has all deps including prisma + generated client)
-FROM sample-merchant-builder AS sample-merchant-init
-WORKDIR /app/packages/sample-merchant
-CMD ["sh", "-c", "pnpm exec prisma db push --accept-data-loss && pnpm exec tsx prisma/seed.ts"]
+# === Sample Merchant DB Init (lightweight runtime) ===
+FROM node:20-alpine AS sample-merchant-init
+
+WORKDIR /app
+COPY --from=deps /app/packages/sample-merchant/prisma ./prisma
+COPY --from=deps /app/packages/sample-merchant/prisma.config.ts ./prisma.config.ts
+COPY --from=deps /app/packages/sample-merchant/app/generated ./app/generated
+RUN npm install prisma@7.4.0 @prisma/client@7.4.0 @prisma/adapter-mariadb@7.4.0 tsx@4
+
+ENV NODE_ENV=production
+CMD ["sh", "-c", "npx prisma db push && npx tsx prisma/seed.ts"]
 
 # === Sample Merchant Runtime ===
 # Uses Next.js standalone output with outputFileTracingRoot set to monorepo root.
@@ -275,6 +301,34 @@ EXPOSE 3004
 HEALTHCHECK --interval=30s --timeout=3s --start-period=15s --retries=3 \
   CMD curl -sf http://localhost:3004 || exit 1
 CMD ["node", "server.js"]
+
+# === Widget Builder + Deploy ===
+FROM deps AS widget-builder
+
+WORKDIR /app
+COPY eslint.config.ts ./
+COPY packages/widget ./packages/widget
+WORKDIR /app/packages/widget
+RUN pnpm build
+
+WORKDIR /app
+RUN pnpm --filter @solo-pay/widget --prod deploy --legacy /deploy/widget
+RUN cp -r /app/packages/widget/.next /deploy/widget/.next
+RUN cp -r /app/packages/widget/next.config.js /deploy/widget/next.config.js
+RUN cp -r /app/packages/widget/public /deploy/widget/public 2>/dev/null || true
+
+# === Widget Runtime ===
+FROM node:20-alpine AS widget
+
+RUN apk add --no-cache curl
+WORKDIR /app
+COPY --from=widget-builder /deploy/widget .
+
+ENV NODE_ENV=production
+EXPOSE 3005
+HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
+  CMD curl -sf http://localhost:3005 || exit 1
+CMD ["node_modules/.bin/next", "start", "-p", "3005"]
 
 # === Guide Builder ===
 FROM deps AS guide-builder

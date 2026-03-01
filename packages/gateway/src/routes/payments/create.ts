@@ -11,6 +11,8 @@ import { TokenService } from '../../services/token.service';
 import { PaymentMethodService } from '../../services/payment-method.service';
 import { PaymentService } from '../../services/payment.service';
 import { ServerSigningService } from '../../services/signature-server.service';
+import { CurrencyService } from '../../services/currency.service';
+import { PriceClient } from '../../services/price-client.service';
 import { createPublicAuthMiddleware } from '../../middleware/public-auth.middleware';
 import { ErrorResponseSchema } from '../../docs/schemas';
 
@@ -20,7 +22,7 @@ export interface CreatePaymentBody {
   tokenAddress: string;
   successUrl: string;
   failUrl: string;
-  webhookUrl?: string;
+  currency?: string;
 }
 
 export async function createPaymentRoute(
@@ -31,25 +33,29 @@ export async function createPaymentRoute(
   tokenService: TokenService,
   paymentMethodService: PaymentMethodService,
   paymentService: PaymentService,
-  signingServices?: Map<number, ServerSigningService>
+  signingServices?: Map<number, ServerSigningService>,
+  currencyService?: CurrencyService,
+  priceClient?: PriceClient
 ) {
   const publicAuth = createPublicAuthMiddleware(merchantService);
 
   app.post<{ Body: CreatePaymentBody }>(
-    '/payment',
+    '/payments',
     {
       schema: {
         operationId: 'createPayment',
         tags: ['Payment'],
         summary: 'Create payment (public key + Origin)',
         description: `
-Creates a payment. Single endpoint for both widget and backend. Uses Public Key auth and Origin validation.
+Creates a payment. Single endpoint for both widget and backend. Uses Public Key auth.
 
-**Headers (required):** \`x-public-key\` = public key (pk_live_xxx or pk_test_xxx). \`Origin\` = request origin; must **exactly** match one of merchant \`allowed_domains\` (no trailing slash). In a browser the browser sets Origin automatically; in server-to-server or Swagger/curl set it manually to one of your allowed domains.
+**Headers (required):** \`x-public-key\` = public key (pk_live_xxx or pk_test_xxx). \`Origin\` is verified against ALLOWED_WIDGET_ORIGIN when configured.
 
-**Flow:** Public Key + Origin -> merchant -> token from request body (must be whitelisted and enabled for merchant) -> amount to wei -> payment_hash -> Payment record -> server signature.
+**Flow:** Public Key -> merchant -> token from request body (must be whitelisted and enabled for merchant) -> amount to wei -> payment_hash -> Payment record -> server signature.
 
-**Response:** paymentId, serverSignature, chainId, tokenAddress, gatewayAddress, amount (wei), tokenDecimals, tokenSymbol, successUrl, failUrl, expiresAt, recipientAddress, merchantId, feeBps, forwarderAddress.
+**Currency conversion:** When \`currency\` is provided (e.g., USD, KRW), \`amount\` is treated as fiat amount and converted to token amount using price-service. Without \`currency\`, \`amount\` is the token amount (existing behavior).
+
+**Response:** paymentId, serverSignature, chainId, tokenAddress, gatewayAddress, amount (wei), tokenDecimals, tokenSymbol, successUrl, failUrl, expiresAt, recipientAddress, merchantId, feeBps, forwarderAddress, currency, fiatAmount, tokenPrice.
         `,
         headers: {
           type: 'object',
@@ -61,7 +67,7 @@ Creates a payment. Single endpoint for both widget and backend. Uses Public Key 
             origin: {
               type: 'string',
               description:
-                'Request origin. Must exactly match one of merchant allowed_domains (e.g. http://localhost:3000). In browser this is set automatically; in server-to-server/Swagger set it to the same value as one of your allowed_domains.',
+                'Request origin. Verified against ALLOWED_WIDGET_ORIGIN when configured. In browser this is set automatically.',
             },
           },
         },
@@ -70,7 +76,11 @@ Creates a payment. Single endpoint for both widget and backend. Uses Public Key 
           required: ['orderId', 'amount', 'tokenAddress', 'successUrl', 'failUrl'],
           properties: {
             orderId: { type: 'string', description: 'Merchant order ID' },
-            amount: { type: 'number', description: 'Payment amount' },
+            amount: {
+              type: 'number',
+              description:
+                'Payment amount. Token amount when currency is omitted; fiat amount when currency is provided.',
+            },
             tokenAddress: {
               type: 'string',
               pattern: '^0x[a-fA-F0-9]{40}$',
@@ -81,10 +91,10 @@ Creates a payment. Single endpoint for both widget and backend. Uses Public Key 
             },
             successUrl: { type: 'string', format: 'uri', description: 'Redirect URL on success' },
             failUrl: { type: 'string', format: 'uri', description: 'Redirect URL on failure' },
-            webhookUrl: {
+            currency: {
               type: 'string',
-              format: 'uri',
-              description: 'Optional per-payment webhook',
+              description:
+                'Fiat currency code (e.g., USD, KRW). When provided, amount is treated as fiat amount.',
             },
           },
         },
@@ -118,9 +128,35 @@ Creates a payment. Single endpoint for both widget and backend. Uses Public Key 
               },
               merchantId: { type: 'string', description: 'Merchant ID (bytes32)' },
               feeBps: { type: 'integer', description: 'Fee in basis points (100 = 1%)' },
+              deadline: {
+                type: 'string',
+                description: 'Deadline timestamp for server signature expiration',
+              },
+              escrowDuration: {
+                type: 'string',
+                description: 'Escrow duration in seconds (passed to contract pay())',
+              },
               forwarderAddress: {
                 type: 'string',
                 description: 'ERC2771Forwarder address for gasless payments',
+              },
+              tokenPermitSupported: {
+                type: 'boolean',
+                description: 'Whether the token supports EIP-2612 permit (gasless approval)',
+              },
+              currency: {
+                type: 'string',
+                description:
+                  'Fiat currency code used for conversion (only when currency was provided)',
+              },
+              fiatAmount: {
+                type: 'number',
+                description:
+                  'Original fiat amount before conversion (only when currency was provided)',
+              },
+              tokenPrice: {
+                type: 'number',
+                description: 'Token price at creation time (only when currency was provided)',
               },
             },
           },
@@ -152,6 +188,7 @@ Creates a payment. Single endpoint for both widget and backend. Uses Public Key 
               chain_id: number;
               recipient_address: string | null;
               fee_bps: number;
+              escrow_duration: number | null;
             };
           }
         ).merchant;
@@ -218,23 +255,40 @@ Creates a payment. Single endpoint for both widget and backend. Uses Public Key 
           });
         }
 
-        let tokenDecimals = token.decimals;
-        let tokenSymbol = token.symbol;
-        try {
-          tokenDecimals = await blockchainService.getDecimals(chainId, tokenAddress);
-        } catch (err) {
-          app.log.warn({ err, chainId, tokenAddress }, 'getDecimals failed, using DB value');
-        }
-        try {
-          tokenSymbol = await blockchainService.getTokenSymbolOnChain(chainId, tokenAddress);
-        } catch (err) {
-          app.log.warn(
-            { err, chainId, tokenAddress },
-            'getTokenSymbolOnChain failed, using DB value'
-          );
+        const tokenDecimals = token.decimals;
+        const tokenSymbol = token.symbol;
+
+        // Currency conversion: when currency is provided, convert fiat amount to token amount
+        let tokenAmount = validated.amount;
+        let currencyCode: string | undefined;
+        let fiatAmount: number | undefined;
+        let tokenPrice: number | undefined;
+
+        if (validated.currency) {
+          if (!currencyService || !priceClient) {
+            return reply.code(500).send({
+              code: 'PRICE_SERVICE_NOT_CONFIGURED',
+              message: 'Price service is not configured',
+            });
+          }
+
+          const currency = await currencyService.findByCode(validated.currency);
+          if (!currency) {
+            return reply.code(400).send({
+              code: 'INVALID_CURRENCY',
+              message: `Unsupported currency: ${validated.currency}`,
+            });
+          }
+
+          const priceData = await priceClient.getTokenPrice(chainId, tokenAddress, currency.code);
+
+          currencyCode = currency.code;
+          fiatAmount = validated.amount;
+          tokenPrice = priceData.price;
+          tokenAmount = fiatAmount / tokenPrice;
         }
 
-        const amountInWei = parseUnits(validated.amount.toString(), tokenDecimals);
+        const amountInWei = parseUnits(tokenAmount.toString(), tokenDecimals);
         const contracts = blockchainService.getChainContracts(chainId);
         const random = randomBytes(32);
         const paymentHash = keccak256(
@@ -250,7 +304,20 @@ Creates a payment. Single endpoint for both widget and backend. Uses Public Key 
           });
         }
 
+        // Check for duplicate orderId BEFORE generating signature (avoid wasting resources)
+        const existingPayment = await paymentService.findByOrderId(validated.orderId, merchant.id);
+        if (existingPayment) {
+          return reply.code(409).send({
+            code: 'DUPLICATE_ORDER',
+            message: 'Order ID already used for this merchant.',
+          });
+        }
+
         // Generate server signature if signing service is available for this chain
+        const deadlineTtl = Number(process.env.PAYMENT_DEADLINE_SECONDS) || 3600;
+        const deadline = BigInt(Math.floor(Date.now() / 1000) + deadlineTtl);
+        const defaultEscrowDuration = Number(process.env.DEFAULT_ESCROW_DURATION) || 300;
+        const escrowDuration = BigInt(merchant.escrow_duration ?? defaultEscrowDuration);
         let serverSignature: Hex | undefined;
         const signingService = signingServices?.get(chainId);
         if (signingService) {
@@ -261,7 +328,9 @@ Creates a payment. Single endpoint for both widget and backend. Uses Public Key 
               amountInWei,
               recipientAddress,
               merchantId,
-              merchant.fee_bps
+              merchant.fee_bps,
+              deadline,
+              escrowDuration
             );
           } catch (err) {
             app.log.error({ err }, 'Failed to generate server signature');
@@ -272,15 +341,8 @@ Creates a payment. Single endpoint for both widget and backend. Uses Public Key 
           }
         }
 
-        const existingPayment = await paymentService.findByOrderId(validated.orderId, merchant.id);
-        if (existingPayment) {
-          return reply.code(409).send({
-            code: 'DUPLICATE_ORDER',
-            message: 'Order ID already used for this merchant.',
-          });
-        }
-
         const expiresAt = new Date(Date.now() + 30 * 60 * 1000);
+        const escrowDeadline = new Date(Date.now() + Number(escrowDuration) * 1000);
         await paymentService.create({
           payment_hash: paymentHash,
           merchant_id: merchant.id,
@@ -293,8 +355,11 @@ Creates a payment. Single endpoint for both widget and backend. Uses Public Key 
           order_id: validated.orderId,
           success_url: validated.successUrl,
           fail_url: validated.failUrl,
-          webhook_url: validated.webhookUrl,
           origin,
+          currency_code: currencyCode,
+          fiat_amount: fiatAmount !== undefined ? new Decimal(fiatAmount.toString()) : undefined,
+          token_price: tokenPrice !== undefined ? new Decimal(tokenPrice.toString()) : undefined,
+          escrow_deadline: escrowDeadline,
         });
 
         return reply.code(201).send({
@@ -314,7 +379,13 @@ Creates a payment. Single endpoint for both widget and backend. Uses Public Key 
           recipientAddress,
           merchantId,
           feeBps: merchant.fee_bps,
+          deadline: deadline.toString(),
+          escrowDuration: escrowDuration.toString(),
           forwarderAddress: chain.forwarder_address ?? undefined,
+          tokenPermitSupported: token.permit_enabled ?? false,
+          currency: currencyCode,
+          fiatAmount,
+          tokenPrice,
         });
       } catch (err) {
         if (err instanceof ZodError) {
@@ -322,6 +393,12 @@ Creates a payment. Single endpoint for both widget and backend. Uses Public Key 
             code: 'VALIDATION_ERROR',
             message: 'Input validation failed',
             details: err.errors,
+          });
+        }
+        if (err && typeof err === 'object' && 'code' in err && err.code === 'P2002') {
+          return reply.code(409).send({
+            code: 'DUPLICATE_ORDER',
+            message: 'A payment with this orderId already exists',
           });
         }
         const message = err instanceof Error ? err.message : 'Failed to create payment';

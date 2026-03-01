@@ -122,7 +122,7 @@ describe('SoloPayClient', () => {
       expect(result.orderId).toBe('order-001');
       expect(result.serverSignature).toBeDefined();
       expect(mockFetch).toHaveBeenCalledWith(
-        'http://localhost:3001/api/v1/payment',
+        'http://localhost:3001/api/v1/payments',
         expect.objectContaining({
           method: 'POST',
           headers: expect.objectContaining({
@@ -222,7 +222,7 @@ describe('SoloPayClient', () => {
       expect(result.data.paymentId).toBe('pay-123');
       expect(result.data.status).toBe('completed');
       expect(mockFetch).toHaveBeenCalledWith(
-        'http://localhost:3001/api/v1/payment/pay-123',
+        'http://localhost:3001/api/v1/payments/pay-123',
         expect.objectContaining({
           method: 'GET',
         })
@@ -310,7 +310,7 @@ describe('SoloPayClient', () => {
       expect(result.success).toBe(true);
       expect(result.status).toBe('submitted');
       expect(mockFetch).toHaveBeenCalledWith(
-        'http://localhost:3001/api/v1/payment/pay-123/relay',
+        'http://localhost:3001/api/v1/payments/pay-123/relay',
         expect.objectContaining({
           method: 'POST',
         })
@@ -435,7 +435,7 @@ describe('SoloPayClient', () => {
       expect(result.success).toBe(true);
       expect(result.data.status).toBe('FINALIZED');
       expect(mockFetch).toHaveBeenCalledWith(
-        'http://localhost:3001/api/v1/payment/pay-123/relay',
+        'http://localhost:3001/api/v1/payments/pay-123/relay',
         expect.objectContaining({ method: 'GET' })
       );
     });
@@ -463,6 +463,122 @@ describe('SoloPayClient', () => {
       );
     });
 
+    it('should get payment methods', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({
+          success: true,
+          payment_methods: [
+            {
+              id: 1,
+              is_enabled: true,
+              created_at: '2025-01-01T00:00:00Z',
+              updated_at: '2025-01-01T00:00:00Z',
+              token: { id: 1, address: '0xtoken', symbol: 'USDC', decimals: 6 },
+              chain: { id: 1, network_id: 31337, name: 'Hardhat', is_testnet: true },
+            },
+          ],
+        }),
+      });
+
+      const result = await client.getPaymentMethods();
+      expect(result.success).toBe(true);
+      expect(result.payment_methods).toHaveLength(1);
+      expect(mockFetch).toHaveBeenCalledWith(
+        'http://localhost:3001/api/v1/merchant/payment-methods',
+        expect.objectContaining({
+          method: 'GET',
+          headers: expect.objectContaining({ 'x-api-key': 'test-api-key' }),
+        })
+      );
+    });
+
+    it('should create payment method', async () => {
+      const paymentMethod = {
+        id: 2,
+        is_enabled: true,
+        created_at: '2025-01-01T00:00:00Z',
+        updated_at: '2025-01-01T00:00:00Z',
+        token: { id: 1, address: '0xtoken', symbol: 'USDC', decimals: 6 },
+        chain: { id: 1, network_id: 31337, name: 'Hardhat', is_testnet: true },
+      };
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        status: 201,
+        json: async () => ({
+          success: true,
+          payment_method: paymentMethod,
+        }),
+      });
+
+      const result = await client.createPaymentMethod({
+        tokenAddress: '0xtoken',
+        is_enabled: true,
+      });
+      expect(result.success).toBe(true);
+      expect(result.payment_method.id).toBe(2);
+      expect(mockFetch).toHaveBeenCalledWith(
+        'http://localhost:3001/api/v1/merchant/payment-methods',
+        expect.objectContaining({
+          method: 'POST',
+          headers: expect.objectContaining({ 'x-api-key': 'test-api-key' }),
+        })
+      );
+    });
+
+    it('should update payment method', async () => {
+      const paymentMethod = {
+        id: 1,
+        is_enabled: false,
+        created_at: '2025-01-01T00:00:00Z',
+        updated_at: '2025-01-02T00:00:00Z',
+        token: { id: 1, address: '0xtoken', symbol: 'USDC', decimals: 6 },
+        chain: { id: 1, network_id: 31337, name: 'Hardhat', is_testnet: true },
+      };
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({
+          success: true,
+          payment_method: paymentMethod,
+        }),
+      });
+
+      const result = await client.updatePaymentMethod(1, { is_enabled: false });
+      expect(result.success).toBe(true);
+      expect(result.payment_method.is_enabled).toBe(false);
+      expect(mockFetch).toHaveBeenCalledWith(
+        'http://localhost:3001/api/v1/merchant/payment-methods/1',
+        expect.objectContaining({
+          method: 'PATCH',
+          headers: expect.objectContaining({ 'x-api-key': 'test-api-key' }),
+        })
+      );
+    });
+
+    it('should delete payment method', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({
+          success: true,
+          message: 'Payment method deleted',
+        }),
+      });
+
+      const result = await client.deletePaymentMethod(1);
+      expect(result.success).toBe(true);
+      expect(result.message).toBe('Payment method deleted');
+      expect(mockFetch).toHaveBeenCalledWith(
+        'http://localhost:3001/api/v1/merchant/payment-methods/1',
+        expect.objectContaining({
+          method: 'DELETE',
+          headers: expect.objectContaining({ 'x-api-key': 'test-api-key' }),
+        })
+      );
+    });
+
     it('should get merchant payment by orderId', async () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
@@ -482,8 +598,36 @@ describe('SoloPayClient', () => {
       const result = await client.getMerchantPaymentByOrderId('order-1');
       expect(result.status).toBe('FINALIZED');
       expect(mockFetch).toHaveBeenCalledWith(
-        'http://localhost:3001/api/v1/merchant/payment?orderId=order-1',
+        'http://localhost:3001/api/v1/merchant/payments?orderId=order-1',
         expect.objectContaining({ method: 'GET' })
+      );
+    });
+
+    it('should get merchant payment by id', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({
+          paymentId: '0xpay123',
+          orderId: 'order-5',
+          status: 'PENDING',
+          amount: '500',
+          tokenSymbol: 'USDC',
+          tokenDecimals: 6,
+          createdAt: '2025-01-01T00:00:00Z',
+          expiresAt: '2025-01-01T00:30:00Z',
+        }),
+      });
+
+      const result = await client.getMerchantPaymentById('0xpay123');
+      expect(result.paymentId).toBe('0xpay123');
+      expect(result.status).toBe('PENDING');
+      expect(mockFetch).toHaveBeenCalledWith(
+        'http://localhost:3001/api/v1/merchant/payments/0xpay123',
+        expect.objectContaining({
+          method: 'GET',
+          headers: expect.objectContaining({ 'x-api-key': 'test-api-key' }),
+        })
       );
     });
   });
@@ -512,8 +656,46 @@ describe('SoloPayClient', () => {
       const result = await client.createRefund({ paymentId: '0xpayment' });
       expect(result.success).toBe(true);
       expect(mockFetch).toHaveBeenCalledWith(
-        'http://localhost:3001/api/v1/refund',
+        'http://localhost:3001/api/v1/refunds',
         expect.objectContaining({ method: 'POST' })
+      );
+    });
+
+    it('should get refund status', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({
+          success: true,
+          data: {
+            refundId: '0xrefund123',
+            paymentId: '0xpayment456',
+            amount: '500',
+            tokenAddress: '0xtoken',
+            tokenSymbol: 'USDC',
+            tokenDecimals: 6,
+            payerAddress: '0xpayer',
+            status: 'CONFIRMED',
+            reason: 'Customer request',
+            txHash: '0xtx789',
+            errorMessage: null,
+            createdAt: '2025-01-01T00:00:00Z',
+            submittedAt: '2025-01-01T00:01:00Z',
+            confirmedAt: '2025-01-01T00:02:00Z',
+          },
+        }),
+      });
+
+      const result = await client.getRefundStatus('0xrefund123');
+      expect(result.success).toBe(true);
+      expect(result.data.refundId).toBe('0xrefund123');
+      expect(result.data.status).toBe('CONFIRMED');
+      expect(mockFetch).toHaveBeenCalledWith(
+        'http://localhost:3001/api/v1/refunds/0xrefund123',
+        expect.objectContaining({
+          method: 'GET',
+          headers: expect.objectContaining({ 'x-api-key': 'test-api-key' }),
+        })
       );
     });
 
@@ -530,7 +712,46 @@ describe('SoloPayClient', () => {
       const result = await client.getRefundList({ page: 1, limit: 10 });
       expect(result.success).toBe(true);
       expect(mockFetch).toHaveBeenCalledWith(
-        'http://localhost:3001/api/v1/refund?page=1&limit=10',
+        'http://localhost:3001/api/v1/refunds?page=1&limit=10',
+        expect.objectContaining({ method: 'GET' })
+      );
+    });
+
+    it('should get refund list with status and paymentId filters', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({
+          success: true,
+          data: { items: [], pagination: { page: 1, limit: 20, total: 0, totalPages: 0 } },
+        }),
+      });
+
+      const result = await client.getRefundList({
+        status: 'PENDING',
+        paymentId: '0xpay1',
+      });
+      expect(result.success).toBe(true);
+      expect(mockFetch).toHaveBeenCalledWith(
+        'http://localhost:3001/api/v1/refunds?status=PENDING&paymentId=0xpay1',
+        expect.objectContaining({ method: 'GET' })
+      );
+    });
+
+    it('should get refund list without params', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({
+          success: true,
+          data: { items: [], pagination: { page: 1, limit: 20, total: 0, totalPages: 0 } },
+        }),
+      });
+
+      const result = await client.getRefundList();
+      expect(result.success).toBe(true);
+      expect(mockFetch).toHaveBeenCalledWith(
+        'http://localhost:3001/api/v1/refunds',
         expect.objectContaining({ method: 'GET' })
       );
     });
@@ -609,6 +830,49 @@ describe('SoloPayClient', () => {
           }),
         })
       );
+    });
+  });
+
+  describe('createPayment without publicKey', () => {
+    it('should throw error when publicKey is missing', async () => {
+      const clientNoPublicKey = new SoloPayClient({
+        environment: 'development',
+        apiKey: 'test-api-key',
+      });
+      const params: CreatePaymentParams = {
+        orderId: 'order-1',
+        amount: 100,
+        tokenAddress: '0x1234567890123456789012345678901234567890',
+        successUrl: 'https://example.com/success',
+        failUrl: 'https://example.com/fail',
+      };
+
+      await expect(clientNoPublicKey.createPayment(params)).rejects.toThrow(
+        'requestWithPublicKey requires publicKey in SoloPayConfig'
+      );
+    });
+
+    it('should succeed when origin is not provided (origin is optional)', async () => {
+      const clientNoOrigin = new SoloPayClient({
+        environment: 'development',
+        apiKey: 'test-api-key',
+        publicKey: 'pk_test_demo',
+      });
+      const params: CreatePaymentParams = {
+        orderId: 'order-1',
+        amount: 100,
+        tokenAddress: '0x1234567890123456789012345678901234567890',
+        successUrl: 'https://example.com/success',
+        failUrl: 'https://example.com/fail',
+      };
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({ success: true, paymentId: '0x123' }),
+      });
+      const result = await clientNoOrigin.createPayment(params);
+      expect(result.paymentId).toBe('0x123');
     });
   });
 
@@ -727,7 +991,7 @@ describe('SoloPayClient', () => {
       await client.getPaymentStatus('pay-456');
 
       const callUrl = mockFetch.mock.calls[0][0];
-      expect(callUrl).toContain('/payment/pay-456');
+      expect(callUrl).toContain('/payments/pay-456');
     });
   });
 });

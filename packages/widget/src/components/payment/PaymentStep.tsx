@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { useSwitchChain } from 'wagmi';
 import TokenApproval from './TokenApproval';
 import PaymentConfirm from './PaymentConfirm';
 import PaymentProcessing from './PaymentProcessing';
@@ -7,7 +8,10 @@ import { usePaymentApi } from '../../hooks/usePaymentApi';
 import { useWallet } from '../../hooks/useWallet';
 import { useToken } from '../../hooks/useToken';
 import { useGaslessPayment } from '../../hooks/useGaslessPayment';
-import { ConnectButton } from '../ConnectButton';
+import { ConnectWalletButton } from '../ConnectWalletButton';
+import LoadingSpinner from '../common/LoadingSpinner';
+import { useLocale } from '../../context/LocaleContext';
+import type { TranslationKeys } from '../../lib/i18n';
 import type { PaymentStepType, WidgetUrlParams } from '../../types/index';
 import { formatUnits } from 'viem';
 
@@ -51,62 +55,64 @@ function formatAddress(addr: string): string {
 }
 
 /**
- * Parse blockchain error message to user-friendly text
+ * Parse blockchain error message to user-friendly text (locale-aware via t)
  */
-function parseErrorMessage(error: string | undefined): string | undefined {
+function parseErrorMessage(
+  error: string | undefined,
+  t: (key: TranslationKeys, params?: Record<string, string | number>) => string
+): string | undefined {
   if (!error) return undefined;
 
-  // User rejected transaction
   if (error.includes('User rejected') || error.includes('User denied')) {
-    return 'Transaction was cancelled by user';
+    return t('error.transactionCancelled');
   }
-
-  // Insufficient funds for gas
   if (error.includes('insufficient funds')) {
-    return 'Insufficient funds for gas fee';
+    return t('error.insufficientFundsGas');
   }
-
-  // Gas fee exceeds cap (usually wrong network)
   if (error.includes('exceeds the configured cap')) {
-    return 'Transaction failed. Please check you are on the correct network';
+    return t('error.wrongNetwork');
   }
-
-  // Contract revert
   if (error.includes('reverted') || error.includes('revert')) {
-    // Try to extract revert reason
     const match = error.match(/reason:\s*([^,\n]+)/i);
     if (match) return match[1].trim();
-    return 'Transaction failed. Please try again';
+    return t('error.transactionFailedRetry');
   }
-
-  // Network error
   if (error.includes('network') || error.includes('connection')) {
-    return 'Network error. Please check your connection';
+    return t('error.networkError');
   }
-
-  // Default: truncate long messages
   if (error.length > 100) {
     return error.substring(0, 100) + '...';
   }
-
   return error;
 }
 
 export default function PaymentStep({ urlParams }: PaymentStepProps) {
+  const { t, locale } = useLocale();
   const [currentStep, setCurrentStep] = useState<PaymentStepType>('wallet-connect');
   const [completionDate, setCompletionDate] = useState<string>('');
 
   // Track if payment was initiated in this session (prevents stale txHash from triggering success)
   const paymentInitiated = useRef(false);
 
+  /** When true: show wallet picker, do not auto-advance, and disconnect whenever extension reconnects */
+  const [lockReconnect, setLockReconnect] = useState(false);
+
   // Error for invalid payment configuration
   const [configError, setConfigError] = useState<string | null>(null);
 
   // Wallet connection state from wagmi
-  const { address, isConnected, disconnect } = useWallet();
+  const { address, isConnected, chain, disconnect } = useWallet();
+  const { switchChainAsync } = useSwitchChain();
+  const [isSwitchingChain, setIsSwitchingChain] = useState(false);
 
   // API hook for payment operations
-  const { payment: paymentDetails, isLoading, error: apiError, createPayment } = usePaymentApi();
+  const {
+    payment: paymentDetails,
+    isLoading,
+    error: apiError,
+    createPayment,
+    fetchPayment,
+  } = usePaymentApi();
 
   // Token operations (balance, allowance, approve)
   const {
@@ -135,25 +141,67 @@ export default function PaymentStep({ urlParams }: PaymentStepProps) {
     error: gaslessError,
     isGaslessSupported,
     isPermitSupported,
+    isCheckingPermit,
   } = useGaslessPayment({ paymentDetails, publicKey: urlParams?.pk });
+
+  /** Prevents duplicate switchChainAsync (wallet errors on "request already pending") */
+  const switchInProgressRef = useRef(false);
 
   // Prevent double API call in React Strict Mode
   const isInitialized = useRef(false);
 
-  // Create payment on mount when urlParams is available
+  const [buttonConnectClicked, setButtonConnectClicked] = useState(false);
+
+  // Determine mode: resume (paymentId present) vs creation (all params present)
+  const isResumeMode = !!urlParams?.paymentId;
+
+  // Create payment on mount (creation mode) or fetch existing payment (resume mode)
+  // Skip when walletOnly — no gateway API
   useEffect(() => {
-    if (urlParams && !isInitialized.current) {
-      isInitialized.current = true;
-      createPayment(urlParams);
+    if (!urlParams || urlParams.walletOnly || isInitialized.current) return;
+    isInitialized.current = true;
+
+    if (isResumeMode) {
+      // Resume mode: fetch existing payment details from server
+      fetchPayment(urlParams.paymentId!, urlParams.pk);
+    } else {
+      // Creation mode: create new payment, then replace URL
+      createPayment(urlParams).then((result) => {
+        if (result && typeof window !== 'undefined') {
+          const url = new URL(window.location.href);
+          const lang = url.searchParams.get('lang');
+          url.search = '';
+          url.searchParams.set('pk', urlParams.pk);
+          url.searchParams.set('paymentId', result.paymentId);
+          if (lang) url.searchParams.set('lang', lang);
+          window.history.replaceState({}, '', url.toString());
+        }
+      });
     }
-  }, [urlParams, createPayment]);
+  }, [urlParams, isResumeMode, createPayment, fetchPayment]);
+
+  // Fresh wallet session: if we're connected without user clicking connect (e.g. cached), disconnect and lock
+  useEffect(() => {
+    if (!buttonConnectClicked && isConnected) {
+      setLockReconnect(true);
+      disconnect();
+    }
+  }, [buttonConnectClicked, isConnected, disconnect]);
+
+  // While locked, force disconnect on any extension/Wagmi reconnect (state in deps so effect re-runs)
+  useEffect(() => {
+    if (lockReconnect && isConnected) disconnect();
+  }, [lockReconnect, isConnected, disconnect]);
 
   // Human-readable amount (for display)
-  const displayAmount =
-    urlParams?.amount ??
-    (paymentDetails
-      ? formatUnits(BigInt(paymentDetails.amount), paymentDetails.tokenDecimals)
-      : '0');
+  // When currency conversion is used, show the converted token amount instead of the fiat input
+  // In resume mode urlParams.amount is empty, so always derive from paymentDetails when available
+  const displayAmount = paymentDetails?.currency
+    ? formatUnits(BigInt(paymentDetails.amount), paymentDetails.tokenDecimals)
+    : urlParams?.amount ||
+      (paymentDetails
+        ? formatUnits(BigInt(paymentDetails.amount), paymentDetails.tokenDecimals)
+        : '0');
 
   // Payment amount in wei (bigint)
   const paymentAmountWei = paymentDetails ? BigInt(paymentDetails.amount) : BigInt(0);
@@ -167,18 +215,63 @@ export default function PaymentStep({ urlParams }: PaymentStepProps) {
   const goToPaymentProcessing = () => setCurrentStep('payment-processing');
   const goToPaymentComplete = () => setCurrentStep('payment-complete');
 
-  // Auto-advance when wallet connects
-  // If token supports EIP-2612 permit, skip approval step entirely
-  // (permit will be signed inline during gasless payment)
+  // Auto-switch chain and advance when wallet connects
   useEffect(() => {
-    if (isConnected && address && paymentDetails) {
-      if (isPermitSupported) {
-        setCurrentStep('payment-confirm');
-      } else {
-        setCurrentStep('token-approval');
-      }
+    if (currentStep !== 'wallet-connect') return;
+    if (!isConnected || !address || !paymentDetails) return;
+    if (lockReconnect) return;
+
+    const targetChainId = paymentDetails.chainId;
+    const needsSwitch = chain?.id !== targetChainId;
+
+    if (needsSwitch) {
+      if (switchInProgressRef.current || isSwitchingChain) return;
+      switchInProgressRef.current = true;
+      setIsSwitchingChain(true);
+      switchChainAsync({ chainId: targetChainId })
+        .then(() => {
+          switchInProgressRef.current = false;
+          setIsSwitchingChain(false);
+        })
+        .catch((err) => {
+          console.warn('Chain switch failed:', err);
+          switchInProgressRef.current = false;
+          setIsSwitchingChain(false);
+        });
+      return;
     }
-  }, [isConnected, address, paymentDetails, isPermitSupported]);
+
+    if (!isSwitchingChain) {
+      // Wait for permit check so we can go straight to payment-confirm when token supports permit (already approved flow)
+      if (isPermitSupported === undefined) return;
+      setCurrentStep(isPermitSupported ? 'payment-confirm' : 'token-approval');
+    }
+  }, [
+    isConnected,
+    address,
+    paymentDetails,
+    isPermitSupported,
+    chain?.id,
+    isSwitchingChain,
+    switchChainAsync,
+    currentStep,
+    lockReconnect,
+  ]);
+
+  // Fallback: if still on wallet-connect after connecting (e.g. Trust Wallet chain/switch delay), advance after 4s
+  useEffect(() => {
+    if (
+      !paymentDetails ||
+      !isConnected ||
+      !address ||
+      currentStep !== 'wallet-connect' ||
+      lockReconnect
+    ) {
+      return;
+    }
+    const timeout = window.setTimeout(() => setCurrentStep('token-approval'), 4000);
+    return () => window.clearTimeout(timeout);
+  }, [paymentDetails, isConnected, address, currentStep, lockReconnect]);
 
   // Auto-advance after approval confirmation
   useEffect(() => {
@@ -199,8 +292,9 @@ export default function PaymentStep({ urlParams }: PaymentStepProps) {
       !isRelayConfirming &&
       !gaslessError
     ) {
+      const dateLocale = locale === 'ko' ? 'ko-KR' : 'en-US';
       setCompletionDate(
-        new Date().toLocaleString('en-US', {
+        new Date().toLocaleString(dateLocale, {
           year: 'numeric',
           month: '2-digit',
           day: '2-digit',
@@ -212,18 +306,25 @@ export default function PaymentStep({ urlParams }: PaymentStepProps) {
       );
       goToPaymentComplete();
     }
-  }, [currentStep, relayTxHash, isRelayConfirming, gaslessError]);
+  }, [currentStep, relayTxHash, isRelayConfirming, gaslessError, locale]);
 
   // Check if user has sufficient balance
   const hasSufficientBalance = formattedBalance
     ? parseFloat(formattedBalance) >= parseFloat(displayAmount)
     : true; // Assume true while loading
 
-  // Disconnect handler
+  /** Show wallet picker and block auto-reconnect until user picks a wallet */
   const handleDisconnect = useCallback(() => {
+    setLockReconnect(true);
     disconnect();
     goToWalletConnect();
   }, [disconnect]);
+
+  /** Called when user picks a wallet (clears lock so we allow this connection and auto-advance) */
+  const clearWalletChangeIntent = useCallback(() => {
+    setLockReconnect(false);
+    setButtonConnectClicked(true);
+  }, []);
 
   // Approve handler
   const handleApprove = useCallback(() => {
@@ -246,16 +347,12 @@ export default function PaymentStep({ urlParams }: PaymentStepProps) {
 
     // Validate required payment details before proceeding
     if (!paymentDetails?.serverSignature) {
-      setConfigError(
-        'Payment configuration error: Missing server signature. Please contact support.'
-      );
+      setConfigError(t('error.configMissingSignature'));
       console.error('Missing server signature - check SIGNER_PRIVATE_KEY configuration');
       return;
     }
     if (!paymentDetails?.recipientAddress || !paymentDetails?.merchantId) {
-      setConfigError(
-        'Payment configuration error: Missing recipient details. Please contact support.'
-      );
+      setConfigError(t('error.configMissingRecipient'));
       console.error('Missing payment details:', {
         recipientAddress: paymentDetails?.recipientAddress,
         merchantId: paymentDetails?.merchantId,
@@ -263,7 +360,7 @@ export default function PaymentStep({ urlParams }: PaymentStepProps) {
       return;
     }
     if (!isGaslessSupported) {
-      setConfigError('Gasless payment is not configured for this network. Please contact support.');
+      setConfigError(t('error.gaslessNotConfigured'));
       console.error('Missing forwarderAddress - gasless not supported');
       return;
     }
@@ -271,53 +368,76 @@ export default function PaymentStep({ urlParams }: PaymentStepProps) {
     paymentInitiated.current = true;
     goToPaymentProcessing();
     payGasless();
-  }, [payGasless, isGaslessSupported, paymentDetails]);
+  }, [payGasless, isGaslessSupported, paymentDetails, t]);
 
   // Retry payment handler (gasless only)
   const handleRetryPayment = useCallback(() => {
     payGasless();
   }, [payGasless]);
 
+  // Popup = opened via window.open (PC). Else redirect (e.g. mobile).
+  const isPopup = typeof window !== 'undefined' && !!window.opener;
+
+  // Allow closing without confirm when user clicks Confirm/Cancel/Go Back
+  const allowUnloadRef = useRef(false);
+
+  // Ask user to confirm when closing the window (popup) so we don't lose in-progress payment
+  useEffect(() => {
+    if (!isPopup || typeof window === 'undefined') return;
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (allowUnloadRef.current) return;
+      e.preventDefault();
+      e.returnValue = '';
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [isPopup]);
+
   // Confirm/redirect handler (success)
   const handleConfirm = useCallback(() => {
     if (paymentDetails?.successUrl) {
-      const isIframe = window.parent !== window;
-      if (isIframe) {
-        const targetOrigin = new URL(paymentDetails.successUrl).origin;
-        window.parent.postMessage({ type: 'payment_complete', status: 'success' }, targetOrigin);
+      allowUnloadRef.current = true;
+      const targetOrigin = new URL(paymentDetails.successUrl).origin;
+      if (isPopup && window.opener) {
+        window.opener.postMessage(
+          { type: 'payment_complete', status: 'success', successUrl: paymentDetails.successUrl },
+          targetOrigin
+        );
+        window.close();
       } else {
         window.location.href = paymentDetails.successUrl;
       }
       return;
     }
     goToWalletConnect();
-  }, [paymentDetails?.successUrl]);
+  }, [paymentDetails?.successUrl, isPopup]);
 
   // Cancel/fail redirect handler
+  // In resume mode, failUrl comes from paymentDetails (server) instead of URL params
+  const effectiveFailUrl = urlParams?.failUrl || paymentDetails?.failUrl;
   const handleCancel = useCallback(() => {
-    if (urlParams?.failUrl) {
-      const isIframe = window.parent !== window;
-      if (isIframe) {
-        const targetOrigin = new URL(urlParams.failUrl).origin;
-        window.parent.postMessage({ type: 'payment_complete', status: 'fail' }, targetOrigin);
+    if (effectiveFailUrl) {
+      allowUnloadRef.current = true;
+      const targetOrigin = new URL(effectiveFailUrl).origin;
+      if (isPopup && window.opener) {
+        window.opener.postMessage(
+          { type: 'payment_complete', status: 'fail', failUrl: effectiveFailUrl },
+          targetOrigin
+        );
+        window.close();
       } else {
-        window.location.href = urlParams.failUrl;
+        window.location.href = effectiveFailUrl;
       }
     }
-  }, [urlParams?.failUrl]);
+  }, [effectiveFailUrl, isPopup]);
 
-  // Loading state
-  if (isLoading) {
-    return (
-      <div className="text-center py-8">
-        <div className="animate-spin w-8 h-8 border-2 border-blue-600 border-t-transparent rounded-full mx-auto mb-4" />
-        <p className="text-sm text-gray-600">Loading payment...</p>
-      </div>
-    );
+  // Loading state (skip when walletOnly — no API call)
+  if (!urlParams?.walletOnly && isLoading) {
+    return <LoadingSpinner />;
   }
 
-  // API Error state
-  if (apiError) {
+  // API Error state (skip when walletOnly)
+  if (!urlParams?.walletOnly && apiError) {
     return (
       <div className="text-center py-8">
         <div className="text-red-500 mb-4">
@@ -334,34 +454,160 @@ export default function PaymentStep({ urlParams }: PaymentStepProps) {
               d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
             />
           </svg>
-          <p className="font-medium">Payment Error</p>
+          <p className="font-medium">{t('error.paymentError')}</p>
         </div>
         <p className="text-sm text-gray-600 mb-4">{apiError}</p>
-        {urlParams?.failUrl && (
+        {effectiveFailUrl && (
           <button
-            onClick={() => (window.location.href = urlParams.failUrl)}
+            onClick={handleCancel}
             className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm hover:bg-gray-200"
           >
-            Go Back
+            {t('common.goBack')}
           </button>
         )}
       </div>
     );
   }
 
-  // No payment details yet
-  if (!paymentDetails) {
+  // No payment details yet (skip when walletOnly — we never fetch payment)
+  if (!urlParams?.walletOnly && !paymentDetails) {
+    return <LoadingSpinner />;
+  }
+
+  // Resume mode: handle terminal statuses returned by the server
+  if (isResumeMode && !urlParams?.walletOnly && paymentDetails?.status) {
+    const successStatuses = ['CONFIRMED', 'FINALIZED'];
+    const errorStatuses = ['EXPIRED', 'FAILED', 'CANCELLED'];
+
+    if (successStatuses.includes(paymentDetails.status) && currentStep !== 'payment-complete') {
+      return (
+        <PaymentComplete
+          amount={displayAmount}
+          token={paymentDetails.tokenSymbol}
+          date=""
+          txHash={paymentDetails.txHash || ''}
+          onConfirm={handleConfirm}
+        />
+      );
+    }
+
+    if (errorStatuses.includes(paymentDetails.status)) {
+      return (
+        <div className="text-center py-8">
+          <div className="text-red-500 mb-4">
+            <svg
+              className="w-12 h-12 mx-auto mb-2"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+              />
+            </svg>
+            <p className="font-medium">
+              {paymentDetails.status === 'EXPIRED'
+                ? t('error.paymentExpired')
+                : t('error.paymentError')}
+            </p>
+          </div>
+          {effectiveFailUrl && (
+            <button
+              onClick={handleCancel}
+              className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm hover:bg-gray-200"
+            >
+              {t('common.goBack')}
+            </button>
+          )}
+        </div>
+      );
+    }
+  }
+
+  // Wallet-only mode: show connect, then "Wallet connected" with redirect to successUrl
+  if (urlParams?.walletOnly) {
+    if (!isConnected || !address) {
+      return (
+        <div className="w-full">
+          <ConnectWalletButton />
+        </div>
+      );
+    }
+    const handleWalletOnlyContinue = () => {
+      allowUnloadRef.current = true;
+      const successUrl = urlParams.successUrl;
+      try {
+        const url = new URL(successUrl);
+        url.searchParams.set('wallet', address);
+        if (isPopup && window.opener) {
+          window.opener.postMessage(
+            { type: 'wallet_connected', address, successUrl: url.toString() },
+            url.origin
+          );
+          window.close();
+        } else {
+          window.location.href = url.toString();
+        }
+      } catch {
+        if (isPopup && window.opener) {
+          try {
+            window.opener.postMessage(
+              { type: 'wallet_connected', address, successUrl },
+              new URL(successUrl).origin
+            );
+          } catch {
+            // ignore
+          }
+          window.close();
+        } else {
+          window.location.href = successUrl;
+        }
+      }
+    };
     return (
-      <div className="text-center py-8">
-        <p className="text-sm text-gray-600">Initializing payment...</p>
+      <div className="text-center py-6">
+        <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-green-100 text-green-600 mb-4">
+          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+          </svg>
+        </div>
+        <p className="font-medium text-gray-900 mb-1">{t('walletOnly.connected')}</p>
+        <p className="text-sm text-gray-500 mb-4">{formatAddress(address)}</p>
+        <button
+          type="button"
+          onClick={handleWalletOnlyContinue}
+          className="w-full px-4 py-3 bg-blue-600 text-white rounded-xl font-medium hover:bg-blue-700 active:bg-blue-800"
+        >
+          {t('common.continue')}
+        </button>
+        <button
+          type="button"
+          onClick={handleDisconnect}
+          className="mt-3 text-sm text-gray-500 hover:text-gray-700"
+        >
+          {t('common.disconnect')}
+        </button>
       </div>
     );
   }
 
   const renderStep = () => {
+    if (!paymentDetails) return null;
     switch (currentStep) {
       case 'wallet-connect':
-        return <ConnectButton />;
+        if (isConnected && !lockReconnect) {
+          return (
+            <LoadingSpinner
+              message={
+                isCheckingPermit ? t('error.checkingTokenSupport') : t('error.loadingPayment')
+              }
+            />
+          );
+        }
+        return <ConnectWalletButton onConnectorClick={clearWalletChangeIntent} />;
 
       case 'token-approval':
         return (
@@ -371,34 +617,43 @@ export default function PaymentStep({ urlParams }: PaymentStepProps) {
             token={paymentDetails.tokenSymbol}
             onApprove={handleApprove}
             onDisconnect={handleDisconnect}
-            onCancel={urlParams?.failUrl ? handleCancel : undefined}
+            onCancel={effectiveFailUrl ? handleCancel : undefined}
             isApproving={isApproving || isApprovalConfirming}
             needsApproval={needsApproval}
             error={
               !hasSufficientBalance
-                ? `Insufficient balance. You need ${displayAmount} ${paymentDetails.tokenSymbol}`
-                : parseErrorMessage(approvalError?.message)
+                ? t('error.insufficientBalance', {
+                    amount: displayAmount,
+                    token: paymentDetails.tokenSymbol,
+                  })
+                : parseErrorMessage(approvalError?.message, t)
             }
           />
         );
 
       case 'payment-confirm':
         return (
-          <div>
-            {/* Configuration Error */}
-            {configError && (
-              <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
-                <p className="text-sm text-red-700">{configError}</p>
-              </div>
-            )}
-            <PaymentConfirm
-              product={`Order #${paymentDetails.orderId}`}
-              amount={displayAmount}
-              token={paymentDetails.tokenSymbol}
-              network={getNetworkName(paymentDetails.chainId)}
-              onPay={handlePay}
-            />
-          </div>
+          <PaymentConfirm
+            product={`Order #${paymentDetails.orderId}`}
+            amount={displayAmount}
+            token={paymentDetails.tokenSymbol}
+            network={getNetworkName(paymentDetails.chainId)}
+            walletAddress={address ? formatAddress(address) : undefined}
+            currency={paymentDetails.currency}
+            fiatAmount={paymentDetails.fiatAmount}
+            error={
+              configError ??
+              (!hasSufficientBalance
+                ? t('error.insufficientBalance', {
+                    amount: displayAmount,
+                    token: paymentDetails.tokenSymbol,
+                  })
+                : undefined)
+            }
+            onPay={handlePay}
+            onChangeWallet={handleDisconnect}
+            onCancel={effectiveFailUrl ? handleCancel : undefined}
+          />
         );
 
       case 'payment-processing':
@@ -407,9 +662,9 @@ export default function PaymentStep({ urlParams }: PaymentStepProps) {
             amount={displayAmount}
             token={paymentDetails.tokenSymbol}
             onRetry={handleRetryPayment}
-            onCancel={urlParams?.failUrl ? handleCancel : undefined}
+            onCancel={effectiveFailUrl ? handleCancel : undefined}
             isPending={isPayingGasless || isRelayConfirming}
-            error={parseErrorMessage(gaslessError?.message)}
+            error={parseErrorMessage(gaslessError?.message, t)}
           />
         );
 

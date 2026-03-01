@@ -39,10 +39,6 @@ export function validatePaymentRequest(request: PaymentRequest): ValidationResul
     errors.failUrl = 'Invalid fail URL';
   }
 
-  if (request.webhookUrl && !isValidUrl(request.webhookUrl)) {
-    errors.webhookUrl = 'Invalid webhook URL';
-  }
-
   return {
     valid: Object.keys(errors).length === 0,
     errors,

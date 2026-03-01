@@ -5,7 +5,8 @@ import swagger from '@fastify/swagger';
 import swaggerUi from '@fastify/swagger-ui';
 import { getPrismaClient, disconnectPrisma } from './db/client';
 import { createPublicAuthMiddleware } from './server/auth';
-import { createBlockchainService, createSendNative } from './server/blockchain';
+import { createBlockchainService } from './server/blockchain';
+import { createSendNativeViaRelayer, type RelayerConfigForChain } from './server/relayer-client';
 import { registerRequestGasRoute } from './server/request-gas-route';
 import { swaggerConfig, swaggerUiConfig } from './server/swagger.config';
 
@@ -15,13 +16,25 @@ async function start(): Promise<void> {
   const blockchainService = createBlockchainService(prisma);
   await blockchainService.loadChains();
 
-  const faucetPrivateKey = process.env.FAUCET_PRIVATE_KEY as `0x${string}` | undefined;
-  if (!faucetPrivateKey) {
-    console.error('FAUCET_PRIVATE_KEY is required');
-    process.exit(1);
-  }
+  // Relayer URL per chain from DB (chains.relayer_url), same as gateway; API key from env per chain
+  const getConfigForChain = async (chainId: number): Promise<RelayerConfigForChain> => {
+    const chain = await prisma.chain.findFirst({
+      where: {
+        network_id: chainId,
+        is_deleted: false,
+        gateway_address: { not: null },
+      },
+      select: { relayer_url: true },
+    });
+    const baseUrl = chain?.relayer_url?.trim();
+    if (!baseUrl) {
+      throw new Error(`No relayer URL configured for chain ${chainId}`);
+    }
+    const apiKey = process.env[`RELAY_API_KEY_${chainId}`]?.trim() || undefined;
+    return { baseUrl, apiKey };
+  };
 
-  const sendNative = createSendNative(prisma, faucetPrivateKey);
+  const sendNative = createSendNativeViaRelayer(getConfigForChain);
 
   const app = Fastify({ logger: true });
   await app.register(cors, { origin: true });

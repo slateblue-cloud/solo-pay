@@ -12,10 +12,11 @@ const mockMerchant = {
   api_key_hash: 'hashed_key',
   public_key: null,
   public_key_hash: null,
-  allowed_domains: null,
+
   webhook_url: null,
   fee_bps: 0,
   recipient_address: '0x70997970C51812dc3A010C7d01b50e0d17dc79C8',
+  escrow_duration: null,
   is_enabled: true,
   is_deleted: false,
   created_at: new Date(),

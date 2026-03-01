@@ -1,11 +1,12 @@
 import { FastifyInstance } from 'fastify';
+import { Address, Hex } from 'viem';
 import { BlockchainService } from '../../services/blockchain.service';
 import { PaymentService } from '../../services/payment.service';
 import { MerchantService } from '../../services/merchant.service';
-import {
-  enqueuePaymentConfirmedWebhook,
-  type WebhookQueueAdapter,
-} from '../../services/webhook-queue.service';
+import { ChainService } from '../../services/chain.service';
+import { TokenService } from '../../services/token.service';
+import { PaymentMethodService } from '../../services/payment-method.service';
+import { ServerSigningService } from '../../services/signature-server.service';
 import { createPublicAuthMiddleware } from '../../middleware/public-auth.middleware';
 import { PaymentStatusResponseSchema, ErrorResponseSchema } from '../../docs/schemas';
 
@@ -14,35 +15,39 @@ export async function getPaymentStatusRoute(
   blockchainService: BlockchainService,
   paymentService: PaymentService,
   merchantService: MerchantService,
-  webhookQueue: WebhookQueueAdapter
+  chainService: ChainService,
+  tokenService: TokenService,
+  paymentMethodService: PaymentMethodService,
+  signingServices?: Map<number, ServerSigningService>
 ) {
   const authMiddleware = createPublicAuthMiddleware(merchantService);
 
   app.get<{
     Params: { id: string };
   }>(
-    '/payment/:id',
+    '/payments/:id',
     {
       schema: {
         operationId: 'getPaymentStatus',
         tags: ['Payment'],
-        summary: 'Get payment status',
+        summary: 'Get payment status and details',
         description: `
-Retrieves the current status of a payment by its payment hash. Requires x-public-key and Origin (must match merchant allowed_domains).
+Retrieves the current status and full details of a payment by its payment hash. Requires x-public-key.
+
+Returns on-chain status (synced to DB), plus full payment details including server signature, merchant/token/chain info, and contract parameters needed for the widget to resume a payment flow.
+
+For non-terminal statuses, a fresh server signature with a new deadline is generated. For terminal statuses, details are returned without a signature.
 
 **Status Values:**
 - \`CREATED\` - Payment created, awaiting on-chain transaction
-- \`ESCROWED\` - Funds locked in escrow contract
-- \`FINALIZE_SUBMITTED\` - Finalize transaction submitted
-- \`FINALIZED\` - Payment finalized, merchant paid
-- \`CANCEL_SUBMITTED\` - Cancel transaction submitted
-- \`CANCELLED\` - Escrow cancelled, funds returned
-- \`REFUND_SUBMITTED\` - Refund transaction submitted
-- \`REFUNDED\` - Refund confirmed on-chain
-- \`EXPIRED\` - Payment expired before escrow
-- \`FAILED\` - Transaction failed
-
-**Note:** This endpoint syncs on-chain status with database status.
+- \`PENDING\` - Transaction submitted, awaiting confirmation
+- \`ESCROWED\` - Payment escrowed on-chain, awaiting merchant decision
+- \`FINALIZE_SUBMITTED\` - Merchant submitted finalize request
+- \`CANCEL_SUBMITTED\` - Merchant submitted cancel request
+- \`CONFIRMED\` - Payment confirmed on-chain (direct flow, no escrow)
+- \`FINALIZED\` - Escrowed payment released to merchant
+- \`CANCELLED\` - Escrowed payment refunded to buyer
+- \`FAILED\` - Payment failed
         `,
         headers: {
           type: 'object',
@@ -54,7 +59,7 @@ Retrieves the current status of a payment by its payment hash. Requires x-public
             'x-origin': {
               type: 'string',
               description:
-                'Origin for this GET endpoint (proxy often strips Origin). Must match merchant allowed_domains.',
+                'Origin for this GET endpoint (proxy often strips Origin). Verified against ALLOWED_WIDGET_ORIGIN when configured.',
             },
           },
         },
@@ -99,6 +104,15 @@ Retrieves the current status of a payment by its payment hash. Requires x-public
           });
         }
 
+        // Validate payment belongs to the authenticated merchant
+        const merchant = request.merchant;
+        if (merchant && paymentData.merchant_id !== merchant.id) {
+          return reply.code(403).send({
+            code: 'FORBIDDEN',
+            message: 'Payment does not belong to this merchant',
+          });
+        }
+
         const chainIdNum = paymentData.network_id;
 
         if (!blockchainService.isChainSupported(chainIdNum)) {
@@ -117,7 +131,7 @@ Retrieves the current status of a payment by its payment hash. Requires x-public
           });
         }
 
-        if (paymentStatus.status === 'completed' && paymentStatus.amount) {
+        if (paymentStatus.status !== 'pending' && paymentStatus.amount) {
           const eventAmount = BigInt(paymentStatus.amount);
           const dbAmount = BigInt(paymentData.amount.toString());
 
@@ -136,34 +150,125 @@ Retrieves the current status of a payment by its payment hash. Requires x-public
         }
 
         let finalStatus = paymentData.status;
-        if (
-          paymentStatus.status === 'completed' &&
-          paymentData.status === 'CREATED'
-        ) {
-          const updatedPayment = await paymentService.updateStatusByHash(
+
+        // Sync on-chain status → DB status
+        const onChain = paymentStatus.status;
+        const dbStatus = paymentData.status;
+
+        const shouldSync =
+          (onChain === 'escrowed' && ['CREATED'].includes(dbStatus)) ||
+          (onChain === 'finalized' && ['ESCROWED', 'FINALIZE_SUBMITTED'].includes(dbStatus)) ||
+          (onChain === 'cancelled' && ['ESCROWED', 'CANCEL_SUBMITTED'].includes(dbStatus));
+
+        if (shouldSync) {
+          const newStatus =
+            onChain === 'escrowed'
+              ? 'ESCROWED'
+              : onChain === 'finalized'
+                ? 'FINALIZED'
+                : 'CANCELLED';
+          // For FINALIZED/CANCELLED, pass releaseTxHash; for ESCROWED, pass escrow txHash
+          const isRelease = newStatus === 'FINALIZED' || newStatus === 'CANCELLED';
+          const txHashToStore = isRelease
+            ? paymentStatus.releaseTxHash
+            : paymentStatus.transactionHash;
+          await paymentService.updateStatusByHash(
             paymentData.payment_hash,
-            'FINALIZED',
-            paymentStatus.transactionHash
+            newStatus as import('@solo-pay/database').PaymentStatus,
+            txHashToStore
           );
           if (paymentStatus.payerAddress) {
             await paymentService.updatePayerAddress(id, paymentStatus.payerAddress);
           }
-          finalStatus = 'FINALIZED';
+          finalStatus = newStatus;
+        }
 
-          const merchant = await merchantService.findById(updatedPayment.merchant_id);
-          enqueuePaymentConfirmedWebhook(webhookQueue, updatedPayment, merchant, (err, paymentId) =>
-            app.log.warn({ err, paymentId }, 'Webhook enqueue failed')
-          );
+        const tokenPermitSupported = await paymentService.getTokenPermitSupported(
+          paymentData.payment_method_id
+        );
+
+        // Fetch full payment details (merchant, chain, token, signature)
+        const [merchantRecord, chain, paymentMethod] = await Promise.all([
+          merchantService.findById(paymentData.merchant_id),
+          chainService.findByNetworkId(paymentData.network_id),
+          paymentMethodService.findById(paymentData.payment_method_id),
+        ]);
+
+        let detailsFields: Record<string, unknown> = {};
+
+        if (merchantRecord && chain && paymentMethod) {
+          const token = await tokenService.findById(paymentMethod.token_id);
+
+          if (token) {
+            const merchantId = ServerSigningService.merchantKeyToId(merchantRecord.merchant_key);
+            const recipientAddress = merchantRecord.recipient_address as Address | null;
+            const amountInWei = BigInt(paymentData.amount.toString());
+            const defaultEscrowDuration = Number(process.env.DEFAULT_ESCROW_DURATION) || 300;
+            const escrowDuration = BigInt(merchantRecord.escrow_duration ?? defaultEscrowDuration);
+
+            const terminalStatuses = ['FINALIZED', 'FAILED', 'EXPIRED', 'FINALIZED', 'CANCELLED'];
+            const isTerminal = terminalStatuses.includes(finalStatus);
+
+            let serverSignature: Hex | string = '';
+            let deadline = BigInt(0);
+
+            if (!isTerminal) {
+              const deadlineTtl = Number(process.env.PAYMENT_DEADLINE_SECONDS) || 3600;
+              deadline = BigInt(Math.floor(Date.now() / 1000) + deadlineTtl);
+
+              const signingService = signingServices?.get(paymentData.network_id);
+              if (signingService && recipientAddress) {
+                try {
+                  serverSignature = await signingService.signPaymentRequest(
+                    id as Hex,
+                    token.address as Address,
+                    amountInWei,
+                    recipientAddress,
+                    merchantId,
+                    merchantRecord.fee_bps,
+                    deadline,
+                    escrowDuration
+                  );
+                } catch (err) {
+                  app.log.error({ err }, 'Failed to generate server signature for payment details');
+                }
+              }
+            }
+
+            detailsFields = {
+              serverSignature,
+              orderId: paymentData.order_id ?? '',
+              tokenAddress: token.address,
+              gatewayAddress: chain.gateway_address ?? '',
+              amount: amountInWei.toString(),
+              tokenDecimals: paymentData.token_decimals,
+              recipientAddress: recipientAddress ?? '',
+              merchantId,
+              feeBps: merchantRecord.fee_bps,
+              deadline: deadline.toString(),
+              escrowDuration: escrowDuration.toString(),
+              forwarderAddress: chain.forwarder_address ?? undefined,
+              successUrl: paymentData.success_url ?? '',
+              failUrl: paymentData.fail_url ?? '',
+              expiresAt: new Date(paymentData.expires_at).toISOString(),
+              currency: paymentData.currency_code ?? undefined,
+              fiatAmount: paymentData.fiat_amount ? Number(paymentData.fiat_amount) : undefined,
+              tokenPrice: paymentData.token_price ? Number(paymentData.token_price) : undefined,
+              txHash: paymentData.tx_hash ?? undefined,
+            };
+          }
         }
 
         return reply.code(200).send({
           success: true,
           data: {
             ...paymentStatus,
-            payment_hash: paymentData.payment_hash,
-            network_id: paymentData.network_id,
-            token_symbol: paymentData.token_symbol,
+            paymentId: paymentData.payment_hash,
+            chainId: paymentData.network_id,
+            tokenSymbol: paymentData.token_symbol,
             status: finalStatus,
+            tokenPermitSupported,
+            ...detailsFields,
           },
         });
       } catch (error) {

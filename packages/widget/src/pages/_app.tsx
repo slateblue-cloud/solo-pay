@@ -11,7 +11,7 @@ function MyApp({ Component, pageProps }: AppProps) {
   const [client] = useState(() => new QueryClient());
 
   return (
-    <WagmiProvider config={config}>
+    <WagmiProvider config={config} reconnectOnMount={false}>
       <QueryClientProvider client={client}>
         <Component {...pageProps} />
       </QueryClientProvider>

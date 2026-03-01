@@ -5,20 +5,13 @@ const GATEWAY_BASE = (process.env.GATEWAY_API_URL || 'http://localhost:3001').re
 const GATEWAY_API_URL = `${GATEWAY_BASE}/api/v1`;
 const API_KEY = process.env.SOLO_PAY_API_KEY || '';
 
-/** Convert human-readable token amount to wei string (e.g. 25.0 → "25000000000000000000") */
-function toWei(amount: number, decimals: number): string {
-  const [intPart, decPart = ''] = amount.toString().split('.');
-  const paddedDec = decPart.padEnd(decimals, '0').slice(0, decimals);
-  return BigInt(intPart + paddedDec).toString();
-}
-
 /** Fetch the first enabled payment method from gateway */
 async function getFirstPaymentMethod(): Promise<{
   address: string;
   symbol: string;
   decimals: number;
 } | null> {
-  const response = await fetch(`${GATEWAY_API_URL}/merchant/payment-method`, {
+  const response = await fetch(`${GATEWAY_API_URL}/merchant/payment-methods`, {
     method: 'GET',
     headers: {
       'x-api-key': API_KEY,
@@ -54,12 +47,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'No enabled payment method found' }, { status: 502 });
     }
 
-    const amountWei = toWei(Number(price), token.decimals);
-
     const payment = await prisma.payment.create({
       data: {
         product_id: Number(productId),
-        amount: amountWei,
+        amount: String(price),
         token_symbol: token.symbol,
       },
     });

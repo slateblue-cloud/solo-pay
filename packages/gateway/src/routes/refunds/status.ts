@@ -17,7 +17,7 @@ export async function getRefundStatusRoute(
   const authMiddleware = createAuthMiddleware(merchantService);
 
   app.get<{ Params: RefundStatusParams }>(
-    '/refund/:refundId',
+    '/refunds/:refundId',
     {
       schema: {
         operationId: 'getRefundStatus',

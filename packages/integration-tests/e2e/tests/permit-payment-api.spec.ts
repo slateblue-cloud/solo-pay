@@ -29,7 +29,7 @@ const MOCK_ERC20_ABI = [
 ];
 
 const PAYMENT_GATEWAY_ABI = [
-  'function pay(bytes32 paymentId, address tokenAddress, uint256 amount, address recipientAddress, bytes32 merchantId, uint16 feeBps, bytes serverSignature, tuple(uint256 deadline, uint8 v, bytes32 r, bytes32 s) permit)',
+  'function pay(bytes32 paymentId, address tokenAddress, uint256 amount, address recipientAddress, bytes32 merchantId, uint16 feeBps, uint256 deadline, uint256 escrowDuration, bytes serverSignature, tuple(uint256 deadline, uint8 v, bytes32 r, bytes32 s) permit)',
   'function processedPayments(bytes32 paymentId) view returns (bool)',
 ];
 
@@ -46,11 +46,11 @@ test.describe('Permit Payment (API + Chain)', () => {
 
     // 1. Create payment via gateway checkout API (simulating what demo does)
     // First, call the demo's checkout endpoint to get payment details
-    const checkoutRes = await request.post(`${GATEWAY_URL}/api/v1/payment`, {
+    const checkoutRes = await request.post(`${GATEWAY_URL}/api/v1/payments`, {
       headers: {
         'Content-Type': 'application/json',
         'x-public-key': 'pk_test_demo',
-        Origin: 'http://localhost:3000',
+        Origin: 'http://localhost:3005',
       },
       data: {
         orderId: `permit-test-${Date.now()}`,
@@ -61,23 +61,18 @@ test.describe('Permit Payment (API + Chain)', () => {
       },
     });
 
-    // If gateway API requires different format, try alternative
-    let paymentData: {
+    expect(checkoutRes.ok(), `Gateway API returned ${checkoutRes.status()}`).toBe(true);
+
+    const paymentData: {
       paymentId: string;
       serverSignature: string;
       recipientAddress: string;
       merchantId: string;
       feeBps: number;
+      deadline: string;
+      escrowDuration: string;
       amount: string;
-    };
-
-    if (checkoutRes.ok()) {
-      paymentData = await checkoutRes.json();
-    } else {
-      // Skip test if gateway API format is different
-      test.skip(true, `Gateway API returned ${checkoutRes.status()} — may need different endpoint`);
-      return;
-    }
+    } = await checkoutRes.json();
 
     const paymentId = paymentData.paymentId as `0x${string}`;
     const amount = BigInt(paymentData.amount);
@@ -128,6 +123,7 @@ test.describe('Permit Payment (API + Chain)', () => {
     // 3. Call pay() with permit
     const gateway = new ethers.Contract(gatewayAddress, PAYMENT_GATEWAY_ABI, payer);
 
+    const payDeadline = BigInt(paymentData.deadline ?? Math.floor(Date.now() / 1000) + 3600);
     const tx = await gateway.pay(
       paymentId,
       tokenAddress,
@@ -135,6 +131,8 @@ test.describe('Permit Payment (API + Chain)', () => {
       recipientAddress,
       merchantId,
       feeBps,
+      payDeadline,
+      BigInt(paymentData.escrowDuration ?? 86400),
       serverSignature,
       { deadline, v, r, s }
     );

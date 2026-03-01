@@ -17,19 +17,22 @@ import { RelayService } from './services/relay.service';
 import { ServerSigningService } from './services/signature-server.service';
 import { getPrismaClient, disconnectPrisma } from './db/client';
 import { getRedisClient, disconnectRedis } from './db/redis';
-import { createWebhookQueue } from '@solo-pay/webhook-manager';
 import { createPaymentRoute } from './routes/payments/create';
 import { getPaymentStatusRoute } from './routes/payments/get-status';
 import { submitGaslessRoute } from './routes/payments/gasless';
 import { getRelayStatusRoute as getPaymentRelayStatusRoute } from './routes/payments/relay-status';
 import { getMerchantRoute } from './routes/merchants/get';
 import { paymentMethodsRoute } from './routes/merchants/payment-methods';
-import { merchantPaymentRoute } from './routes/merchants/payment';
+import { merchantPaymentRoute } from './routes/merchants/payments';
 import { getChainsRoute } from './routes/chains/get';
+import { CurrencyService } from './services/currency.service';
+import { PriceClient } from './services/price-client.service';
 import { RefundService } from './services/refund.service';
 import { createRefundRoute } from './routes/refunds/create';
 import { getRefundStatusRoute } from './routes/refunds/status';
 import { getRefundListRoute } from './routes/refunds/list';
+import { finalizePaymentRoute } from './routes/payments/finalize';
+import { cancelPaymentRoute } from './routes/payments/cancel';
 
 const server = Fastify({
   logger: true,
@@ -56,12 +59,8 @@ let blockchainService: BlockchainService;
 // Server signing services (one per chain)
 let signingServices: Map<number, ServerSigningService>;
 
-// Initialize Relayer service for gasless transactions
-// Production: msq-relayer-service API
-// Local: http://simple-relayer:3001
-const relayerApiUrl = process.env.RELAY_API_URL || 'http://localhost:3001';
-const relayerApiKey = process.env.RELAY_API_KEY || '';
-const relayerService = new RelayerService(relayerApiUrl, relayerApiKey);
+// Relayer services (one per chain, initialized from DB)
+let relayerServices: Map<number, RelayerService>;
 
 // Initialize other database services
 const paymentService = new PaymentService(prisma);
@@ -70,6 +69,11 @@ const tokenService = new TokenService(prisma);
 const paymentMethodService = new PaymentMethodService(prisma);
 const relayService = new RelayService(prisma);
 const refundService = new RefundService(prisma);
+const currencyService = new CurrencyService(prisma);
+
+// Initialize Price Client for currency conversion
+const priceServiceUrl = process.env.PRICE_SERVICE_URL || 'http://localhost:3006';
+const priceClient = new PriceClient(priceServiceUrl);
 
 // Route auth: Public key + Origin for payment endpoints; x-api-key for merchant endpoints; no auth for chains/health
 const registerRoutes = async () => {
@@ -131,9 +135,6 @@ const registerRoutes = async () => {
     }
   );
 
-  const webhookQueue = createWebhookQueue(getRedisClient());
-  webhookQueueInstance = webhookQueue;
-
   // All business routes under API_V1_BASE_PATH
   await server.register(
     async (scope) => {
@@ -146,23 +147,34 @@ const registerRoutes = async () => {
         tokenService,
         paymentMethodService,
         paymentService,
-        signingServices
+        signingServices,
+        currencyService,
+        priceClient
       );
       await getPaymentStatusRoute(
         scope,
         blockchainService,
         paymentService,
         merchantService,
-        webhookQueue
+        chainService,
+        tokenService,
+        paymentMethodService,
+        signingServices
       );
       await submitGaslessRoute(
         scope,
-        relayerService,
+        relayerServices,
         relayService,
         paymentService,
         merchantService
       );
-      await getPaymentRelayStatusRoute(scope, relayService, paymentService, merchantService);
+      await getPaymentRelayStatusRoute(
+        scope,
+        relayService,
+        relayerServices,
+        paymentService,
+        merchantService
+      );
 
       // Private (x-api-key)
       await getMerchantRoute(
@@ -172,19 +184,29 @@ const registerRoutes = async () => {
         tokenService,
         chainService
       );
-      await merchantPaymentRoute(
-        scope,
-        blockchainService,
-        merchantService,
-        paymentService,
-        webhookQueue
-      );
+      await merchantPaymentRoute(scope, blockchainService, merchantService, paymentService);
       await paymentMethodsRoute(
         scope,
         merchantService,
         paymentMethodService,
         tokenService,
         chainService
+      );
+      await finalizePaymentRoute(
+        scope,
+        merchantService,
+        paymentService,
+        blockchainService,
+        signingServices,
+        relayerServices
+      );
+      await cancelPaymentRoute(
+        scope,
+        merchantService,
+        paymentService,
+        blockchainService,
+        signingServices,
+        relayerServices
       );
       await createRefundRoute(
         scope,
@@ -205,15 +227,10 @@ const registerRoutes = async () => {
 };
 
 // Graceful shutdown
-let webhookQueueInstance: ReturnType<typeof createWebhookQueue> | null = null;
-
 const gracefulShutdown = async (signal: string) => {
   logger.info(`\n📢 Received ${signal}, shutting down gracefully...`);
   try {
     await server.close();
-    if (webhookQueueInstance) {
-      await webhookQueueInstance.close();
-    }
     await disconnectPrisma();
     await disconnectRedis();
     logger.info('✅ Server closed successfully');
@@ -280,6 +297,20 @@ const start = async () => {
       }
     } else {
       logger.warn('⚠️  SIGNER_PRIVATE_KEY not set - server signatures will not be generated');
+    }
+
+    // Initialize relayer services for each chain with relayer_url
+    relayerServices = new Map();
+    for (const chain of chainsWithTokens) {
+      if (chain.relayer_url) {
+        const apiKey = process.env[`RELAY_API_KEY_${chain.network_id}`] || '';
+        const service = new RelayerService(chain.relayer_url, apiKey);
+        relayerServices.set(chain.network_id, service);
+        logger.info(`🔄 Relayer service initialized for chain ${chain.network_id} (${chain.name})`);
+      }
+    }
+    if (relayerServices.size === 0) {
+      logger.warn('⚠️  No chains with relayer_url found - gasless transactions will not work');
     }
 
     // Register all routes

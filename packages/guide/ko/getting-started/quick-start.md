@@ -4,69 +4,45 @@
 
 ## 사전 준비
 
-- API Key (테스트용은 대시보드에서 발급)
+- API Key 및 Public Key (관리자로부터 발급)
 - Node.js 18 이상
 
-## Step 1: SDK 설치
+## Step 1: 결제 위젯 열기
 
-::: code-group
+`@solo-pay/widget-js`로 결제 위젯을 엽니다. 위젯이 결제 생성, 지갑 연결, 서명, 결제 처리를 모두 담당합니다.
 
-```bash [npm]
-npm install @globalmsq/solopay
+```bash
+npm install @solo-pay/widget-js
 ```
-
-```bash [pnpm]
-pnpm add @globalmsq/solopay
-```
-
-```bash [yarn]
-yarn add @globalmsq/solopay
-```
-
-:::
-
-## Step 2: 클라이언트 초기화
 
 ```typescript
-import { SoloPayClient } from '@globalmsq/solopay';
+import { SoloPay } from '@solo-pay/widget-js';
 
-const client = new SoloPayClient({
-  apiKey: 'sk_test_...',
-  environment: 'development', // 'development' | 'staging' | 'production'
+const solopay = new SoloPay({
+  publicKey: 'pk_test_xxxxx',
+});
+
+solopay.requestPayment({
+  orderId: 'order-001',
+  amount: '10.5',
+  tokenAddress: '0xE4C687167705Abf55d709395f92e254bdF5825a2',
+  successUrl: 'https://yourshop.com/payment/success',
+  failUrl: 'https://yourshop.com/payment/fail',
 });
 ```
 
-::: tip 환경 설정
+React 프로젝트라면 [`@solo-pay/widget-react`의 `useWidget` 훅](/ko/widget/)을 사용하는 것을 권장합니다.
 
-- `development`: 로컬 개발 환경 (`http://localhost:3001`)
-- `staging`: 테스트넷 (Polygon Amoy 등)
-- `production`: 메인넷
-  :::
+## Step 2: 결제 결과 검증
 
-## Step 3: 첫 결제 생성
+Callback URL에서 `paymentId`를 받은 즉시 서버에서 최종 상태를 확인합니다.
 
-```typescript
-const payment = await client.createPayment({
-  merchantId: 'merchant_demo_001', // 가맹점 ID
-  amount: 10.5, // 10.5 USDC
-  chainId: 80002, // Polygon Amoy
-  tokenAddress: '0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174',
-  recipientAddress: '0x70997970C51812dc3A010C7d01b50e0d17dc79C8',
-});
-
-console.log(payment.paymentId); // 0xabc123... (bytes32 해시)
-console.log(payment.status); // created
-console.log(payment.amount); // 10500000 (wei 단위)
-console.log(payment.expiresAt); // 2024-01-26T13:00:00.000Z
+```bash
+curl https://pay-api.staging.msq.com/api/v1/payments/0xabc123... \
+  -H "x-public-key: pk_test_xxxxx"
 ```
 
-## Step 4: 결제 상태 조회
-
-```typescript
-const status = await client.getPaymentStatus(payment.paymentId);
-
-console.log(status.data.status); // CREATED | PENDING | CONFIRMED | FAILED | EXPIRED
-```
+`status === 'CONFIRMED'`이고 `amount`, `tokenAddress`, `orderId`가 일치할 때만 주문을 완료 처리합니다.
 
 ## 결제 상태 흐름
 
@@ -76,7 +52,7 @@ CREATED ──────▶ PENDING ──────▶ CONFIRMED
     │              ▼
     │           FAILED
     ▼
- EXPIRED
+ EXPIRED (30분 초과)
 ```
 
 | 상태        | 설명                            |
@@ -87,48 +63,8 @@ CREATED ──────▶ PENDING ──────▶ CONFIRMED
 | `FAILED`    | 트랜잭션 실패                   |
 | `EXPIRED`   | 30분 초과로 만료                |
 
-## 전체 예시
-
-```typescript
-import { SoloPayClient, SoloPayError } from '@globalmsq/solopay';
-
-const client = new SoloPayClient({
-  apiKey: process.env.SOLO_PAY_API_KEY!,
-  environment: 'staging',
-});
-
-async function createPayment() {
-  try {
-    // 1. 결제 생성
-    const payment = await client.createPayment({
-      merchantId: 'merchant_demo_001',
-      amount: 10.5,
-      chainId: 80002,
-      tokenAddress: '0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174',
-      recipientAddress: '0x70997970C51812dc3A010C7d01b50e0d17dc79C8',
-    });
-
-    console.log('결제 생성됨:', payment.paymentId);
-
-    // 2. 결제 정보를 프론트엔드로 전달
-    // - paymentId: 결제 식별자
-    // - gatewayAddress: PaymentGateway 컨트랙트
-    // - forwarderAddress: Gasless용 Forwarder 컨트랙트
-    // - amount: wei 단위 금액
-
-    return payment;
-  } catch (error) {
-    if (error instanceof SoloPayError) {
-      console.error('결제 생성 실패:', error.code, error.message);
-    }
-    throw error;
-  }
-}
-```
-
 ## 다음 단계
 
-- [인증](/ko/getting-started/authentication) - API Key 상세 사용법
-- [결제 생성](/ko/payments/create) - 결제 API 상세 가이드
-- [Gasless 결제](/ko/gasless/) - 가스비 없이 결제하기
-- [Webhook 설정](/ko/webhook/) - 결제 완료 알림 받기
+- [인증](/ko/getting-started/authentication) - API Key / Public Key 상세 사용법
+- [클라이언트 사이드 연동](/ko/developer/client-side) - 단계별 구현 가이드
+- [결제 생성 API](/ko/payments/create) - 결제 API 상세 가이드

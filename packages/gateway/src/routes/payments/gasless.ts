@@ -25,7 +25,7 @@ export interface SubmitGaslessRequest {
 
 export async function submitGaslessRoute(
   app: FastifyInstance,
-  relayerService: RelayerService,
+  relayerServices: Map<number, RelayerService>,
   relayService: RelayService,
   paymentService: PaymentService,
   merchantService: MerchantService
@@ -33,7 +33,7 @@ export async function submitGaslessRoute(
   const authMiddleware = createPublicAuthMiddleware(merchantService);
 
   app.post<{ Params: { id: string }; Body: SubmitGaslessRequest }>(
-    '/payment/:id/relay',
+    '/payments/:id/relay',
     {
       schema: {
         operationId: 'submitPaymentRelay',
@@ -49,7 +49,7 @@ Submits a gasless (meta-transaction) payment using ERC-2771 forwarder.
 4. User pays with tokens, not ETH gas
 
 **Requirements:**
-- Valid payment ID from POST /payment
+- Valid payment ID from POST /payments
 - EIP-712 signature from the payer
 - Token approval for PaymentGateway contract
 
@@ -143,6 +143,24 @@ Submits a gasless (meta-transaction) payment using ERC-2771 forwarder.
           return reply.code(400).send({
             code: 'INVALID_PAYMENT_STATUS',
             message: `결제 상태가 ${payment.status}입니다. Gasless 요청은 CREATED 상태에서만 가능합니다.`,
+          });
+        }
+
+        // 결제 만료 확인
+        if (payment.expires_at && new Date() > new Date(payment.expires_at)) {
+          await paymentService.updateStatus(payment.id, 'EXPIRED');
+          return reply.code(400).send({
+            code: 'PAYMENT_EXPIRED',
+            message: '결제가 만료되었습니다',
+          });
+        }
+
+        // Resolve relayer for this payment's chain
+        const relayerService = relayerServices.get(payment.network_id);
+        if (!relayerService) {
+          return reply.code(400).send({
+            code: 'RELAYER_NOT_CONFIGURED',
+            message: `No relayer configured for chain ${payment.network_id}`,
           });
         }
 

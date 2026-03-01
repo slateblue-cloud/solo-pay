@@ -19,6 +19,7 @@ SPEC-DEPLOY-001에서 배포된 컨트랙트 주소를 자동으로 참조하여
 ### 핵심 설계 원칙
 
 배포 주소 자동 연동:
+
 - Hardhat Ignition 배포 결과 파일에서 주소 읽기: `contracts/ignition/deployments/chain-{chainId}/deployed_addresses.json`
 - subgraph.template.yaml을 기반으로 실제 subgraph.yaml 생성
 - 수동 주소 복사 제거 (DRY 원칙)
@@ -26,14 +27,17 @@ SPEC-DEPLOY-001에서 배포된 컨트랙트 주소를 자동으로 참조하여
 ### 지원 네트워크
 
 The Graph Hosted Service (Testnet):
+
 - Polygon Amoy
 - Ethereum Sepolia
 
 The Graph Decentralized Network (Mainnet):
+
 - Polygon Mainnet
 - Ethereum Mainnet
 
 별도 솔루션 필요:
+
 - BNB Chain (The Graph 미지원, 대안 검토 필요)
 
 ## 배경 및 동기
@@ -41,6 +45,7 @@ The Graph Decentralized Network (Mainnet):
 ### 현재 상태
 
 현재 Subgraph 설정의 문제점:
+
 - subgraph.yaml에 하드코딩된 placeholder 주소 (0x0000...)
 - 컨트랙트 배포 후 수동으로 주소 업데이트 필요
 - 네트워크별 별도 설정 파일 없음
@@ -49,6 +54,7 @@ The Graph Decentralized Network (Mainnet):
 ### 목표 상태
 
 개선된 Subgraph 워크플로우:
+
 - 컨트랙트 배포 후 자동으로 Subgraph 설정 생성
 - 단일 명령어로 네트워크별 Subgraph 배포
 - 배포 주소 변경 시 자동 동기화
@@ -70,11 +76,13 @@ The Graph Decentralized Network (Mainnet):
 ### The Graph 서비스
 
 Hosted Service:
+
 - 무료 Testnet 인덱싱
 - 중앙화된 인프라
 - 점진적 종료 예정
 
 Decentralized Network:
+
 - Mainnet 인덱싱
 - GRT 토큰 필요
 - 완전 탈중앙화
@@ -100,6 +108,7 @@ Decentralized Network:
 EARS 형식: **When** Subgraph를 구성할 때, **the system shall** 템플릿 파일에서 실제 설정을 생성하여 **so that** 주소 변경 시 수동 업데이트가 필요 없습니다.
 
 템플릿 변수:
+
 - {{network}}: 네트워크 이름
 - {{address}}: 컨트랙트 주소
 - {{startBlock}}: 인덱싱 시작 블록
@@ -109,6 +118,7 @@ EARS 형식: **When** Subgraph를 구성할 때, **the system shall** 템플릿 
 EARS 형식: **When** 개발자가 configure 명령을 실행할 때, **the system shall** 배포 주소를 읽어 subgraph.yaml을 생성하여 **so that** 올바른 주소로 Subgraph가 구성됩니다.
 
 지원 명령어:
+
 - pnpm subgraph:configure --network polygon-amoy
 - pnpm subgraph:configure --network ethereum-sepolia
 - pnpm subgraph:configure --network polygon
@@ -119,6 +129,7 @@ EARS 형식: **When** 개발자가 configure 명령을 실행할 때, **the syst
 EARS 형식: **When** 개발자가 deploy 명령을 실행할 때, **the system shall** 지정된 네트워크에 Subgraph를 배포하여 **so that** 일관된 배포 프로세스가 보장됩니다.
 
 지원 명령어:
+
 - pnpm subgraph:deploy --network polygon-amoy
 - pnpm subgraph:deploy --network ethereum-sepolia
 
@@ -127,6 +138,7 @@ EARS 형식: **When** 개발자가 deploy 명령을 실행할 때, **the system 
 EARS 형식: **When** 컨트랙트가 새로 배포될 때, **the system shall** Subgraph 설정을 자동으로 업데이트하여 **so that** 항상 최신 주소를 참조합니다.
 
 동기화 트리거:
+
 - 수동: pnpm subgraph:configure 명령
 - 자동: 컨트랙트 배포 스크립트 후처리 (선택적)
 
@@ -159,11 +171,11 @@ schema:
 dataSources:
   - kind: ethereum
     name: PaymentGateway
-    network: {{network}}
+    network: { { network } }
     source:
-      address: "{{gateway_address}}"
+      address: '{{gateway_address}}'
       abi: PaymentGatewayV1
-      startBlock: {{start_block}}
+      startBlock: { { start_block } }
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.9
@@ -228,6 +240,7 @@ dataSources:
 6. subgraph.yaml 생성
 
 Ignition deployed_addresses.json 키 매핑:
+
 - PaymentGateway (Proxy): "PaymentGateway#PaymentGatewayProxy"
 - ERC2771Forwarder: "PaymentGateway#ERC2771Forwarder"
 - MockERC20 (테스트용): "PaymentGateway#MockERC20"
@@ -273,15 +286,18 @@ SUBGRAPH_NAME_POLYGON=msqpay/payment-gateway-polygon
 The Graph가 BNB Chain을 공식 지원하지 않으므로 대안 검토:
 
 옵션 A - Self-hosted Graph Node:
+
 - 자체 Graph Node 운영
 - 인프라 관리 필요
 
 옵션 B - 대체 인덱서:
+
 - Goldsky
 - Envio
 - SubQuery
 
 옵션 C - 커스텀 인덱서:
+
 - 직접 이벤트 리스너 구현
 - Pay-Server에 통합
 

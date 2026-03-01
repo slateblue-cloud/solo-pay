@@ -20,7 +20,6 @@ const mockMerchant = {
   api_key_hash: 'hashed',
   public_key: null,
   public_key_hash: null,
-  allowed_domains: null,
   webhook_url: null,
   fee_bps: 0,
   recipient_address: '0x70997970C51812dc3A010C7d01b50e0d17dc79C8',
@@ -72,7 +71,7 @@ const mockRefund = {
   updated_at: new Date(),
 };
 
-describe('POST /refund', () => {
+describe('POST /refunds', () => {
   let app: FastifyInstance;
   let merchantService: Partial<MerchantService>;
   let paymentService: Partial<PaymentService>;
@@ -142,7 +141,7 @@ describe('POST /refund', () => {
     it('유효한 환불 요청을 받으면 201 상태 코드와 함께 환불 정보를 반환해야 함', async () => {
       const response = await app.inject({
         method: 'POST',
-        url: `${API_V1_BASE_PATH}/refund`,
+        url: `${API_V1_BASE_PATH}/refunds`,
         headers: { 'x-api-key': TEST_API_KEY },
         payload: {
           paymentId: mockPayment.payment_hash,
@@ -161,7 +160,7 @@ describe('POST /refund', () => {
     it('reason 없이 환불 요청을 해도 성공해야 함', async () => {
       const response = await app.inject({
         method: 'POST',
-        url: `${API_V1_BASE_PATH}/refund`,
+        url: `${API_V1_BASE_PATH}/refunds`,
         headers: { 'x-api-key': TEST_API_KEY },
         payload: {
           paymentId: mockPayment.payment_hash,
@@ -176,7 +175,7 @@ describe('POST /refund', () => {
     it('환불 응답에 기본 필드가 포함되어야 함', async () => {
       const response = await app.inject({
         method: 'POST',
-        url: `${API_V1_BASE_PATH}/refund`,
+        url: `${API_V1_BASE_PATH}/refunds`,
         headers: { 'x-api-key': TEST_API_KEY },
         payload: {
           paymentId: mockPayment.payment_hash,
@@ -202,7 +201,7 @@ describe('POST /refund', () => {
     it('API 키가 없으면 401 상태 코드를 반환해야 함', async () => {
       const response = await app.inject({
         method: 'POST',
-        url: `${API_V1_BASE_PATH}/refund`,
+        url: `${API_V1_BASE_PATH}/refunds`,
         payload: {
           paymentId: mockPayment.payment_hash,
         },
@@ -218,7 +217,7 @@ describe('POST /refund', () => {
 
       const response = await app.inject({
         method: 'POST',
-        url: `${API_V1_BASE_PATH}/refund`,
+        url: `${API_V1_BASE_PATH}/refunds`,
         headers: { 'x-api-key': 'invalid-api-key' },
         payload: {
           paymentId: mockPayment.payment_hash,
@@ -235,7 +234,7 @@ describe('POST /refund', () => {
 
       const response = await app.inject({
         method: 'POST',
-        url: `${API_V1_BASE_PATH}/refund`,
+        url: `${API_V1_BASE_PATH}/refunds`,
         headers: { 'x-api-key': TEST_API_KEY },
         payload: {
           paymentId: '0x' + 'f'.repeat(64),
@@ -255,7 +254,7 @@ describe('POST /refund', () => {
 
       const response = await app.inject({
         method: 'POST',
-        url: `${API_V1_BASE_PATH}/refund`,
+        url: `${API_V1_BASE_PATH}/refunds`,
         headers: { 'x-api-key': TEST_API_KEY },
         payload: {
           paymentId: mockPayment.payment_hash,
@@ -268,7 +267,7 @@ describe('POST /refund', () => {
     });
 
     it('FINALIZED 상태가 아닌 결제에 대해 환불 요청하면 400 상태 코드를 반환해야 함', async () => {
-      const testStatuses = ['CREATED', 'ESCROWED', 'FAILED', 'EXPIRED'];
+      const testStatuses = ['CREATED', 'ESCROWED', 'FINALIZE_SUBMITTED', 'CANCEL_SUBMITTED', 'FAILED', 'EXPIRED'];
 
       for (const status of testStatuses) {
         paymentService.findByHash = vi.fn().mockResolvedValue({
@@ -278,7 +277,7 @@ describe('POST /refund', () => {
 
         const response = await app.inject({
           method: 'POST',
-          url: `${API_V1_BASE_PATH}/refund`,
+          url: `${API_V1_BASE_PATH}/refunds`,
           headers: { 'x-api-key': TEST_API_KEY },
           payload: {
             paymentId: mockPayment.payment_hash,
@@ -299,7 +298,7 @@ describe('POST /refund', () => {
 
       const response = await app.inject({
         method: 'POST',
-        url: `${API_V1_BASE_PATH}/refund`,
+        url: `${API_V1_BASE_PATH}/refunds`,
         headers: { 'x-api-key': TEST_API_KEY },
         payload: {
           paymentId: mockPayment.payment_hash,
@@ -318,7 +317,7 @@ describe('POST /refund', () => {
 
       const response = await app.inject({
         method: 'POST',
-        url: `${API_V1_BASE_PATH}/refund`,
+        url: `${API_V1_BASE_PATH}/refunds`,
         headers: { 'x-api-key': TEST_API_KEY },
         payload: {
           paymentId: mockPayment.payment_hash,
@@ -335,7 +334,7 @@ describe('POST /refund', () => {
 
       const response = await app.inject({
         method: 'POST',
-        url: `${API_V1_BASE_PATH}/refund`,
+        url: `${API_V1_BASE_PATH}/refunds`,
         headers: { 'x-api-key': TEST_API_KEY },
         payload: {
           paymentId: mockPayment.payment_hash,
@@ -354,7 +353,7 @@ describe('POST /refund', () => {
 
       const response = await app.inject({
         method: 'POST',
-        url: `${API_V1_BASE_PATH}/refund`,
+        url: `${API_V1_BASE_PATH}/refunds`,
         headers: { 'x-api-key': TEST_API_KEY },
         payload: {
           paymentId: mockPayment.payment_hash,
@@ -371,7 +370,7 @@ describe('POST /refund', () => {
 
       const response = await app.inject({
         method: 'POST',
-        url: `${API_V1_BASE_PATH}/refund`,
+        url: `${API_V1_BASE_PATH}/refunds`,
         headers: { 'x-api-key': TEST_API_KEY },
         payload: {
           paymentId: mockPayment.payment_hash,
@@ -388,7 +387,7 @@ describe('POST /refund', () => {
 
       const response = await app.inject({
         method: 'POST',
-        url: `${API_V1_BASE_PATH}/refund`,
+        url: `${API_V1_BASE_PATH}/refunds`,
         headers: { 'x-api-key': TEST_API_KEY },
         payload: {
           paymentId: mockPayment.payment_hash,
@@ -405,7 +404,7 @@ describe('POST /refund', () => {
     it('paymentId가 누락되면 400 상태 코드를 반환해야 함', async () => {
       const response = await app.inject({
         method: 'POST',
-        url: `${API_V1_BASE_PATH}/refund`,
+        url: `${API_V1_BASE_PATH}/refunds`,
         headers: { 'x-api-key': TEST_API_KEY },
         payload: {
           reason: '테스트',
@@ -418,7 +417,7 @@ describe('POST /refund', () => {
     it('빈 body로 요청하면 400 상태 코드를 반환해야 함', async () => {
       const response = await app.inject({
         method: 'POST',
-        url: `${API_V1_BASE_PATH}/refund`,
+        url: `${API_V1_BASE_PATH}/refunds`,
         headers: { 'x-api-key': TEST_API_KEY },
         payload: {},
       });
@@ -433,7 +432,7 @@ describe('POST /refund', () => {
 
       const response = await app.inject({
         method: 'POST',
-        url: `${API_V1_BASE_PATH}/refund`,
+        url: `${API_V1_BASE_PATH}/refunds`,
         headers: { 'x-api-key': TEST_API_KEY },
         payload: {
           paymentId: mockPayment.payment_hash,
@@ -453,7 +452,7 @@ describe('POST /refund', () => {
 
       const response = await app.inject({
         method: 'POST',
-        url: `${API_V1_BASE_PATH}/refund`,
+        url: `${API_V1_BASE_PATH}/refunds`,
         headers: { 'x-api-key': TEST_API_KEY },
         payload: {
           paymentId: mockPayment.payment_hash,
@@ -470,7 +469,7 @@ describe('POST /refund', () => {
 
       await app.inject({
         method: 'POST',
-        url: `${API_V1_BASE_PATH}/refund`,
+        url: `${API_V1_BASE_PATH}/refunds`,
         headers: { 'x-api-key': TEST_API_KEY },
         payload: {
           paymentId: mockPayment.payment_hash,

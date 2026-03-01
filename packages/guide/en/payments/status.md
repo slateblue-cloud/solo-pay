@@ -1,21 +1,15 @@
 # Payment Status
 
-Check the current status of a payment.
+Query the current status of a payment.
 
-## SDK Usage
+- Auth: `x-public-key` header required
+- For GET requests, use `x-origin` header instead of `Origin` in proxy environments
 
-```typescript
-// Check status by paymentId
-const result = await client.getPaymentStatus('0xabc123...');
-
-console.log(result.data.status); // CREATED | PENDING | CONFIRMED | FAILED | EXPIRED
-```
-
-## REST API Usage
+## REST API
 
 ```bash
-curl -X GET http://localhost:3001/payments/0xabc123.../status \
-  -H "x-api-key: sk_test_xxxxx"
+curl https://pay-api.staging.msq.com/api/v1/payments/0xabc123... \
+  -H "x-public-key: pk_test_xxxxx"
 ```
 
 ## Response
@@ -28,15 +22,18 @@ curl -X GET http://localhost:3001/payments/0xabc123.../status \
   "data": {
     "paymentId": "0xabc123...",
     "status": "CONFIRMED",
-    "amount": "10000000",
-    "tokenAddress": "0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174",
-    "tokenSymbol": "USDC",
-    "recipientAddress": "0xMerchantAddress...",
+    "amount": "10500000000000000000",
+    "tokenAddress": "0xE4C687167705Abf55d709395f92e254bdF5825a2",
+    "tokenSymbol": "SUT",
+    "payerAddress": "0x...",
+    "treasuryAddress": "0xMerchantWallet...",
     "transactionHash": "0xdef789...",
+    "blockNumber": 12345678,
+    "createdAt": "2024-01-26T12:30:00Z",
+    "updatedAt": "2024-01-26T12:35:42Z",
     "payment_hash": "0xabc123...",
     "network_id": 80002,
-    "createdAt": "2024-01-26T12:30:00Z",
-    "updatedAt": "2024-01-26T12:35:42Z"
+    "token_symbol": "SUT"
   }
 }
 ```
@@ -51,122 +48,21 @@ CREATED ──────────▶ PENDING ──────────
  EXPIRED            FAILED
 ```
 
-## Status Description
+## Status Descriptions
 
-| Status      | Description                                      | Next Action                  |
-| ----------- | ------------------------------------------------ | ---------------------------- |
-| `CREATED`   | Payment created, waiting for user action         | User proceeds with payment   |
-| `PENDING`   | Transaction sent, waiting for block confirmation | Wait (usually a few seconds) |
-| `CONFIRMED` | Payment complete, block confirmed                | Process completion           |
-| `FAILED`    | Transaction failed                               | Create new payment           |
-| `EXPIRED`   | Expired after 30 minutes                         | Create new payment           |
+| Status      | Description                                   | Next Action            |
+| ----------- | --------------------------------------------- | ---------------------- |
+| `CREATED`   | Payment created, awaiting user action         | User initiates payment |
+| `PENDING`   | Transaction submitted, awaiting block confirm | Wait (usually seconds) |
+| `CONFIRMED` | Payment complete, block confirmed             | Process completion     |
+| `FAILED`    | Transaction failed                            | Create new payment     |
+| `EXPIRED`   | Expired (30 minutes exceeded)                 | Create new payment     |
 
-## Response Fields by Status
-
-### CREATED
-
-```json
-{
-  "success": true,
-  "data": {
-    "paymentId": "0xabc123...",
-    "status": "CREATED",
-    "amount": "10000000",
-    "tokenAddress": "0x...",
-    "tokenSymbol": "USDC",
-    "createdAt": "2024-01-26T12:30:00Z"
-  }
-}
-```
-
-### PENDING
-
-```json
-{
-  "success": true,
-  "data": {
-    "paymentId": "0xabc123...",
-    "status": "PENDING",
-    "amount": "10000000",
-    "transactionHash": "0xdef789..."
-  }
-}
-```
-
-### CONFIRMED
-
-```json
-{
-  "success": true,
-  "data": {
-    "paymentId": "0xabc123...",
-    "status": "CONFIRMED",
-    "amount": "10000000",
-    "transactionHash": "0xdef789...",
-    "createdAt": "2024-01-26T12:30:00Z",
-    "updatedAt": "2024-01-26T12:35:42Z"
-  }
-}
-```
-
-### FAILED
-
-```json
-{
-  "success": true,
-  "data": {
-    "paymentId": "0xabc123...",
-    "status": "FAILED",
-    "transactionHash": "0xdef789..."
-  }
-}
-```
-
-### EXPIRED
-
-```json
-{
-  "success": true,
-  "data": {
-    "paymentId": "0xabc123...",
-    "status": "EXPIRED"
-  }
-}
-```
-
-## Polling vs Webhook
-
-### Polling Method
-
-Query the status periodically.
-
-```typescript
-const pollPaymentStatus = async (paymentId: string) => {
-  while (true) {
-    const result = await client.getPaymentStatus(paymentId);
-    const status = result.data.status;
-
-    if (status === 'CONFIRMED' || status === 'FAILED' || status === 'EXPIRED') {
-      return status;
-    }
-
-    // Wait 2 seconds before retry
-    await new Promise((resolve) => setTimeout(resolve, 2000));
-  }
-};
-```
-
-::: warning Polling Guidelines
-Recommended interval: 2 seconds or more. Too frequent requests may overload the server.
-:::
-
-### Webhook Method (Coming Soon)
-
-::: info Coming Soon
-Webhook functionality is currently in development. You'll be able to receive real-time notifications when status changes.
+::: tip On-chain Sync
+GET /payments/:id syncs blockchain and database status in real-time. Once on-chain completion is confirmed, status is automatically updated to `CONFIRMED`.
 :::
 
 ## Next Steps
 
-- [Payment History](/en/payments/history) - Past payment records
-- [Gasless Payments](/en/gasless/) - Pay without gas fees
+- [How Payments Work](/en/developer/how-it-works) - Gasless architecture
+- [Error Codes](/en/api/errors) - Error handling

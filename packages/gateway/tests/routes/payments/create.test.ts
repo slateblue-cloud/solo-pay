@@ -22,6 +22,7 @@ const mockChainTokens = [
     rpc_url: 'https://rpc-amoy.polygon.technology',
     gateway_address: '0x0000000000000000000000000000000000000000',
     forwarder_address: '0x0000000000000000000000000000000000000000',
+    relayer_url: null,
     is_testnet: true,
     is_enabled: true,
     is_deleted: false,
@@ -35,7 +36,7 @@ const mockChainTokens = [
         address: '0xE4C687167705Abf55d709395f92e254bdF5825a2',
         symbol: 'SUT',
         decimals: 18,
-        cmc_id: null,
+        cmc_slug: null,
         is_enabled: true,
         is_deleted: false,
         created_at: new Date(),
@@ -51,6 +52,7 @@ const mockChainTokens = [
     rpc_url: 'http://127.0.0.1:8545',
     gateway_address: '0xCf7Ed3AccA5a467e9e704C703E8D87F634fB0Fc9',
     forwarder_address: '0x5FbDB2315678afecb367f032d93F642f64180aa3',
+    relayer_url: null,
     is_testnet: true,
     is_enabled: true,
     is_deleted: false,
@@ -64,7 +66,7 @@ const mockChainTokens = [
         address: '0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512',
         symbol: 'TEST',
         decimals: 18,
-        cmc_id: null,
+        cmc_slug: null,
         is_enabled: true,
         is_deleted: false,
         created_at: new Date(),
@@ -82,7 +84,6 @@ const mockMerchant = {
   is_enabled: true,
   recipient_address: '0x70997970C51812dc3A010C7d01b50e0d17dc79C8',
   fee_bps: 0,
-  allowed_domains: [TEST_ORIGIN],
 };
 
 const mockChain = {
@@ -90,6 +91,7 @@ const mockChain = {
   network_id: 80002,
   gateway_address: '0x0000000000000000000000000000000000000000',
   forwarder_address: '0x0000000000000000000000000000000000000000',
+  relayer_url: null,
 };
 
 const mockChain31337 = {
@@ -97,6 +99,7 @@ const mockChain31337 = {
   network_id: 31337,
   gateway_address: '0xCf7Ed3AccA5a467e9e704C703E8D87F634fB0Fc9',
   forwarder_address: '0x5FbDB2315678afecb367f032d93F642f64180aa3',
+  relayer_url: null,
 };
 
 const mockToken = {
@@ -128,7 +131,7 @@ const mockPayment = {
   expires_at: new Date(Date.now() + 30 * 60 * 1000),
 };
 
-describe('POST /payment', () => {
+describe('POST /payments', () => {
   let app: FastifyInstance;
   let blockchainService: BlockchainService;
   let merchantService: Partial<MerchantService>;
@@ -245,7 +248,7 @@ describe('POST /payment', () => {
 
       const response = await app.inject({
         method: 'POST',
-        url: `${API_V1_BASE_PATH}/payment`,
+        url: `${API_V1_BASE_PATH}/payments`,
         headers: { 'x-public-key': TEST_PUBLIC_KEY, origin: TEST_ORIGIN },
         payload: validPayment,
       });
@@ -282,7 +285,7 @@ describe('POST /payment', () => {
 
       const response = await app.inject({
         method: 'POST',
-        url: `${API_V1_BASE_PATH}/payment`,
+        url: `${API_V1_BASE_PATH}/payments`,
         headers: { 'x-public-key': TEST_PUBLIC_KEY, origin: TEST_ORIGIN },
         payload: minimalPayment,
       });
@@ -305,7 +308,7 @@ describe('POST /payment', () => {
 
       const response = await app.inject({
         method: 'POST',
-        url: `${API_V1_BASE_PATH}/payment`,
+        url: `${API_V1_BASE_PATH}/payments`,
         headers: { 'x-public-key': TEST_PUBLIC_KEY, origin: TEST_ORIGIN },
         payload: invalidPayment,
       });
@@ -326,7 +329,7 @@ describe('POST /payment', () => {
 
       const response = await app.inject({
         method: 'POST',
-        url: `${API_V1_BASE_PATH}/payment`,
+        url: `${API_V1_BASE_PATH}/payments`,
         headers: { 'x-public-key': TEST_PUBLIC_KEY, origin: TEST_ORIGIN },
         payload: invalidPayment,
       });
@@ -348,7 +351,7 @@ describe('POST /payment', () => {
 
       const response = await app.inject({
         method: 'POST',
-        url: `${API_V1_BASE_PATH}/payment`,
+        url: `${API_V1_BASE_PATH}/payments`,
         headers: { 'x-public-key': TEST_PUBLIC_KEY, origin: TEST_ORIGIN },
         payload: incompletePayment,
       });
@@ -358,13 +361,13 @@ describe('POST /payment', () => {
       expect(body.code === 'VALIDATION_ERROR' || body.code === 'FST_ERR_VALIDATION').toBe(true);
     });
 
-    it('Origin이 allowed_domains에 없으면 403을 반환해야 함', async () => {
+    it('ALLOWED_WIDGET_ORIGIN가 미설정이면 origin 무관하게 통과해야 함', async () => {
       const response = await app.inject({
         method: 'POST',
-        url: `${API_V1_BASE_PATH}/payment`,
-        headers: { 'x-public-key': TEST_PUBLIC_KEY, origin: 'https://not-allowed.example.com' },
+        url: `${API_V1_BASE_PATH}/payments`,
+        headers: { 'x-public-key': TEST_PUBLIC_KEY, origin: 'https://any-origin.example.com' },
         payload: {
-          orderId: 'order-001',
+          orderId: 'order-origin-test',
           amount: 100,
           tokenAddress: '0xE4C687167705Abf55d709395f92e254bdF5825a2',
           successUrl: 'https://example.com/success',
@@ -372,7 +375,7 @@ describe('POST /payment', () => {
         },
       });
 
-      expect(response.statusCode).toBe(403);
+      expect(response.statusCode).not.toBe(403);
     });
 
     it('tokenAddress가 whitelist에 없으면 404 TOKEN_NOT_FOUND를 반환해야 함', async () => {
@@ -382,7 +385,7 @@ describe('POST /payment', () => {
 
       const response = await app.inject({
         method: 'POST',
-        url: `${API_V1_BASE_PATH}/payment`,
+        url: `${API_V1_BASE_PATH}/payments`,
         headers: { 'x-public-key': TEST_PUBLIC_KEY, origin: TEST_ORIGIN },
         payload: {
           orderId: 'order-001',
@@ -405,7 +408,7 @@ describe('POST /payment', () => {
 
       const response = await app.inject({
         method: 'POST',
-        url: `${API_V1_BASE_PATH}/payment`,
+        url: `${API_V1_BASE_PATH}/payments`,
         headers: { 'x-public-key': TEST_PUBLIC_KEY, origin: TEST_ORIGIN },
         payload: {
           orderId: 'order-001',
@@ -426,7 +429,7 @@ describe('POST /payment', () => {
 
       const response = await app.inject({
         method: 'POST',
-        url: `${API_V1_BASE_PATH}/payment`,
+        url: `${API_V1_BASE_PATH}/payments`,
         headers: { 'x-public-key': TEST_PUBLIC_KEY, origin: TEST_ORIGIN },
         payload: {
           orderId: 'order-001',
@@ -460,7 +463,7 @@ describe('POST /payment', () => {
 
       const first = await app.inject({
         method: 'POST',
-        url: `${API_V1_BASE_PATH}/payment`,
+        url: `${API_V1_BASE_PATH}/payments`,
         headers,
         payload,
       });
@@ -470,7 +473,7 @@ describe('POST /payment', () => {
 
       const second = await app.inject({
         method: 'POST',
-        url: `${API_V1_BASE_PATH}/payment`,
+        url: `${API_V1_BASE_PATH}/payments`,
         headers,
         payload,
       });

@@ -14,15 +14,52 @@ services:
       MYSQL_PASSWORD: pass
     volumes:
       - mysql-data:/var/lib/mysql
-      - ./init.sql:/docker-entrypoint-initdb.d/init.sql:ro
     networks:
       - solo-pay-network
     healthcheck:
-      test: ['CMD', 'mysqladmin', 'ping', '-h', 'localhost', '-u', 'root', '-ppass']
+      test:
+        ['CMD', 'mysql', '-h', 'localhost', '-u', 'solopay', '-ppass', 'solopay', '-e', 'SELECT 1']
       interval: 5s
       timeout: 5s
       retries: 10
       start_period: 30s
+
+  # Database Init (creates extra databases and grants, runs once as root)
+  db-init:
+    image: mysql:8.0
+    container_name: solo-pay-db-init
+    restart: 'no'
+    entrypoint: ['mysql', '-h', 'mysql', '-u', 'root', '-ppass', '-e']
+    command:
+      - >
+        CREATE DATABASE IF NOT EXISTS solopay_sample_merchant CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+        GRANT ALL PRIVILEGES ON solopay_sample_merchant.* TO 'solopay'@'%';
+        GRANT CREATE, DROP ON *.* TO 'solopay'@'%';
+        FLUSH PRIVILEGES;
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - solo-pay-network
+
+  # Database Migration (runs once and exits)
+  database-sync:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.packages
+      target: database-sync
+    image: 347765734000.dkr.ecr.ap-northeast-2.amazonaws.com/solo-pay/database-sync:nightly
+    container_name: solo-pay-database-sync
+    restart: 'no'
+    environment:
+      DATABASE_URL: mysql://solopay:pass@mysql:3306/solopay
+    depends_on:
+      db-init:
+        condition: service_completed_successfully
+    command: >
+      sh -c "npx prisma db push && npx tsx prisma/seed.ts"
+    networks:
+      - solo-pay-network
 
   # Redis 7 Alpine - Caching
   redis:
@@ -62,7 +99,7 @@ services:
   #     retries: 3
   #     start_period: 10s
 
-  # Webhook Manager (sends payment.confirmed to merchant webhook_url via Redis queue)
+  # Webhook Manager (monitors blockchain + sends payment.confirmed to merchant webhook_url)
   webhook-manager:
     build:
       context: ..
@@ -75,7 +112,13 @@ services:
       NODE_ENV: production
       REDIS_HOST: redis
       REDIS_PORT: 6379
+      DATABASE_URL: mysql://solopay:pass@mysql:3306/solopay
+      POLLING_INTERVAL_MS: 5000
+      BLOCKCHAIN_CHECK_INTERVAL_MS: 1000
+      PAYMENT_MONITOR_TIMEOUT_MS: 1800000
     depends_on:
+      database-sync:
+        condition: service_completed_successfully
       redis:
         condition: service_started
     networks:
@@ -94,7 +137,6 @@ services:
     environment:
       NODE_ENV: production
       PORT: 3001
-      DATABASE_URL: mysql://solopay:pass@mysql:3306/solopay
       MYSQL_HOST: mysql
       MYSQL_PORT: 3306
       MYSQL_USER: solopay
@@ -103,18 +145,14 @@ services:
       REDIS_HOST: redis
       REDIS_PORT: 6379
       BLOCKCHAIN_RPC_URL: https://rpc-amoy.polygon.technology
-      # Option 1: simple-relayer (local)
-      # RELAY_API_URL: http://simple-relayer:3001
-
-      # Option 2: relay-api (msq-relayer-service)
-      RELAY_API_URL: http://relay-api:8080
-      RELAY_API_KEY: ${RELAY_API_KEY:-amoy-dev-api-key}
+      # Relayer API keys per chain (resolved from DB relayer_url)
+      RELAY_API_KEY_80002: ${RELAY_API_KEY_80002:-amoy-dev-api-key}
       # Server signer private key for EIP-712 payment signatures
       # TODO: Set your signer private key (DO NOT COMMIT!)
       SIGNER_PRIVATE_KEY: '${SIGNER_PRIVATE_KEY}'
     depends_on:
-      mysql:
-        condition: service_healthy
+      database-sync:
+        condition: service_completed_successfully
       redis:
         condition: service_started
       # simple-relayer:
@@ -147,7 +185,8 @@ services:
       SOLO_PAY_API_KEY: '123'
       SOLO_PAY_PUBLIC_KEY: 'pk_test_demo'
     depends_on:
-      - gateway
+      gateway:
+        condition: service_healthy
     networks:
       - solo-pay-network
 

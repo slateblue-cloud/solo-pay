@@ -1,12 +1,10 @@
-import type { SoloPayConfig, PaymentRequest, RedirectMode } from '../types';
+import type { SoloPayConfig, PaymentRequest } from '../types';
 import { WidgetLauncher } from '../utils/widget-launcher';
 import { validatePaymentRequest } from '../utils/validators';
 
 /** Options for requestPayment */
 export interface RequestPaymentOptions {
-  /** Container element for embedded iframe (optional) */
-  iframeContainer?: HTMLElement;
-  /** Callback when widget is closed */
+  /** Callback when widget is closed (e.g. when user closes the popup on PC) */
   onClose?: () => void;
 }
 
@@ -14,7 +12,6 @@ interface SoloPayConfigInternal {
   publicKey: string;
   widgetUrl: string;
   debug: boolean;
-  redirectMode: RedirectMode;
 }
 
 /** Main SoloPay class */
@@ -31,7 +28,6 @@ export class SoloPay {
       publicKey: config.publicKey,
       widgetUrl: config.widgetUrl ?? 'https://widget.solo-pay.com',
       debug: config.debug ?? false,
-      redirectMode: config.redirectMode ?? 'auto',
     };
 
     this.widgetLauncher = new WidgetLauncher({
@@ -50,17 +46,11 @@ export class SoloPay {
   }
 
   /**
-   * Request a payment - opens widget in specified mode
+   * Open the payment widget. On PC opens a popup; on mobile redirects.
    * @param request Payment request parameters
-   * @param mode How to open the widget: 'auto' | 'redirect' | 'iframe'
-   * @param options Additional options (iframeContainer, onClose callback)
+   * @param options onClose callback when the widget/popup is closed
    */
-  requestPayment(
-    request: PaymentRequest,
-    mode?: RedirectMode,
-    options?: RequestPaymentOptions
-  ): void {
-    // Validate request
+  requestPayment(request: PaymentRequest, options?: RequestPaymentOptions): void {
     const validation = validatePaymentRequest(request);
     if (!validation.valid) {
       const errorMessages = Object.values(validation.errors).join(', ');
@@ -68,13 +58,7 @@ export class SoloPay {
     }
 
     this.log('Requesting payment:', request);
-
-    const redirectMode = mode ?? this.config.redirectMode;
-
-    this.widgetLauncher.open(request, redirectMode, {
-      iframeContainer: options?.iframeContainer,
-      onClose: options?.onClose,
-    });
+    this.widgetLauncher.open(request, { onClose: options?.onClose });
   }
 
   /**
@@ -84,7 +68,7 @@ export class SoloPay {
     return this.widgetLauncher.buildWidgetUrl(request);
   }
 
-  /** Close any open popup/iframe */
+  /** Close the payment popup if open. */
   closeWidget(): void {
     this.widgetLauncher.closeAll();
   }

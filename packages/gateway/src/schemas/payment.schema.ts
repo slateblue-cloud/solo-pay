@@ -2,17 +2,25 @@ import { z } from 'zod';
 import { decodeFunctionData } from 'viem';
 import PaymentGatewayV1Artifact from '@solo-pay/contracts/artifacts/src/PaymentGatewayV1.sol/PaymentGatewayV1.json';
 
-// Create payment request (POST /payment): orderId, amount, tokenAddress, successUrl, failUrl, webhookUrl optional
+// Create payment request (POST /payments): orderId, amount, tokenAddress, successUrl, failUrl, currency?
 export const CreatePaymentSchema = z
   .object({
-    orderId: z.string().min(1, 'orderId is required'),
+    orderId: z
+      .string()
+      .trim()
+      .min(1, 'orderId is required')
+      .max(255, 'orderId must be 255 characters or less')
+      .regex(
+        /^[a-zA-Z0-9_\-.:]+$/,
+        'orderId must contain only alphanumeric characters, hyphens, underscores, dots, and colons'
+      ),
     amount: z.number().positive('amount must be positive'),
     tokenAddress: z
       .string()
       .regex(/^0x[a-fA-F0-9]{40}$/, 'tokenAddress must be a valid Ethereum address (0x + 40 hex)'),
     successUrl: z.string().url('successUrl must be a valid URL'),
     failUrl: z.string().url('failUrl must be a valid URL'),
-    webhookUrl: z.string().url().optional(),
+    currency: z.string().min(1).max(10).optional(), // fiat currency code (e.g., USD, KRW); when set, amount is fiat
   })
   .strict(); // Reject unknown keys so only allowed params are accepted
 
@@ -46,8 +54,18 @@ export const PaymentStatusSchema = z.object({
   tokenAddress: z.string(),
   tokenSymbol: z.string(),
   treasuryAddress: z.string(),
-  status: z.enum(['pending', 'confirmed', 'failed', 'completed']),
+  status: z.enum([
+    'pending',
+    'escrowed',
+    'finalized',
+    'cancelled',
+    'refunded',
+    'confirmed',
+    'failed',
+    'completed',
+  ]),
   transactionHash: z.string().optional(),
+  releaseTxHash: z.string().optional(),
   blockNumber: z.number().optional(),
   createdAt: z.string(),
   updatedAt: z.string(),
