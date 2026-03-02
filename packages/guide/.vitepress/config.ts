@@ -18,6 +18,7 @@ const koDeveloperSidebar = [
       { text: '결제 생성', link: '/ko/payments/create' },
       { text: '상태 조회', link: '/ko/payments/status' },
       { text: '결제 내역', link: '/ko/payments/history' },
+      { text: '결제 확정 및 취소', link: '/ko/payments/finalize' },
       { text: 'Webhook 설정', link: '/ko/webhooks/' },
       { text: '서명 검증', link: '/ko/webhooks/verify' },
       { text: '이벤트 상세', link: '/ko/webhooks/events' },
@@ -58,6 +59,7 @@ const enDeveloperSidebar = [
       { text: 'Create Payment', link: '/en/payments/create' },
       { text: 'Payment Status', link: '/en/payments/status' },
       { text: 'Payment History', link: '/en/payments/history' },
+      { text: 'Finalize & Cancel', link: '/en/payments/finalize' },
       { text: 'Webhook Setup', link: '/en/webhooks/' },
       { text: 'Signature Verification', link: '/en/webhooks/verify' },
       { text: 'Event Details', link: '/en/webhooks/events' },
@@ -146,7 +148,7 @@ export default defineConfig({
   },
 
   themeConfig: {
-    socialLinks: [{ icon: 'github', link: 'https://github.com/globalmsq/solopay-monorepo' }],
+    socialLinks: [{ icon: 'github', link: 'https://github.com/supertrust/solo-pay' }],
 
     search: {
       provider: 'local',

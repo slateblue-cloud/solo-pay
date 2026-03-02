@@ -9,8 +9,8 @@ How to contribute to the SoloPay project.
 ### 1. Clone Repository
 
 ```bash
-git clone https://github.com/globalmsq/solopay-monorepo.git
-cd solopay-monorepo
+git clone https://github.com/supertrust/solo-pay.git
+cd solo-pay
 ```
 
 ### 2. Install Dependencies
@@ -160,7 +160,7 @@ git push origin feature/your-feature
 ## Directory Structure
 
 ```
-solopay-monorepo/
+solo-pay/
 ├── packages/
 │   ├── contracts/        # Smart Contracts (Hardhat)
 │   ├── demo/             # Demo Web App (Next.js)
@@ -281,8 +281,8 @@ docs/
 
 ## Need Help?
 
-- **Issue**: https://github.com/globalmsq/solopay-monorepo/issues
-- **Discussions**: https://github.com/globalmsq/solopay-monorepo/discussions
+- **Issue**: https://github.com/supertrust/solo-pay/issues
+- **Discussions**: https://github.com/supertrust/solo-pay/discussions
 - **Email**: support@msq.com
 
 ## Related Documentation

@@ -20,7 +20,7 @@ curl "https://pay-api.staging.msq.com/api/v1/merchant/payments/0xabc123..." \
 {
   "paymentId": "0xabc123...",
   "orderId": "order-001",
-  "status": "CONFIRMED",
+  "status": "FINALIZED",
   "amount": "10500000000000000000",
   "tokenSymbol": "SUT",
   "tokenDecimals": 18,
@@ -34,18 +34,18 @@ curl "https://pay-api.staging.msq.com/api/v1/merchant/payments/0xabc123..." \
 
 ## Response Fields
 
-| Field           | Type     | Description                                            |
-| --------------- | -------- | ------------------------------------------------------ |
-| `paymentId`     | `string` | Unique payment identifier (bytes32 hash)               |
-| `orderId`       | `string` | Merchant order ID                                      |
-| `status`        | `string` | CREATED \| PENDING \| CONFIRMED \| FAILED \| EXPIRED   |
-| `amount`        | `string` | Amount in wei                                          |
-| `tokenSymbol`   | `string` | Token symbol                                           |
-| `tokenDecimals` | `number` | Token decimals                                         |
-| `txHash`        | `string` | On-chain transaction hash (present after confirmation) |
-| `payerAddress`  | `string` | Payer wallet address (present after confirmation)      |
-| `confirmedAt`   | `string` | Payment confirmation timestamp                         |
-| `expiresAt`     | `string` | Payment expiry timestamp                               |
+| Field           | Type     | Description                                                                                                                |
+| --------------- | -------- | -------------------------------------------------------------------------------------------------------------------------- |
+| `paymentId`     | `string` | Unique payment identifier (bytes32 hash)                                                                                   |
+| `orderId`       | `string` | Merchant order ID                                                                                                          |
+| `status`        | `string` | CREATED, ESCROWED, FINALIZE_SUBMITTED, FINALIZED, CANCEL_SUBMITTED, CANCELLED, REFUND_SUBMITTED, REFUNDED, EXPIRED, FAILED |
+| `amount`        | `string` | Amount in wei                                                                                                              |
+| `tokenSymbol`   | `string` | Token symbol                                                                                                               |
+| `tokenDecimals` | `number` | Token decimals                                                                                                             |
+| `txHash`        | `string` | On-chain transaction hash (present after confirmation)                                                                     |
+| `payerAddress`  | `string` | Payer wallet address (present after confirmation)                                                                          |
+| `confirmedAt`   | `string` | Payment confirmation timestamp                                                                                             |
+| `expiresAt`     | `string` | Payment expiry timestamp                                                                                                   |
 
 ## On-chain Query via Subgraph
 

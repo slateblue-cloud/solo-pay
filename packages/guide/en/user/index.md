@@ -47,7 +47,7 @@ A **Signature request** popup will appear. This is the final payment authorizati
 
 ### Step 6: Payment Complete
 
-When the **Payment Complete** screen appears, your payment has been processed. Click **Confirm** to return to the merchant page.
+When the **Payment Complete** screen appears, your payment has been processed and the funds are held securely. Click **Confirm** to return to the merchant page. The merchant will then complete the order (release the payment) or cancel (refund you); you don't need to do anything else.
 
 ![Payment complete](/images/user-guide/06-payment-complete.png)
 
@@ -79,7 +79,7 @@ A **Signature request** popup will appear. This is the final payment authorizati
 
 ### Step 6: Payment Complete
 
-When the **Payment Complete** screen appears, your payment has been processed. Click **Confirm** to return to the merchant page.
+When the **Payment Complete** screen appears, your payment has been processed and the funds are held securely. Click **Confirm** to return to the merchant page. The merchant will then complete the order (release the payment) or cancel (refund you); you don't need to do anything else.
 
 ![Payment complete](/images/user-guide/06-payment-complete.png)
 
@@ -96,3 +96,7 @@ When the **Payment Complete** screen appears, your payment has been processed. C
 3. **Trust Wallet shows "Warning! You could lose all your tokens!"**
 
    This is Trust Wallet's built-in security warning for Permit-type signature requests. SoloPay is a verified service — click **Continue anyway** to proceed safely.
+
+4. **The merchant says my payment is still processing. Why?**
+
+   As soon as you see **Payment Complete**, your payment is secured (funds are held). The merchant will finalize it after confirming your order, or cancel and refund you if needed. This usually takes a short time — no action is required from you.

@@ -20,7 +20,7 @@ curl "https://pay-api.staging.msq.com/api/v1/merchant/payments/0xabc123..." \
 {
   "paymentId": "0xabc123...",
   "orderId": "order-001",
-  "status": "CONFIRMED",
+  "status": "FINALIZED",
   "amount": "10500000000000000000",
   "tokenSymbol": "SUT",
   "tokenDecimals": 18,
@@ -34,18 +34,18 @@ curl "https://pay-api.staging.msq.com/api/v1/merchant/payments/0xabc123..." \
 
 ## 응답 필드
 
-| 필드            | 타입     | 설명                                                 |
-| --------------- | -------- | ---------------------------------------------------- |
-| `paymentId`     | `string` | 결제 고유 식별자 (bytes32 해시)                      |
-| `orderId`       | `string` | 가맹점 주문 ID                                       |
-| `status`        | `string` | CREATED \| PENDING \| CONFIRMED \| FAILED \| EXPIRED |
-| `amount`        | `string` | wei 단위 금액                                        |
-| `tokenSymbol`   | `string` | 토큰 심볼                                            |
-| `tokenDecimals` | `number` | 토큰 소수점                                          |
-| `txHash`        | `string` | 온체인 트랜잭션 해시 (확정 후 존재)                  |
-| `payerAddress`  | `string` | 결제자 지갑 주소 (확정 후 존재)                      |
-| `confirmedAt`   | `string` | 결제 확정 시각                                       |
-| `expiresAt`     | `string` | 결제 만료 시각                                       |
+| 필드            | 타입     | 설명                                                                                                                       |
+| --------------- | -------- | -------------------------------------------------------------------------------------------------------------------------- |
+| `paymentId`     | `string` | 결제 고유 식별자 (bytes32 해시)                                                                                            |
+| `orderId`       | `string` | 가맹점 주문 ID                                                                                                             |
+| `status`        | `string` | CREATED, ESCROWED, FINALIZE_SUBMITTED, FINALIZED, CANCEL_SUBMITTED, CANCELLED, REFUND_SUBMITTED, REFUNDED, EXPIRED, FAILED |
+| `amount`        | `string` | wei 단위 금액                                                                                                              |
+| `tokenSymbol`   | `string` | 토큰 심볼                                                                                                                  |
+| `tokenDecimals` | `number` | 토큰 소수점                                                                                                                |
+| `txHash`        | `string` | 온체인 트랜잭션 해시 (확정 후 존재)                                                                                        |
+| `payerAddress`  | `string` | 결제자 지갑 주소 (확정 후 존재)                                                                                            |
+| `confirmedAt`   | `string` | 결제 확정 시각                                                                                                             |
+| `expiresAt`     | `string` | 결제 만료 시각                                                                                                             |
 
 ## Subgraph를 통한 온체인 조회
 

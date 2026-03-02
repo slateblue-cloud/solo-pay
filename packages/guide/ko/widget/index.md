@@ -97,7 +97,7 @@ https://myshop.com/payment/success?paymentId=0xabc123...
 URL 파라미터는 사용자가 조작할 수 있습니다. 반드시 상태 조회 API를 통해 최종 결제 상태를 검증하세요.
 :::
 
-`GET /api/v1/payments/:paymentId` API를 `x-public-key` 헤더와 함께 호출하여 `status === 'CONFIRMED'`와 금액을 확인한 후 주문을 완료 처리합니다. 이 엔드포인트는 브라우저에서 직접 호출할 수 있습니다.
+`GET /api/v1/payments/:paymentId` API를 `x-public-key` 헤더와 함께 호출하여 상태가 **ESCROWED** 또는 **FINALIZED**인지, 금액과 orderId가 일치하는지 확인한 후 주문을 완료 처리합니다. 이 엔드포인트는 브라우저에서 직접 호출할 수 있습니다.
 
 ## 다음 단계
 

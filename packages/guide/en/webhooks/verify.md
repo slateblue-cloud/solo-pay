@@ -17,7 +17,7 @@ curl https://pay-api.staging.msq.com/api/v1/payments/0xabc123... \
 
 **Verification Checklist**
 
-- [ ] Confirm `status === 'CONFIRMED'`
+- [ ] Confirm `status === 'ESCROWED'` or `status === 'FINALIZED'` (payment success)
 - [ ] Confirm `amount` matches order amount
 - [ ] Confirm `orderId` matches orderId stored in DB
 - [ ] Prevent duplicate processing for the same `paymentId`

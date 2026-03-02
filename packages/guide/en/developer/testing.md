@@ -34,7 +34,7 @@ This scenario covers tokens such as USDC that support EIP-2612 Permit.
 3. Create a payment session of 10 or more units via SoloPay and request a signature.
 4. **Verify results**:
    - Only a signature (Sign) popup should appear — no gas transaction.
-   - After signing, payment should be processed as `CONFIRMED` via the relayer.
+   - After signing, payment should be processed (status becomes `ESCROWED`) via the relayer.
    - MATIC balance should remain unchanged; only the test token balance should decrease correctly.
 
 ### Case B: Infinite Approve (Non-Permit Standard Token)

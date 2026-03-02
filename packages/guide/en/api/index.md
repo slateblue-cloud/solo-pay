@@ -12,11 +12,11 @@ Full SoloPay REST API specification.
 
 ## Authentication
 
-| Method     | Header         | Endpoints                                                                     |
-| ---------- | -------------- | ----------------------------------------------------------------------------- |
-| Public Key | `x-public-key` | POST /payments, GET /payments/:id, POST/GET /payments/:id/relay               |
-| API Key    | `x-api-key`    | GET /merchant/\*, POST /merchant/payment-methods, POST /refunds, GET /refunds |
-| None       | -              | GET /chains, GET /chains/tokens                                               |
+| Method     | Header         | Endpoints                                                                                                                             |
+| ---------- | -------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| Public Key | `x-public-key` | POST /payments, GET /payments/:id, POST/GET /payments/:id/relay                                                                       |
+| API Key    | `x-api-key`    | GET /merchant/\*, POST /merchant/payment-methods, POST /payments/:id/finalize, POST /payments/:id/cancel, POST /refunds, GET /refunds |
+| None       | -              | GET /chains, GET /chains/tokens                                                                                                       |
 
 ---
 
@@ -67,6 +67,8 @@ Create a payment. **Auth**: `x-public-key` + `Origin`
 
 Get payment status. **Auth**: `x-public-key`
 
+**Status values:** CREATED, ESCROWED, FINALIZE_SUBMITTED, FINALIZED, CANCEL_SUBMITTED, CANCELLED, REFUND_SUBMITTED, REFUNDED, EXPIRED, FAILED. Success = ESCROWED or FINALIZED.
+
 **Response (200)**
 
 ```json
@@ -74,22 +76,29 @@ Get payment status. **Auth**: `x-public-key`
   "success": true,
   "data": {
     "paymentId": "0xabc123...",
-    "status": "CONFIRMED",
+    "status": "ESCROWED",
     "amount": "10500000000000000000",
     "tokenAddress": "0xE4C687167705Abf55d709395f92e254bdF5825a2",
     "tokenSymbol": "SUT",
     "payerAddress": "0x...",
     "treasuryAddress": "0xMerchantWallet...",
     "transactionHash": "0xdef789...",
-    "blockNumber": 12345678,
+    "releaseTxHash": null,
     "payment_hash": "0xabc123...",
     "network_id": 80002,
     "token_symbol": "SUT",
+    "deadline": "1706281200",
+    "escrowDuration": "300",
     "createdAt": "2024-01-26T12:30:00Z",
     "updatedAt": "2024-01-26T12:35:42Z"
   }
 }
 ```
+
+- **transactionHash** — Hash of the escrow (pay) transaction. Present once the user has paid and the payment is ESCROWED or later.
+- **releaseTxHash** — Hash of the finalize or cancel transaction. Present when status is FINALIZE_SUBMITTED, FINALIZED, CANCEL_SUBMITTED, or CANCELLED; null otherwise.
+- **deadline** — Signature deadline (Unix timestamp) for the payment request; used when status is not yet terminal.
+- **escrowDuration** — Escrow duration in seconds. The merchant must call finalize before this duration elapses after the payment is escrowed; the exact escrow deadline (ISO datetime) is not returned by this API.
 
 ---
 
@@ -140,6 +149,36 @@ Get relay status. **Auth**: `x-public-key`
 ```
 
 **Status values**: `QUEUED` → `SUBMITTED` → `CONFIRMED` (or `FAILED`)
+
+---
+
+### POST /payments/:id/finalize
+
+Finalize an escrowed payment (release funds to merchant). **Auth**: `x-api-key` (merchant only). Payment must be ESCROWED; must be called before escrow deadline. No body.
+
+**Response (200)** — `data.status` is the relay submission state (e.g. `submitted`, `pending`). Payment status in DB becomes `FINALIZE_SUBMITTED`; after on-chain confirm it becomes `FINALIZED`.
+
+```json
+{
+  "success": true,
+  "data": {
+    "paymentId": "0xabc123...",
+    "relayRequestId": "uuid-...",
+    "transactionHash": null,
+    "status": "submitted"
+  }
+}
+```
+
+Errors: 400 (INVALID_STATUS, ESCROW_EXPIRED), 403 (FORBIDDEN), 404 (PAYMENT_NOT_FOUND), 409 (CONFLICT). See [Finalize & Cancel](/en/payments/finalize).
+
+---
+
+### POST /payments/:id/cancel
+
+Cancel an escrowed payment (return funds to buyer). **Auth**: `x-api-key` (merchant only). Payment must be ESCROWED. No body. After escrow deadline, anyone can cancel on-chain without this API.
+
+**Response (200)** — Same shape as finalize: `data.status` is relay submission state (e.g. `submitted`, `pending`). Payment status becomes `CANCEL_SUBMITTED` then `CANCELLED` after on-chain confirm. Errors: 400 (INVALID_STATUS), 403, 404, 409.
 
 ---
 
@@ -223,7 +262,7 @@ Request a refund. **Auth**: `x-api-key`
 {
   "success": true,
   "data": {
-    "refundId": "uuid-...",
+    "refundId": "0xabcd...",
     "paymentId": "0xabc123...",
     "amount": "10500000000000000000",
     "tokenAddress": "0x...",

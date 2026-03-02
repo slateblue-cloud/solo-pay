@@ -9,8 +9,8 @@ SoloPay 프로젝트에 기여하는 방법입니다.
 ### 1. 저장소 클론
 
 ```bash
-git clone https://github.com/globalmsq/solopay-monorepo.git
-cd solopay-monorepo
+git clone https://github.com/supertrust/solo-pay.git
+cd solo-pay
 ```
 
 ### 2. 의존성 설치
@@ -160,7 +160,7 @@ git push origin feature/your-feature
 ## 디렉토리 구조
 
 ```
-solopay-monorepo/
+solo-pay/
 ├── packages/
 │   ├── contracts/        # Smart Contracts (Hardhat)
 │   ├── demo/             # Demo Web App (Next.js)
@@ -281,8 +281,8 @@ docs/
 
 ## 도움이 필요하신가요?
 
-- **Issue**: https://github.com/globalmsq/solopay-monorepo/issues
-- **Discussions**: https://github.com/globalmsq/solopay-monorepo/discussions
+- **Issue**: https://github.com/supertrust/solo-pay/issues
+- **Discussions**: https://github.com/supertrust/solo-pay/discussions
 - **Email**: support@msq.com
 
 ## 관련 문서

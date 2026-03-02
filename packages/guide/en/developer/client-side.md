@@ -66,7 +66,7 @@ const result = await response.json();
 
 **Verification Checklist**
 
-- [ ] Confirm `status === 'CONFIRMED'`
+- [ ] Confirm `status === 'ESCROWED'` or `status === 'FINALIZED'`
 - [ ] Confirm `amount` matches order amount
 - [ ] Confirm `tokenAddress` matches the expected token
 - [ ] Confirm `orderId` matches the expected orderId

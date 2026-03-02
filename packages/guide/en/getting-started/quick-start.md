@@ -42,29 +42,30 @@ curl https://pay-api.staging.msq.com/api/v1/payments/0xabc123... \
   -H "x-public-key: pk_test_xxxxx"
 ```
 
-Only mark the order complete when `status === 'CONFIRMED'` and `amount`, `tokenAddress`, and `orderId` all match.
+Only mark the order complete when `status === 'ESCROWED'` or `status === 'FINALIZED'` and `amount`, `tokenAddress`, and `orderId` all match.
+
+If you use escrow, after payment is **ESCROWED** your backend can call **POST /payments/:id/finalize** to release funds to your wallet. See [Finalize & Cancel](/en/payments/finalize).
 
 ## Payment Status Flow
 
 ```
-CREATED ──────▶ PENDING ──────▶ CONFIRMED
-    │              │
-    │              ▼
-    │           FAILED
-    ▼
- EXPIRED (after 30 minutes)
+CREATED ──► ESCROWED ──► FINALIZE_SUBMITTED ──► FINALIZED
+                    └──► CANCEL_SUBMITTED   ──► CANCELLED
+CREATED ──► EXPIRED
+CREATED ──► FAILED
 ```
 
-| Status      | Description                                   |
-| ----------- | --------------------------------------------- |
-| `CREATED`   | Payment created, awaiting user action         |
-| `PENDING`   | Transaction submitted, awaiting block confirm |
-| `CONFIRMED` | Payment complete                              |
-| `FAILED`    | Transaction failed                            |
-| `EXPIRED`   | Expired (30 minutes exceeded)                 |
+| Status      | Description                   |
+| ----------- | ----------------------------- |
+| `CREATED`   | Payment created               |
+| `ESCROWED`  | User paid; funds in escrow    |
+| `FINALIZED` | Funds released to merchant    |
+| `FAILED`    | Transaction failed            |
+| `EXPIRED`   | Expired (30 minutes exceeded) |
 
 ## Next Steps
 
+- [Finalize & Cancel](/en/payments/finalize) - Release or cancel escrowed payments
 - [Authentication](/en/getting-started/authentication) - API Key / Public Key details
 - [Client-Side Integration](/en/developer/client-side) - Step-by-step implementation guide
 - [Create Payment API](/en/payments/create) - Detailed payment API guide

@@ -42,29 +42,30 @@ curl https://pay-api.staging.msq.com/api/v1/payments/0xabc123... \
   -H "x-public-key: pk_test_xxxxx"
 ```
 
-`status === 'CONFIRMED'`이고 `amount`, `tokenAddress`, `orderId`가 일치할 때만 주문을 완료 처리합니다.
+`status === 'ESCROWED'` 또는 `status === 'FINALIZED'`이고 `amount`, `tokenAddress`, `orderId`가 일치할 때만 주문을 완료 처리합니다.
+
+에스크로를 사용하는 경우, 결제가 **ESCROWED**가 된 후 백엔드에서 **POST /payments/:id/finalize**를 호출하여 자금을 본인 지갑으로 해제할 수 있습니다. [결제 확정 및 취소](/ko/payments/finalize)를 참조하세요.
 
 ## 결제 상태 흐름
 
 ```
-CREATED ──────▶ PENDING ──────▶ CONFIRMED
-    │              │
-    │              ▼
-    │           FAILED
-    ▼
- EXPIRED (30분 초과)
+CREATED ──► ESCROWED ──► FINALIZE_SUBMITTED ──► FINALIZED
+                    └──► CANCEL_SUBMITTED   ──► CANCELLED
+CREATED ──► EXPIRED
+CREATED ──► FAILED
 ```
 
-| 상태        | 설명                            |
-| ----------- | ------------------------------- |
-| `CREATED`   | 결제 생성됨, 사용자 액션 대기   |
-| `PENDING`   | 트랜잭션 전송됨, 블록 확정 대기 |
-| `CONFIRMED` | 결제 완료                       |
-| `FAILED`    | 트랜잭션 실패                   |
-| `EXPIRED`   | 30분 초과로 만료                |
+| 상태        | 설명                       |
+| ----------- | -------------------------- |
+| `CREATED`   | 결제 생성됨                |
+| `ESCROWED`  | 사용자 결제 완료, 에스크로 |
+| `FINALIZED` | 자금 머천트로 해제됨       |
+| `FAILED`    | 트랜잭션 실패              |
+| `EXPIRED`   | 만료 (30분 초과)           |
 
 ## 다음 단계
 
+- [결제 확정 및 취소](/ko/payments/finalize) - 에스크로 결제 확정/취소
 - [인증](/ko/getting-started/authentication) - API Key / Public Key 상세 사용법
 - [클라이언트 사이드 연동](/ko/developer/client-side) - 단계별 구현 가이드
 - [결제 생성 API](/ko/payments/create) - 결제 API 상세 가이드

@@ -18,25 +18,61 @@
 }
 ```
 
-## payment.confirmed
+## payment.escrowed
 
-::: tip Key Event
-`payment.confirmed` is the most important event. Process order completion upon receiving it.
-:::
+Payment escrowed on-chain; user has paid and funds are held in escrow. Merchant can finalize (release to merchant) or cancel (return to buyer).
 
 ```json
 {
-  "event": "payment.confirmed",
-  "timestamp": "2024-01-26T12:35:42Z",
+  "event": "payment.escrowed",
+  "timestamp": "2024-01-26T12:35:00Z",
   "data": {
     "paymentId": "0xabc123...",
-    "status": "CONFIRMED",
+    "status": "ESCROWED",
     "amount": "10500000000000000000",
     "tokenSymbol": "SUT",
     "payerAddress": "0x1234567890abcdef...",
     "txHash": "0xdef789...",
     "orderId": "order-001",
-    "confirmedAt": "2024-01-26T12:35:42Z"
+    "escrowedAt": "2024-01-26T12:35:00Z"
+  }
+}
+```
+
+## payment.finalized
+
+Funds released to merchant. Terminal success state for the finalize flow.
+
+```json
+{
+  "event": "payment.finalized",
+  "timestamp": "2024-01-26T12:36:00Z",
+  "data": {
+    "paymentId": "0xabc123...",
+    "status": "FINALIZED",
+    "amount": "10500000000000000000",
+    "tokenSymbol": "SUT",
+    "payerAddress": "0x1234567890abcdef...",
+    "txHash": "0xdef789...",
+    "orderId": "order-001",
+    "finalizedAt": "2024-01-26T12:36:00Z"
+  }
+}
+```
+
+## payment.cancelled
+
+Escrowed payment was cancelled; funds returned to buyer.
+
+```json
+{
+  "event": "payment.cancelled",
+  "timestamp": "2024-01-26T12:36:00Z",
+  "data": {
+    "paymentId": "0xabc123...",
+    "status": "CANCELLED",
+    "orderId": "order-001",
+    "cancelledAt": "2024-01-26T12:36:00Z"
   }
 }
 ```
@@ -79,9 +115,16 @@ async function handleWebhook(event: any) {
     case 'payment.created':
       await updateOrderStatus(data.orderId, 'PENDING_PAYMENT');
       break;
-    case 'payment.confirmed':
+    case 'payment.escrowed':
+      await updateOrderStatus(data.orderId, 'PAID_ESCROW');
+      // Optionally complete order here, or wait for payment.finalized
+      break;
+    case 'payment.finalized':
       await completeOrder(data.orderId);
       await sendNotification(data.payerAddress, 'Payment complete');
+      break;
+    case 'payment.cancelled':
+      await cancelOrder(data.orderId);
       break;
     case 'payment.failed':
       await updateOrderStatus(data.orderId, 'PAYMENT_FAILED');
@@ -95,5 +138,7 @@ async function handleWebhook(event: any) {
 
 ## Next Steps
 
+- [Payment Status](/en/payments/status) - All status values
+- [Finalize & Cancel](/en/payments/finalize) - Release or cancel after escrowed
 - [API Reference](/en/api/) - Full API spec
 - [Error Codes](/en/api/errors) - Error handling

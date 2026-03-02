@@ -12,11 +12,11 @@ SoloPay REST API 전체 명세입니다.
 
 ## 인증
 
-| 방식       | 헤더           | 사용 엔드포인트                                                                      |
-| ---------- | -------------- | ------------------------------------------------------------------------------------ |
-| Public Key | `x-public-key` | POST /payments, GET /payments/:id, POST /payments/:id/relay, GET /payments/:id/relay |
-| API Key    | `x-api-key`    | GET /merchant/\*, POST /merchant/payment-methods, POST /refunds, GET /refunds        |
-| 없음       | -              | GET /chains, GET /chains/tokens                                                      |
+| 방식       | 헤더           | 사용 엔드포인트                                                                                                                       |
+| ---------- | -------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| Public Key | `x-public-key` | POST /payments, GET /payments/:id, POST /payments/:id/relay, GET /payments/:id/relay                                                  |
+| API Key    | `x-api-key`    | GET /merchant/\*, POST /merchant/payment-methods, POST /payments/:id/finalize, POST /payments/:id/cancel, POST /refunds, GET /refunds |
+| 없음       | -              | GET /chains, GET /chains/tokens                                                                                                       |
 
 ## 공통 응답 형식
 
@@ -103,6 +103,8 @@ SoloPay REST API 전체 명세입니다.
 
 **인증**: `x-public-key` 헤더 (GET 요청에서 Origin 대신 `x-origin` 헤더 사용 가능)
 
+**상태 값:** CREATED, ESCROWED, FINALIZE_SUBMITTED, FINALIZED, CANCEL_SUBMITTED, CANCELLED, REFUND_SUBMITTED, REFUNDED, EXPIRED, FAILED. 성공 = ESCROWED 또는 FINALIZED.
+
 **Response (200)**
 
 ```json
@@ -110,22 +112,29 @@ SoloPay REST API 전체 명세입니다.
   "success": true,
   "data": {
     "paymentId": "0xabc123...",
-    "status": "CONFIRMED",
+    "status": "ESCROWED",
     "amount": "10500000000000000000",
     "tokenAddress": "0xE4C687167705Abf55d709395f92e254bdF5825a2",
     "tokenSymbol": "SUT",
     "payerAddress": "0x...",
     "treasuryAddress": "0xMerchantWallet...",
     "transactionHash": "0xdef789...",
-    "blockNumber": 12345678,
-    "createdAt": "2024-01-26T12:30:00Z",
-    "updatedAt": "2024-01-26T12:35:42Z",
+    "releaseTxHash": null,
     "payment_hash": "0xabc123...",
     "network_id": 80002,
-    "token_symbol": "SUT"
+    "token_symbol": "SUT",
+    "deadline": "1706281200",
+    "escrowDuration": "300",
+    "createdAt": "2024-01-26T12:30:00Z",
+    "updatedAt": "2024-01-26T12:35:42Z"
   }
 }
 ```
+
+- **transactionHash** — 에스크로(결제) 트랜잭션 해시. 사용자가 결제 완료 후 ESCROWED 이상일 때 존재합니다.
+- **releaseTxHash** — 확정(finalize) 또는 취소(cancel) 트랜잭션 해시. 상태가 FINALIZE_SUBMITTED, FINALIZED, CANCEL_SUBMITTED, CANCELLED일 때 존재하며, 그 외에는 null입니다.
+- **deadline** — 결제 요청 서명 만료 시각(Unix 타임스탬프). 종료 상태가 아닐 때 사용됩니다.
+- **escrowDuration** — 에스크로 유지 시간(초). 머천트는 결제가 에스크로된 시점부터 이 시간 이내에 finalize를 호출해야 합니다. 에스크로 기한의 정확한 일시(ISO)는 이 API에서 반환하지 않습니다.
 
 ---
 
@@ -193,6 +202,36 @@ Relay 요청 상태를 조회합니다.
 | `SUBMITTED` | 트랜잭션 제출됨    |
 | `CONFIRMED` | 트랜잭션 확정 완료 |
 | `FAILED`    | 트랜잭션 실패      |
+
+---
+
+### POST /payments/:id/finalize
+
+에스크로된 결제를 확정합니다(자금을 머천트로 해제). **인증**: `x-api-key`(머천트만). 결제는 ESCROWED 상태여야 하며, 에스크로 기한 내에 호출해야 합니다. 요청 본문 없음.
+
+**Response (200)** — `data.status`는 릴레이 제출 상태(예: `submitted`, `pending`). 결제 상태는 DB에서 `FINALIZE_SUBMITTED`가 되며, 온체인 확정 후 `FINALIZED`가 됩니다.
+
+```json
+{
+  "success": true,
+  "data": {
+    "paymentId": "0xabc123...",
+    "relayRequestId": "uuid-...",
+    "transactionHash": null,
+    "status": "submitted"
+  }
+}
+```
+
+에러: 400 (INVALID_STATUS, ESCROW_EXPIRED), 403 (FORBIDDEN), 404 (PAYMENT_NOT_FOUND), 409 (CONFLICT). [결제 확정 및 취소](/ko/payments/finalize) 참조.
+
+---
+
+### POST /payments/:id/cancel
+
+에스크로된 결제를 취소합니다(자금을 구매자에게 환불). **인증**: `x-api-key`(머천트만). 결제는 ESCROWED 상태여야 합니다. 요청 본문 없음. 에스크로 기한이 지나면 이 API 없이 누구나 온체인에서 취소할 수 있습니다.
+
+**Response (200)** — finalize와 동일 형식. `data.status`는 릴레이 제출 상태(예: `submitted`, `pending`). 결제 상태는 `CANCEL_SUBMITTED` 후 온체인 확정 시 `CANCELLED`가 됩니다. 에러: 400 (INVALID_STATUS), 403, 404, 409.
 
 ---
 
@@ -300,7 +339,7 @@ Relay 요청 상태를 조회합니다.
 {
   "success": true,
   "data": {
-    "refundId": "uuid-...",
+    "refundId": "0xabcd...",
     "paymentId": "0xabc123...",
     "amount": "10500000000000000000",
     "tokenAddress": "0x...",

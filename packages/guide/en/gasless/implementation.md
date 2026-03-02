@@ -202,7 +202,7 @@ const relayStatus = await fetch(
 const paymentStatus = await fetch(`https://pay-api.staging.msq.com/api/v1/payments/${paymentId}`, {
   headers: { 'x-public-key': 'pk_test_xxxxx' },
 }).then((r) => r.json());
-// paymentStatus.data.status: 'CREATED' | 'PENDING' | 'CONFIRMED' | 'FAILED'
+// paymentStatus.data.status: 'CREATED' | 'ESCROWED' | 'FINALIZE_SUBMITTED' | 'FINALIZED' | 'CANCEL_SUBMITTED' | 'CANCELLED' | 'REFUND_SUBMITTED' | 'REFUNDED' | 'EXPIRED' | 'FAILED'
 ```
 
 ## Full Example (React + wagmi)
@@ -271,13 +271,13 @@ function GaslessPayment({ payment }) {
 
 ## Error Handling
 
-| Error Code               | Cause                          | Resolution                                          |
-| ------------------------ | ------------------------------ | --------------------------------------------------- |
-| `INVALID_SIGNATURE`      | Invalid signature format       | Ensure signature is a hex string starting with `0x` |
-| `INVALID_PAYMENT_STATUS` | Payment not in CREATED/PENDING | Prevent duplicate requests on completed payments    |
-| `PAYMENT_EXPIRED`        | Payment expired                | Create a new payment and retry                      |
-| `RELAYER_NOT_CONFIGURED` | No Relayer for this chain      | Verify supported chains                             |
-| `VALIDATION_ERROR`       | Input validation failed        | Verify forwardRequest amount matches payment amount |
+| Error Code               | Cause                                                           | Resolution                                                         |
+| ------------------------ | --------------------------------------------------------------- | ------------------------------------------------------------------ |
+| `INVALID_SIGNATURE`      | Invalid signature format                                        | Ensure signature is a hex string starting with `0x`                |
+| `INVALID_PAYMENT_STATUS` | Payment in terminal state (e.g. ESCROWED, FINALIZED, CANCELLED) | Only send relay when status is CREATED; prevent duplicate requests |
+| `PAYMENT_EXPIRED`        | Payment expired                                                 | Create a new payment and retry                                     |
+| `RELAYER_NOT_CONFIGURED` | No Relayer for this chain                                       | Verify supported chains                                            |
+| `VALIDATION_ERROR`       | Input validation failed                                         | Verify forwardRequest amount matches payment amount                |
 
 ## Next Steps
 
