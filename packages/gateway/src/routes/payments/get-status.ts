@@ -161,8 +161,7 @@ For non-terminal statuses, a fresh server signature with a new deadline is gener
           onChain !== 'pending' ? onChainToApiStatus[onChain] : undefined;
 
         // When chain has definitive status, always derive response status from chain and sync DB
-        let finalStatus: string =
-          finalStatusFromChain ?? paymentData.status;
+        let finalStatus: string = finalStatusFromChain ?? paymentData.status;
 
         if (finalStatusFromChain) {
           const newStatus = finalStatusFromChain as import('@solo-pay/database').PaymentStatus;

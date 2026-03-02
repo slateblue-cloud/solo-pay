@@ -96,8 +96,14 @@ export function getTrustWalletDeeplink(url?: string): string {
 
 export function useWallet(): UseWalletReturn {
   const { address, isConnected, chain } = useAccount();
-  const { connect, connectors, isPending, error, variables: connectVariables, reset: resetConnect } =
-    useConnect();
+  const {
+    connect,
+    connectors,
+    isPending,
+    error,
+    variables: connectVariables,
+    reset: resetConnect,
+  } = useConnect();
   const { disconnect: wagmiDisconnect, disconnectAsync: wagmiDisconnectAsync } = useDisconnect();
 
   const [isMobile, setIsMobile] = useState(false);
@@ -140,13 +146,7 @@ export function useWallet(): UseWalletReturn {
       connect({ connector: metaMaskConnector });
     };
     run();
-  }, [
-    connect,
-    metaMaskConnector,
-    isConnected,
-    resetConnect,
-    wagmiDisconnectAsync,
-  ]);
+  }, [connect, metaMaskConnector, isConnected, resetConnect, wagmiDisconnectAsync]);
 
   const connectTrustWallet = useCallback(() => {
     if (typeof window === 'undefined') return;
@@ -172,13 +172,7 @@ export function useWallet(): UseWalletReturn {
       return;
     }
     window.open('https://trustwallet.com/browser-extension', '_blank');
-  }, [
-    connect,
-    trustWalletConnector,
-    isConnected,
-    resetConnect,
-    wagmiDisconnectAsync,
-  ]);
+  }, [connect, trustWalletConnector, isConnected, resetConnect, wagmiDisconnectAsync]);
 
   const connectInjected = useCallback(() => {
     if (!injectedConnector) return;
@@ -194,13 +188,7 @@ export function useWallet(): UseWalletReturn {
       connect({ connector: injectedConnector });
     };
     run();
-  }, [
-    connect,
-    injectedConnector,
-    isConnected,
-    resetConnect,
-    wagmiDisconnectAsync,
-  ]);
+  }, [connect, injectedConnector, isConnected, resetConnect, wagmiDisconnectAsync]);
 
   const disconnect = useCallback(() => {
     wagmiDisconnect();
