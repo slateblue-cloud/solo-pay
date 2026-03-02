@@ -96,8 +96,15 @@ export function getTrustWalletDeeplink(url?: string): string {
 
 export function useWallet(): UseWalletReturn {
   const { address, isConnected, chain } = useAccount();
-  const { connect, connectors, isPending, error, variables: connectVariables } = useConnect();
-  const { disconnect: wagmiDisconnect } = useDisconnect();
+  const {
+    connect,
+    connectors,
+    isPending,
+    error,
+    variables: connectVariables,
+    reset: resetConnect,
+  } = useConnect();
+  const { disconnect: wagmiDisconnect, disconnectAsync: wagmiDisconnectAsync } = useDisconnect();
 
   const [isMobile, setIsMobile] = useState(false);
   const [isTrustWalletBrowser, setIsTrustWalletBrowser] = useState(false);
@@ -125,15 +132,39 @@ export function useWallet(): UseWalletReturn {
   );
 
   const connectMetaMask = useCallback(() => {
-    if (metaMaskConnector) connect({ connector: metaMaskConnector });
-  }, [connect, metaMaskConnector]);
+    if (!metaMaskConnector) return;
+    const run = async () => {
+      // Reconnect after disconnect: clear connector state so "Connector already connected" (e.g. Firefox) is avoided
+      if (!isConnected) {
+        resetConnect();
+        try {
+          await wagmiDisconnectAsync({ connector: metaMaskConnector });
+        } catch {
+          // Connector may already be disconnected
+        }
+      }
+      connect({ connector: metaMaskConnector });
+    };
+    run();
+  }, [connect, metaMaskConnector, isConnected, resetConnect, wagmiDisconnectAsync]);
 
   const connectTrustWallet = useCallback(() => {
     if (typeof window === 'undefined') return;
 
     if (trustWalletConnector) {
-      requestEIP6963Providers();
-      connect({ connector: trustWalletConnector });
+      const run = async () => {
+        if (!isConnected) {
+          resetConnect();
+          try {
+            await wagmiDisconnectAsync({ connector: trustWalletConnector });
+          } catch {
+            // Connector may already be disconnected
+          }
+        }
+        requestEIP6963Providers();
+        connect({ connector: trustWalletConnector });
+      };
+      run();
       return;
     }
     if (detectMobile()) {
@@ -141,11 +172,23 @@ export function useWallet(): UseWalletReturn {
       return;
     }
     window.open('https://trustwallet.com/browser-extension', '_blank');
-  }, [connect, trustWalletConnector]);
+  }, [connect, trustWalletConnector, isConnected, resetConnect, wagmiDisconnectAsync]);
 
   const connectInjected = useCallback(() => {
-    if (injectedConnector) connect({ connector: injectedConnector });
-  }, [connect, injectedConnector]);
+    if (!injectedConnector) return;
+    const run = async () => {
+      if (!isConnected) {
+        resetConnect();
+        try {
+          await wagmiDisconnectAsync({ connector: injectedConnector });
+        } catch {
+          // Connector may already be disconnected
+        }
+      }
+      connect({ connector: injectedConnector });
+    };
+    run();
+  }, [connect, injectedConnector, isConnected, resetConnect, wagmiDisconnectAsync]);
 
   const disconnect = useCallback(() => {
     wagmiDisconnect();

@@ -95,7 +95,7 @@ export interface PaymentDetails {
   fiatAmount?: number;
   /** Token price at creation time */
   tokenPrice?: number;
-  /** Payment status */
+  /** Payment status (blockchain is source of truth when on-chain state is available; from GET /payments/:id) */
   status?:
     | 'CREATED'
     | 'ESCROWED'

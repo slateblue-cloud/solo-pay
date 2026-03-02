@@ -144,6 +144,8 @@ export interface GetPaymentStatusOptions {
 
 /**
  * Get payment status and full details (GET /payments/:id).
+ * Stateless: gateway uses blockchain as source of truth for status when on-chain state
+ * is available (escrowed/finalized/cancelled); the returned status reflects the contract state.
  */
 export async function getPaymentStatus(
   paymentId: string,

@@ -1,3 +1,8 @@
+/**
+ * Payment API hook: create payment, check status, wait for confirmation.
+ * Status from getPaymentStatus/pollPaymentStatus is stateless: gateway uses
+ * blockchain as source of truth when on-chain state is available.
+ */
 import { useState, useCallback } from 'react';
 import type { WidgetUrlParams, PaymentDetails } from '../types';
 import {
