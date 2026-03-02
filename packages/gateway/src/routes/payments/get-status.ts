@@ -202,8 +202,8 @@ For non-terminal statuses, a fresh server signature with a new deadline is gener
             const defaultEscrowDuration = Number(process.env.DEFAULT_ESCROW_DURATION) || 300;
             const escrowDuration = BigInt(merchantRecord.escrow_duration ?? defaultEscrowDuration);
 
-            const terminalStatuses = ['CONFIRMED', 'FINALIZED', 'CANCELLED', 'FAILED', 'EXPIRED'];
-            const isTerminal = terminalStatuses.includes(finalStatus);
+            const terminalStatuses = new Set(['CONFIRMED', 'FINALIZED', 'CANCELLED', 'FAILED', 'EXPIRED']);
+            const isTerminal = terminalStatuses.has(finalStatus);
 
             let serverSignature: Hex | string = '';
             let deadline = BigInt(0);
