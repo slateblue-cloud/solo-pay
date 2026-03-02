@@ -60,9 +60,7 @@ describe('RefundService', () => {
       mockPrisma.paymentEvent.create.mockResolvedValue({
         id: 1,
         payment_id: paymentId,
-        event_type: 'REFUND_REQUESTED',
-        old_status: null,
-        new_status: null,
+        event_type: 'REFUND_SUBMITTED',
         metadata: { refund_hash: refundHash, amount: '1000000000000000000' },
         created_at: new Date(),
       });
@@ -105,9 +103,7 @@ describe('RefundService', () => {
       mockPrisma.paymentEvent.create.mockResolvedValue({
         id: 2,
         payment_id: paymentId,
-        event_type: 'REFUND_REQUESTED',
-        old_status: null,
-        new_status: null,
+        event_type: 'REFUND_SUBMITTED',
         metadata: { refund_hash: refundHash, amount: '2000000000000000000' },
         created_at: new Date(),
       });
@@ -276,8 +272,6 @@ describe('RefundService', () => {
         id: 3,
         payment_id: paymentId,
         event_type: 'REFUND_SUBMITTED',
-        old_status: null,
-        new_status: null,
         metadata: { refund_hash: mockExisting.refund_hash, tx_hash: txHash },
         created_at: new Date(),
       });
@@ -321,9 +315,7 @@ describe('RefundService', () => {
       mockPrisma.paymentEvent.create.mockResolvedValue({
         id: 4,
         payment_id: paymentId,
-        event_type: 'REFUND_CONFIRMED',
-        old_status: null,
-        new_status: null,
+        event_type: 'REFUNDED',
         metadata: { refund_hash: mockExisting.refund_hash },
         created_at: new Date(),
       });
@@ -365,9 +357,7 @@ describe('RefundService', () => {
       mockPrisma.paymentEvent.create.mockResolvedValue({
         id: 5,
         payment_id: paymentId,
-        event_type: 'REFUND_FAILED',
-        old_status: null,
-        new_status: null,
+        event_type: 'FAILED',
         metadata: { refund_hash: mockExisting.refund_hash, error_message: errorMessage },
         created_at: new Date(),
       });
@@ -579,7 +569,7 @@ describe('RefundService', () => {
         token_decimals: 18,
         token_symbol: 'TEST',
         network_id: 31337,
-        status: 'CONFIRMED',
+        status: 'FINALIZED',
         tx_hash: null,
         release_tx_hash: null,
         expires_at: new Date(),

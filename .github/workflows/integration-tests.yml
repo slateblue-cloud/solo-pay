@@ -114,11 +114,12 @@ jobs:
         env:
           NODE_ENV: test
           PORT: 3001
+          CMC_API_KEY: dummy
         run: |
           cd packages/gateway
-          pnpm start &
+          pnpm start > /tmp/gateway.log 2>&1 &
           sleep 5
-          echo "gateway started"
+          echo "gateway started (pid=$!)"
 
       - name: Start simple-relayer
         env:
@@ -128,22 +129,30 @@ jobs:
           FORWARDER_ADDRESS: '0x5FbDB2315678afecb367f032d93F642f64180aa3'
         run: |
           cd packages/simple-relayer
-          pnpm start &
+          pnpm start > /tmp/simple-relayer.log 2>&1 &
           sleep 5
-          echo "simple-relayer started"
+          echo "simple-relayer started (pid=$!)"
 
       - name: Wait for services
         run: |
           echo "Waiting for services to be ready..."
+          READY=false
           for i in {1..30}; do
             if curl -sf $GATEWAY_URL/health > /dev/null 2>&1 && \
                curl -sf $RELAY_API_URL/health > /dev/null 2>&1; then
               echo "All services ready!"
+              READY=true
               break
             fi
             echo "Waiting... ($i/30)"
             sleep 2
           done
+          if [ "$READY" != "true" ]; then
+            echo "::error::Services failed to start"
+            echo "=== Gateway logs ===" && cat /tmp/gateway.log 2>/dev/null || true
+            echo "=== Relayer logs ===" && cat /tmp/simple-relayer.log 2>/dev/null || true
+            exit 1
+          fi
 
       - name: Check service health
         run: |

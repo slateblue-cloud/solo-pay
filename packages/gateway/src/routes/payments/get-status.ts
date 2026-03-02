@@ -156,7 +156,7 @@ For non-terminal statuses, a fresh server signature with a new deadline is gener
         const dbStatus = paymentData.status;
 
         const shouldSync =
-          (onChain === 'escrowed' && ['CREATED', 'PENDING'].includes(dbStatus)) ||
+          (onChain === 'escrowed' && ['CREATED'].includes(dbStatus)) ||
           (onChain === 'finalized' && ['ESCROWED', 'FINALIZE_SUBMITTED'].includes(dbStatus)) ||
           (onChain === 'cancelled' && ['ESCROWED', 'CANCEL_SUBMITTED'].includes(dbStatus));
 
@@ -206,7 +206,7 @@ For non-terminal statuses, a fresh server signature with a new deadline is gener
             const defaultEscrowDuration = Number(process.env.DEFAULT_ESCROW_DURATION) || 300;
             const escrowDuration = BigInt(merchantRecord.escrow_duration ?? defaultEscrowDuration);
 
-            const terminalStatuses = ['CONFIRMED', 'FAILED', 'EXPIRED', 'FINALIZED', 'CANCELLED'];
+            const terminalStatuses = ['FINALIZED', 'FAILED', 'EXPIRED', 'FINALIZED', 'CANCELLED'];
             const isTerminal = terminalStatuses.includes(finalStatus);
 
             let serverSignature: Hex | string = '';

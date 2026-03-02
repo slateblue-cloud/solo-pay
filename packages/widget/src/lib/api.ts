@@ -124,14 +124,15 @@ export interface PaymentStatusResponse extends PaymentDetails {
   paymentId: string;
   status:
     | 'CREATED'
-    | 'PENDING'
-    | 'PROCESSING'
-    | 'CONFIRMED'
-    | 'FAILED'
-    | 'EXPIRED'
     | 'ESCROWED'
+    | 'FINALIZE_SUBMITTED'
     | 'FINALIZED'
-    | 'CANCELLED';
+    | 'CANCEL_SUBMITTED'
+    | 'CANCELLED'
+    | 'REFUND_SUBMITTED'
+    | 'REFUNDED'
+    | 'EXPIRED'
+    | 'FAILED';
   txHash?: string;
   transactionHash?: string;
   confirmedAt?: string;
@@ -197,7 +198,7 @@ export async function pollPaymentStatus(
 
     onStatusChange?.(status);
 
-    if (status.status === 'CONFIRMED' || status.status === 'FINALIZED') {
+    if (status.status === 'FINALIZED') {
       return status;
     }
 

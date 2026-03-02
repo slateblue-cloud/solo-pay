@@ -14,7 +14,7 @@ describe('webhook-queue.service', () => {
     token_decimals: 6,
     token_symbol: 'USDC',
     network_id: 31337,
-    status: 'CONFIRMED' as const,
+    status: 'FINALIZED' as const,
     tx_hash: '0xtx',
     expires_at: new Date(),
     confirmed_at: new Date('2024-01-26T12:00:00.000Z'),
@@ -76,7 +76,7 @@ describe('webhook-queue.service', () => {
       const body = buildPaymentConfirmedBody(basePayment);
       expect(body.paymentId).toBe('0xabc');
       expect(body.orderId).toBe('order-1');
-      expect(body.status).toBe('CONFIRMED');
+      expect(body.status).toBe('FINALIZED');
       expect(body.txHash).toBe('0xtx');
       expect(body.amount).toBe('1000000');
       expect(body.tokenSymbol).toBe('USDC');

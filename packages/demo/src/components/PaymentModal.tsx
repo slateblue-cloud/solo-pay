@@ -283,7 +283,7 @@ export function PaymentModal({ product, onClose, onSuccess }: PaymentModalProps)
         const response = await getPaymentStatus(paymentId);
 
         if (response.success && response.data) {
-          if (response.data.status === 'CONFIRMED' || response.data.status === 'completed') {
+          if (response.data.status === 'FINALIZED') {
             return;
           }
           if (response.data.status === 'FAILED' || response.data.status === 'failed') {

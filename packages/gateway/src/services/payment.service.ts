@@ -116,14 +116,12 @@ export class PaymentService {
       throw new Error('Payment not found');
     }
 
-    const oldStatus = payment.status;
-
     // Update payment
     const updatedPayment = await this.prisma.payment.update({
       where: { id },
       data: {
         status: newStatus,
-        ...(newStatus === 'CONFIRMED' && { confirmed_at: new Date() }),
+        ...(newStatus === 'FINALIZED' && { confirmed_at: new Date() }),
         ...(newStatus === 'ESCROWED' && { confirmed_at: new Date() }),
         ...(newStatus === 'FINALIZED' && { finalized_at: new Date() }),
         ...(newStatus === 'CANCELLED' && { cancelled_at: new Date() }),
@@ -134,9 +132,7 @@ export class PaymentService {
     await this.prisma.paymentEvent.create({
       data: {
         payment_id: id,
-        event_type: 'STATUS_CHANGED',
-        old_status: oldStatus,
-        new_status: newStatus,
+        event_type: newStatus as string as import('@solo-pay/database').EventType,
       },
     });
 
@@ -159,8 +155,6 @@ export class PaymentService {
       throw new Error('Payment not found');
     }
 
-    const oldStatus = payment.status;
-
     // Determine which tx_hash column to write:
     // ESCROWED/PENDING → tx_hash (escrow tx), FINALIZED/CANCELLED → release_tx_hash
     const isRelease = newStatus === 'FINALIZED' || newStatus === 'CANCELLED';
@@ -175,7 +169,7 @@ export class PaymentService {
       data: {
         status: newStatus,
         ...txHashField,
-        ...(newStatus === 'CONFIRMED' && { confirmed_at: new Date() }),
+        ...(newStatus === 'FINALIZED' && { confirmed_at: new Date() }),
         ...(newStatus === 'ESCROWED' && { confirmed_at: new Date() }),
         ...(newStatus === 'FINALIZED' && { finalized_at: new Date() }),
         ...(newStatus === 'CANCELLED' && { cancelled_at: new Date() }),
@@ -186,9 +180,7 @@ export class PaymentService {
     await this.prisma.paymentEvent.create({
       data: {
         payment_id: payment.id,
-        event_type: 'STATUS_CHANGED',
-        old_status: oldStatus,
-        new_status: newStatus,
+        event_type: newStatus as string as import('@solo-pay/database').EventType,
       },
     });
 

@@ -163,7 +163,7 @@ export async function POST(request: NextRequest) {
       case 'ESCROWED':
         return handleEscrowed(orderId, localPayment, gatewayPayment);
 
-      case 'CONFIRMED':
+      case 'FINALIZED':
         return handleConfirmed(orderId, localPayment, gatewayPayment);
 
       case 'FINALIZED':
@@ -259,7 +259,7 @@ async function handleConfirmed(
   localPayment: { product_id: number },
   gatewayPayment: GatewayPaymentResponse
 ) {
-  if (gatewayPayment.status !== 'CONFIRMED') {
+  if (gatewayPayment.status !== 'FINALIZED') {
     console.error(
       `[webhook] Gateway status mismatch: expected CONFIRMED, got ${gatewayPayment.status}`
     );
@@ -283,7 +283,7 @@ async function handleConfirmed(
   await prisma.payment.update({
     where: { id: Number(orderId) },
     data: {
-      status: 'CONFIRMED',
+      status: 'FINALIZED',
       tx_hash: gatewayPayment.txHash ?? null,
       confirmed_at: gatewayPayment.confirmedAt ? new Date(gatewayPayment.confirmedAt) : new Date(),
     },

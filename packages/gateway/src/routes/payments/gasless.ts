@@ -139,10 +139,10 @@ Submits a gasless (meta-transaction) payment using ERC-2771 forwarder.
         }
 
         // 이미 처리된 결제인지 확인
-        if (payment.status !== 'CREATED' && payment.status !== 'PENDING') {
+        if (payment.status !== 'CREATED') {
           return reply.code(400).send({
             code: 'INVALID_PAYMENT_STATUS',
-            message: `결제 상태가 ${payment.status}입니다. Gasless 요청은 CREATED 또는 PENDING 상태에서만 가능합니다.`,
+            message: `결제 상태가 ${payment.status}입니다. Gasless 요청은 CREATED 상태에서만 가능합니다.`,
           });
         }
 
@@ -185,10 +185,7 @@ Submits a gasless (meta-transaction) payment using ERC-2771 forwarder.
           payment_id: payment.id,
         });
 
-        // Payment 상태를 PENDING으로 업데이트
-        if (payment.status === 'CREATED') {
-          await paymentService.updateStatus(payment.id, 'PENDING');
-        }
+        // Relay 제출 후에도 CREATED 유지 (온체인 확인 시 ESCROWED로 전환)
 
         return reply.code(202).send({
           success: true,

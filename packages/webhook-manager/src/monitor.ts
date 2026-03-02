@@ -156,7 +156,6 @@ export function startPaymentMonitor(options: MonitorOptions): { stop: () => Prom
 
       switch (data.status) {
         case 'CREATED':
-        case 'PENDING':
           await handleCreatedPending(data, onChainStatus, details);
           break;
 
@@ -210,7 +209,7 @@ export function startPaymentMonitor(options: MonitorOptions): { stop: () => Prom
       const updated = await prisma.payment.updateMany({
         where: {
           payment_hash: data.paymentHash,
-          status: { in: ['CREATED', 'PENDING'] },
+          status: { in: ['CREATED'] },
         },
         data: {
           status: 'ESCROWED',
@@ -228,8 +227,6 @@ export function startPaymentMonitor(options: MonitorOptions): { stop: () => Prom
         data: {
           payment_id: data.paymentId,
           event_type: 'ESCROWED',
-          old_status: data.status,
-          new_status: 'ESCROWED',
         },
       });
 
@@ -261,9 +258,7 @@ export function startPaymentMonitor(options: MonitorOptions): { stop: () => Prom
       await prisma.paymentEvent.create({
         data: {
           payment_id: data.paymentId,
-          event_type: 'FINALIZE_CONFIRMED',
-          old_status: 'ESCROWED',
-          new_status: 'FINALIZED',
+          event_type: 'FINALIZED',
         },
       });
 
@@ -292,9 +287,7 @@ export function startPaymentMonitor(options: MonitorOptions): { stop: () => Prom
       await prisma.paymentEvent.create({
         data: {
           payment_id: data.paymentId,
-          event_type: 'CANCEL_CONFIRMED',
-          old_status: 'ESCROWED',
-          new_status: 'CANCELLED',
+          event_type: 'CANCELLED',
         },
       });
 
@@ -337,9 +330,7 @@ export function startPaymentMonitor(options: MonitorOptions): { stop: () => Prom
       await prisma.paymentEvent.create({
         data: {
           payment_id: data.paymentId,
-          event_type: 'FINALIZE_CONFIRMED',
-          old_status: 'FINALIZE_SUBMITTED',
-          new_status: 'FINALIZED',
+          event_type: 'FINALIZED',
         },
       });
 
@@ -381,9 +372,7 @@ export function startPaymentMonitor(options: MonitorOptions): { stop: () => Prom
       await prisma.paymentEvent.create({
         data: {
           payment_id: data.paymentId,
-          event_type: 'CANCEL_CONFIRMED',
-          old_status: 'CANCEL_SUBMITTED',
-          new_status: 'CANCELLED',
+          event_type: 'CANCELLED',
         },
       });
 
@@ -407,7 +396,7 @@ export function startPaymentMonitor(options: MonitorOptions): { stop: () => Prom
       const payments = await prisma.payment.findMany({
         where: {
           status: {
-            in: ['CREATED', 'PENDING', 'ESCROWED', 'FINALIZE_SUBMITTED', 'CANCEL_SUBMITTED'],
+            in: ['CREATED', 'ESCROWED', 'FINALIZE_SUBMITTED', 'CANCEL_SUBMITTED'],
           },
           created_at: { gt: cutoff },
         },

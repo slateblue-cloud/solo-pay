@@ -32,7 +32,7 @@ async function syncPaymentStatusFromChain(
   type PaymentStatus = import('@solo-pay/database').PaymentStatus;
 
   const syncMap: Record<string, { from: string[]; to: PaymentStatus } | undefined> = {
-    escrowed: { from: ['CREATED', 'PENDING'], to: 'ESCROWED' },
+    escrowed: { from: ['CREATED'], to: 'ESCROWED' },
     finalized: { from: ['ESCROWED', 'FINALIZE_SUBMITTED'], to: 'FINALIZED' },
     cancelled: { from: ['ESCROWED', 'CANCEL_SUBMITTED'], to: 'CANCELLED' },
   };
@@ -122,15 +122,15 @@ export async function merchantPaymentRoute(
         type: 'string',
         enum: [
           'CREATED',
-          'PENDING',
           'ESCROWED',
           'FINALIZE_SUBMITTED',
-          'CANCEL_SUBMITTED',
-          'CONFIRMED',
           'FINALIZED',
+          'CANCEL_SUBMITTED',
           'CANCELLED',
-          'FAILED',
+          'REFUND_SUBMITTED',
+          'REFUNDED',
           'EXPIRED',
+          'FAILED',
         ],
       },
       amount: { type: 'string', description: 'Wei' },

@@ -98,14 +98,15 @@ export interface PaymentDetails {
   /** Payment status */
   status?:
     | 'CREATED'
-    | 'PENDING'
-    | 'PROCESSING'
     | 'ESCROWED'
-    | 'CONFIRMED'
-    | 'FAILED'
-    | 'EXPIRED'
+    | 'FINALIZE_SUBMITTED'
     | 'FINALIZED'
-    | 'CANCELLED';
+    | 'CANCEL_SUBMITTED'
+    | 'CANCELLED'
+    | 'REFUND_SUBMITTED'
+    | 'REFUNDED'
+    | 'EXPIRED'
+    | 'FAILED';
   /** Transaction hash */
   txHash?: string;
 }

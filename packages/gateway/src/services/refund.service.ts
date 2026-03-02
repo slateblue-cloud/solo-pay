@@ -45,11 +45,11 @@ export class RefundService {
       },
     });
 
-    // Create REFUND_REQUESTED event
+    // Create REFUND_SUBMITTED event (refund request created)
     await this.prisma.paymentEvent.create({
       data: {
         payment_id: input.payment_id,
-        event_type: 'REFUND_REQUESTED',
+        event_type: 'REFUND_SUBMITTED',
         metadata: {
           refund_hash: input.refund_hash,
           amount: input.amount.toString(),
@@ -173,16 +173,16 @@ export class RefundService {
     });
 
     // Create event based on status
-    let eventType: 'REFUND_SUBMITTED' | 'REFUND_CONFIRMED' | 'REFUND_FAILED';
+    let eventType: 'REFUND_SUBMITTED' | 'REFUNDED' | 'FAILED';
     switch (newStatus) {
       case 'SUBMITTED':
         eventType = 'REFUND_SUBMITTED';
         break;
       case 'CONFIRMED':
-        eventType = 'REFUND_CONFIRMED';
+        eventType = 'REFUNDED';
         break;
       case 'FAILED':
-        eventType = 'REFUND_FAILED';
+        eventType = 'FAILED';
         break;
       default:
         return updatedRefund;

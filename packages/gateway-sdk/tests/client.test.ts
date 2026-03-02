@@ -421,7 +421,7 @@ describe('SoloPayClient', () => {
         json: async () => ({
           success: true,
           data: {
-            status: 'CONFIRMED',
+            status: 'FINALIZED',
             transactionHash: '0xabc123',
             errorMessage: null,
             createdAt: '2025-11-29T10:00:00Z',
@@ -433,7 +433,7 @@ describe('SoloPayClient', () => {
       const result = await client.getRelayStatus('pay-123');
 
       expect(result.success).toBe(true);
-      expect(result.data.status).toBe('CONFIRMED');
+      expect(result.data.status).toBe('FINALIZED');
       expect(mockFetch).toHaveBeenCalledWith(
         'http://localhost:3001/api/v1/payments/pay-123/relay',
         expect.objectContaining({ method: 'GET' })
@@ -586,7 +586,7 @@ describe('SoloPayClient', () => {
         json: async () => ({
           paymentId: '0xabc',
           orderId: 'order-1',
-          status: 'CONFIRMED',
+          status: 'FINALIZED',
           amount: '1000',
           tokenSymbol: 'TEST',
           tokenDecimals: 18,
@@ -596,7 +596,7 @@ describe('SoloPayClient', () => {
       });
 
       const result = await client.getMerchantPaymentByOrderId('order-1');
-      expect(result.status).toBe('CONFIRMED');
+      expect(result.status).toBe('FINALIZED');
       expect(mockFetch).toHaveBeenCalledWith(
         'http://localhost:3001/api/v1/merchant/payments?orderId=order-1',
         expect.objectContaining({ method: 'GET' })

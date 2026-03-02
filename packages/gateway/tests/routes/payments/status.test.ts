@@ -33,7 +33,7 @@ describe('GET /payments/:id', () => {
     network_id: 31337,
     token_symbol: 'USDC',
     token_decimals: 6,
-    status: 'PENDING',
+    status: 'CREATED',
     amount: '1000000000000000000', // 1 token in wei (18 decimals)
     order_id: 'order_001',
     success_url: 'https://example.com/success',

@@ -216,15 +216,15 @@ export interface DeletePaymentMethodResponse {
 /** All possible payment statuses */
 export type PaymentStatus =
   | 'CREATED'
-  | 'PENDING'
-  | 'CONFIRMED'
-  | 'FAILED'
-  | 'EXPIRED'
   | 'ESCROWED'
   | 'FINALIZE_SUBMITTED'
-  | 'CANCEL_SUBMITTED'
   | 'FINALIZED'
-  | 'CANCELLED';
+  | 'CANCEL_SUBMITTED'
+  | 'CANCELLED'
+  | 'REFUND_SUBMITTED'
+  | 'REFUNDED'
+  | 'EXPIRED'
+  | 'FAILED';
 
 /** Response from GET /merchant/payments (by orderId) and GET /merchant/payments/:id */
 export interface MerchantPaymentDetailResponse {
