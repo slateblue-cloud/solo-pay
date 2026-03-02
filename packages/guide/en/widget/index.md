@@ -97,7 +97,7 @@ https://myshop.com/payment/success?paymentId=0xabc123...
 URL parameters can be manipulated by the user. Always verify the final payment status by calling the status API.
 :::
 
-Call `GET /api/v1/payments/:paymentId` with the `x-public-key` header to confirm `status === 'CONFIRMED'` and verify the amount before fulfilling the order. This endpoint can be called directly from the browser.
+Call `GET /api/v1/payments/:paymentId` with the `x-public-key` header to confirm status is **ESCROWED** or **FINALIZED** and verify the amount and orderId before fulfilling the order. This endpoint can be called directly from the browser.
 
 ## Next Steps
 

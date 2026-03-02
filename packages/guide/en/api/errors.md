@@ -85,10 +85,12 @@ API Key or Public Key is invalid or missing.
 
 ### INVALID_PAYMENT_STATUS
 
+Returned when a gasless (relay) request is sent for a payment that is already in a terminal state. Gasless is only allowed when payment status is **CREATED**.
+
 ```json
 {
   "code": "INVALID_PAYMENT_STATUS",
-  "message": "Payment status is CONFIRMED. Gasless requests only allowed in CREATED or PENDING state."
+  "message": "Payment is in terminal state (e.g. ESCROWED, FINALIZED, CANCELLED). Gasless requests only allowed when status is CREATED."
 }
 ```
 
@@ -97,6 +99,32 @@ API Key or Public Key is invalid or missing.
 ```json
 { "code": "PAYMENT_EXPIRED", "message": "Payment has expired" }
 ```
+
+### INVALID_STATUS (Finalize / Cancel)
+
+Returned when calling **POST /payments/:id/finalize** or **POST /payments/:id/cancel** and the payment is not in **ESCROWED** status.
+
+```json
+{
+  "code": "INVALID_STATUS",
+  "message": "Payment must be ESCROWED to finalize. Current status: FINALIZED"
+}
+```
+
+**Resolution**: Only finalize or cancel when `GET /payments/:id` returns `status === "ESCROWED"`.
+
+### ESCROW_EXPIRED
+
+Returned when calling **POST /payments/:id/finalize** after the escrow deadline has passed. The response body includes this code so your backend can detect and handle it (e.g. inform the user that only on-chain cancel is possible).
+
+```json
+{
+  "code": "ESCROW_EXPIRED",
+  "message": "Escrow deadline has expired"
+}
+```
+
+**Resolution**: After the escrow deadline, finalize via API is no longer allowed. Anyone can cancel the payment on-chain (permissionless) to return funds to the buyer.
 
 ### INVALID_SIGNATURE
 
@@ -156,6 +184,19 @@ API Key or Public Key is invalid or missing.
 { "code": "DUPLICATE_ORDER", "message": "Order ID already used for this merchant." }
 ```
 
+### CONFLICT (Finalize / Cancel)
+
+Returned when **POST /payments/:id/finalize** or **POST /payments/:id/cancel** is called while another request is already processing the same payment (e.g. duplicate submit or race).
+
+```json
+{
+  "code": "CONFLICT",
+  "message": "Payment is already being processed by another request"
+}
+```
+
+**Resolution**: Wait and poll **GET /payments/:id** until status is FINALIZED or CANCELLED; do not retry finalize/cancel immediately.
+
 ---
 
 ## Forbidden Errors (403)
@@ -169,6 +210,30 @@ API Key or Public Key is invalid or missing.
 ---
 
 ## Server Errors (500)
+
+### CHAIN_CONFIG_ERROR
+
+Returned when the chain or relayer configuration is missing or invalid (e.g. when calling **POST /payments/:id/finalize** or **POST /payments/:id/cancel**).
+
+```json
+{ "code": "CHAIN_CONFIG_ERROR", "message": "Chain or relayer configuration error" }
+```
+
+### SIGNING_SERVICE_ERROR
+
+Returned when the server fails to generate the finalize or cancel signature (e.g. **POST /payments/:id/finalize**, **POST /payments/:id/cancel**).
+
+```json
+{ "code": "SIGNING_SERVICE_ERROR", "message": "Failed to generate signature" }
+```
+
+### RELAYER_ERROR
+
+Returned when the relayer fails to submit the finalize or cancel transaction to the blockchain.
+
+```json
+{ "code": "RELAYER_ERROR", "message": "Relayer failed to submit transaction" }
+```
 
 ### INTERNAL_ERROR
 

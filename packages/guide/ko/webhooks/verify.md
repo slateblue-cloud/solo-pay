@@ -17,7 +17,7 @@ curl https://pay-api.staging.msq.com/api/v1/payments/0xabc123... \
 
 **검증 체크리스트**
 
-- [ ] `status === 'CONFIRMED'` 확인
+- [ ] `status === 'ESCROWED'` 또는 `status === 'FINALIZED'` 확인 (결제 성공)
 - [ ] `amount`가 주문 금액과 일치 확인
 - [ ] `orderId`가 DB에 저장된 orderId와 일치 확인
 - [ ] 동일 `paymentId`의 중복 처리 방지

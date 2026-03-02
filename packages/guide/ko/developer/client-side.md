@@ -66,7 +66,7 @@ const result = await response.json();
 
 **검증 체크리스트**
 
-- [ ] `status === 'CONFIRMED'` 확인
+- [ ] `status === 'ESCROWED'` 또는 `status === 'FINALIZED'` 확인
 - [ ] `amount`가 주문 금액과 일치 확인
 - [ ] `tokenAddress`가 기대한 토큰과 일치 확인
 - [ ] `orderId`가 기대한 orderId와 일치 확인

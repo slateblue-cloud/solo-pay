@@ -28,18 +28,20 @@ Every SoloPay payment is processed in the following 5 steps.
          ↓
 
 [5] SoloPay → Merchant Server
-    Send payment.confirmed/failed Webhook event
+    Send payment.escrowed / payment.finalized / payment.cancelled / payment.failed / payment.expired Webhook event
 ```
+
+After payment is **ESCROWED**, the merchant server can call **POST /payments/:id/finalize** (or **POST /payments/:id/cancel**) to release funds to the merchant wallet or return them to the buyer. See [Finalize & Cancel](/en/payments/finalize).
 
 ### Step-by-Step
 
-| Step                        | Actor          | Action                                                             |
-| --------------------------- | -------------- | ------------------------------------------------------------------ |
-| **1. Payment Request**      | SoloPay Widget | `POST /payments` → receives `paymentId`, `serverSignature`         |
-| **2. Signing**              | User Wallet    | MetaMask performs EIP-712 signing only (no transaction, no gas)    |
-| **3. Relayer Processing**   | SoloPay Server | `POST /payments/:id/relay` → verify signature → submit on-chain TX |
-| **4. Contract Execution**   | Blockchain     | `PaymentGateway.payWithSignature()` executes → token transfer      |
-| **5. Webhook Notification** | SoloPay Server | Send payment confirmed/failed event to merchant Webhook URL        |
+| Step                        | Actor          | Action                                                                                                         |
+| --------------------------- | -------------- | -------------------------------------------------------------------------------------------------------------- |
+| **1. Payment Request**      | SoloPay Widget | `POST /payments` → receives `paymentId`, `serverSignature`                                                     |
+| **2. Signing**              | User Wallet    | MetaMask performs EIP-712 signing only (no transaction, no gas)                                                |
+| **3. Relayer Processing**   | SoloPay Server | `POST /payments/:id/relay` → verify signature → submit on-chain TX                                             |
+| **4. Contract Execution**   | Blockchain     | `PaymentGateway.payWithSignature()` executes → token escrowed                                                  |
+| **5. Webhook Notification** | SoloPay Server | Send payment.escrowed, payment.finalized, payment.cancelled, or payment.failed/expired to merchant Webhook URL |
 
 ## 2.2 Gasless & Relayer System
 
@@ -142,20 +144,20 @@ Approving the maximum value (`BigInt(2**256 - 1)`) in the first Approve allows h
 ### Payment Status
 
 ```
-CREATED ──────▶ PENDING ──────▶ CONFIRMED
-    │               │
-    ▼               ▼
- EXPIRED          FAILED
-(30 min)    (TX failed or sig invalid)
+CREATED ──► ESCROWED ──► FINALIZE_SUBMITTED ──► FINALIZED
+                    └──► CANCEL_SUBMITTED   ──► CANCELLED
+CREATED ──► EXPIRED
+CREATED ──► FAILED
 ```
 
-| Status      | Description                                         |
-| ----------- | --------------------------------------------------- |
-| `CREATED`   | Payment created, awaiting user action (sign/TX)     |
-| `PENDING`   | Transaction submitted to blockchain, awaiting block |
-| `CONFIRMED` | Block confirmed — payment successful                |
-| `FAILED`    | Transaction failed or signature validation failed   |
-| `EXPIRED`   | Payment expired (30 minutes after creation)         |
+| Status      | Description                                                    |
+| ----------- | -------------------------------------------------------------- |
+| `CREATED`   | Payment created, awaiting on-chain transaction                 |
+| `ESCROWED`  | User paid; funds held in escrow (merchant can finalize/cancel) |
+| `FINALIZED` | Funds released to merchant                                     |
+| `CANCELLED` | Funds returned to buyer                                        |
+| `FAILED`    | Transaction failed or signature validation failed              |
+| `EXPIRED`   | Payment expired (30 minutes exceeded)                          |
 
 ### Relay Status (Gasless only)
 
@@ -175,12 +177,13 @@ QUEUED ──────▶ SUBMITTED ──────▶ CONFIRMED
 
 ::: info Payment Status vs Relay Status
 
-- **Payment Status** reflects the final on-chain confirmation of the payment.
-- **Relay Status** reflects the relayer's TX submission process.
-- When Relay status becomes `CONFIRMED`, payment status also transitions to `CONFIRMED`.
+- **Payment Status** reflects the on-chain state (e.g. ESCROWED, FINALIZED, CANCELLED).
+- **Relay Status** reflects the relayer's TX submission process (QUEUED → SUBMITTED → CONFIRMED/FAILED).
+- When the escrow TX is confirmed, payment status becomes ESCROWED. The merchant then calls [Finalize or Cancel](/en/payments/finalize) to release or return funds.
   :::
 
 ## Next Steps
 
+- [Finalize & Cancel](/en/payments/finalize) — Release or cancel escrowed payments
 - [Smart Contract Info](/en/developer/smart-contracts) — Contract addresses and ABI
 - [Client-Side Integration](/en/developer/client-side) — Step-by-step implementation guide
