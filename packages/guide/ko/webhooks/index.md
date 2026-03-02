@@ -36,9 +36,7 @@ Webhook을 설정하면 결제 상태가 변경될 때 지정한 URL로 HTTP POS
     "paymentId": "0xabc123...",
     "status": "FINALIZED",
     "amount": "10500000000000000000",
-    "tokenAddress": "0xE4C687167705Abf55d709395f92e254bdF5825a2",
     "tokenSymbol": "SUT",
-    "payerAddress": "0x1234567890abcdef...",
     "txHash": "0xdef789...",
     "orderId": "order-001",
     "finalizedAt": "2024-01-26T12:35:42Z"
