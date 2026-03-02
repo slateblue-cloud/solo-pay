@@ -237,7 +237,8 @@ export const PaymentStatusResponseSchema = {
             'EXPIRED',
             'FAILED',
           ],
-          description: 'Payment status from database',
+          description:
+            'Payment status. Source of truth: blockchain when on-chain state is available (escrowed/finalized/cancelled); otherwise DB (CREATED, PENDING, etc.).',
         },
         createdAt: { type: 'string', description: 'Creation timestamp' },
         updatedAt: { type: 'string', description: 'Last update timestamp' },

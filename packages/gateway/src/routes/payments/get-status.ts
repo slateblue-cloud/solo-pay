@@ -34,7 +34,7 @@ export async function getPaymentStatusRoute(
         description: `
 Retrieves the current status and full details of a payment by its payment hash. Requires x-public-key.
 
-Returns on-chain status (synced to DB), plus full payment details including server signature, merchant/token/chain info, and contract parameters needed for the widget to resume a payment flow.
+Stateless: blockchain is the source of truth for status when on-chain state is available (escrowed/finalized/cancelled). Returns that status (and syncs DB), plus full payment details including server signature, merchant/token/chain info, and contract parameters needed for the widget to resume a payment flow.
 
 For non-terminal statuses, a fresh server signature with a new deadline is generated. For terminal statuses, details are returned without a signature.
 
@@ -149,38 +149,35 @@ For non-terminal statuses, a fresh server signature with a new deadline is gener
           }
         }
 
-        let finalStatus = paymentData.status;
-
-        // Sync on-chain status → DB status
+        // Stateless: blockchain is source of truth for payment status when on-chain state is available
         const onChain = paymentStatus.status;
-        const dbStatus = paymentData.status;
 
-        const shouldSync =
-          (onChain === 'escrowed' && ['CREATED'].includes(dbStatus)) ||
-          (onChain === 'finalized' && ['ESCROWED', 'FINALIZE_SUBMITTED'].includes(dbStatus)) ||
-          (onChain === 'cancelled' && ['ESCROWED', 'CANCEL_SUBMITTED'].includes(dbStatus));
+        const onChainToApiStatus: Record<string, string> = {
+          escrowed: 'ESCROWED',
+          finalized: 'FINALIZED',
+          cancelled: 'CANCELLED',
+        };
+        const finalStatusFromChain =
+          onChain !== 'pending' ? onChainToApiStatus[onChain] : undefined;
 
-        if (shouldSync) {
-          const newStatus =
-            onChain === 'escrowed'
-              ? 'ESCROWED'
-              : onChain === 'finalized'
-                ? 'FINALIZED'
-                : 'CANCELLED';
-          // For FINALIZED/CANCELLED, pass releaseTxHash; for ESCROWED, pass escrow txHash
+        // When chain has definitive status, always derive response status from chain and sync DB
+        let finalStatus: string =
+          finalStatusFromChain ?? paymentData.status;
+
+        if (finalStatusFromChain) {
+          const newStatus = finalStatusFromChain as import('@solo-pay/database').PaymentStatus;
           const isRelease = newStatus === 'FINALIZED' || newStatus === 'CANCELLED';
           const txHashToStore = isRelease
             ? paymentStatus.releaseTxHash
             : paymentStatus.transactionHash;
           await paymentService.updateStatusByHash(
             paymentData.payment_hash,
-            newStatus as import('@solo-pay/database').PaymentStatus,
+            newStatus,
             txHashToStore
           );
           if (paymentStatus.payerAddress) {
             await paymentService.updatePayerAddress(id, paymentStatus.payerAddress);
           }
-          finalStatus = newStatus;
         }
 
         const tokenPermitSupported = await paymentService.getTokenPermitSupported(
@@ -206,7 +203,7 @@ For non-terminal statuses, a fresh server signature with a new deadline is gener
             const defaultEscrowDuration = Number(process.env.DEFAULT_ESCROW_DURATION) || 300;
             const escrowDuration = BigInt(merchantRecord.escrow_duration ?? defaultEscrowDuration);
 
-            const terminalStatuses = ['FINALIZED', 'FAILED', 'EXPIRED', 'FINALIZED', 'CANCELLED'];
+            const terminalStatuses = ['CONFIRMED', 'FINALIZED', 'CANCELLED', 'FAILED', 'EXPIRED'];
             const isTerminal = terminalStatuses.includes(finalStatus);
 
             let serverSignature: Hex | string = '';
