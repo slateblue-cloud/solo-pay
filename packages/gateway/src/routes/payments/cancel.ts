@@ -180,7 +180,8 @@ Note: After escrow deadline, anyone can cancel permissionlessly on-chain without
         // 10. Submit via relayer
         const relayResult = await relayerService.submitDirectTransaction(
           chainContracts.gateway as Address,
-          calldata
+          calldata,
+          '300000'
         );
 
         // 11. Create audit event
