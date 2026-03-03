@@ -53,7 +53,9 @@ describe('Currency Conversion', () => {
         console.warn('[currency-conversion] Gateway not running, tests will be skipped');
       }
       if (!psOk) {
-        console.warn('[currency-conversion] Price service not running, currency tests will be skipped');
+        console.warn(
+          '[currency-conversion] Price service not running, currency tests will be skipped'
+        );
       }
     } catch (err) {
       console.warn('[currency-conversion] Setup failed:', err);

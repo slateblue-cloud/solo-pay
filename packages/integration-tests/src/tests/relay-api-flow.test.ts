@@ -231,8 +231,10 @@ describe('Relay API Flow', () => {
       if (!isReady) return;
 
       const orderId = `RELAY_SUBMIT_${Date.now()}`;
-      const { createResponse, forwardRequest, signature } =
-        await createPaymentAndBuildRelay(orderId, 10);
+      const { createResponse, forwardRequest, signature } = await createPaymentAndBuildRelay(
+        orderId,
+        10
+      );
 
       const res = await submitRelay(createResponse.paymentId, forwardRequest, signature);
 
@@ -246,8 +248,10 @@ describe('Relay API Flow', () => {
       if (!isReady) return;
 
       const orderId = `RELAY_CONFIRM_${Date.now()}`;
-      const { createResponse, forwardRequest, signature } =
-        await createPaymentAndBuildRelay(orderId, 15);
+      const { createResponse, forwardRequest, signature } = await createPaymentAndBuildRelay(
+        orderId,
+        15
+      );
 
       // Submit relay
       const submitRes = await submitRelay(createResponse.paymentId, forwardRequest, signature);
@@ -264,8 +268,10 @@ describe('Relay API Flow', () => {
       if (!isReady) return;
 
       const orderId = `RELAY_ONCHAIN_${Date.now()}`;
-      const { createResponse, forwardRequest, signature } =
-        await createPaymentAndBuildRelay(orderId, 20);
+      const { createResponse, forwardRequest, signature } = await createPaymentAndBuildRelay(
+        orderId,
+        20
+      );
 
       await submitRelay(createResponse.paymentId, forwardRequest, signature);
       await waitForRelayStatus(createResponse.paymentId, ['CONFIRMED'], 30000);
@@ -304,8 +310,10 @@ describe('Relay API Flow', () => {
       if (!isReady) return;
 
       const orderId = `RELAY_FIELDS_${Date.now()}`;
-      const { createResponse, forwardRequest, signature } =
-        await createPaymentAndBuildRelay(orderId, 8);
+      const { createResponse, forwardRequest, signature } = await createPaymentAndBuildRelay(
+        orderId,
+        8
+      );
 
       await submitRelay(createResponse.paymentId, forwardRequest, signature);
 
@@ -397,8 +405,10 @@ describe('Relay API Flow', () => {
       if (!isReady) return;
 
       const orderId = `RELAY_ALREADYESCROW_${Date.now()}`;
-      const { createResponse, forwardRequest, signature } =
-        await createPaymentAndBuildRelay(orderId, 10);
+      const { createResponse, forwardRequest, signature } = await createPaymentAndBuildRelay(
+        orderId,
+        10
+      );
 
       // Submit relay and wait for CONFIRMED
       await submitRelay(createResponse.paymentId, forwardRequest, signature);

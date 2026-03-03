@@ -72,10 +72,7 @@ describe('Concurrent Finalize/Cancel', () => {
    */
   async function createAndEscrowPayment(orderId: string, amount: bigint): Promise<string> {
     const client = createTestClient(TEST_MERCHANT);
-    const params = makeCreatePaymentParams(
-      Number(amount / BigInt(10 ** token.decimals)),
-      orderId
-    );
+    const params = makeCreatePaymentParams(Number(amount / BigInt(10 ** token.decimals)), orderId);
     const createRes = await client.createPayment(params);
     const paymentHash = createRes.paymentId;
 
