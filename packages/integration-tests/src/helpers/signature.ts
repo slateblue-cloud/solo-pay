@@ -43,7 +43,6 @@ export interface PaymentParams {
   amount: bigint;
   recipientAddress: string;
   merchantId: string;
-  feeBps: number;
   deadline: bigint;
   escrowDuration: bigint;
 }
@@ -67,7 +66,6 @@ const PAYMENT_REQUEST_TYPES = {
     { name: 'amount', type: 'uint256' },
     { name: 'recipientAddress', type: 'address' },
     { name: 'merchantId', type: 'bytes32' },
-    { name: 'feeBps', type: 'uint16' },
     { name: 'deadline', type: 'uint256' },
     { name: 'escrowDuration', type: 'uint256' },
   ],
@@ -138,7 +136,6 @@ export async function signPaymentRequest(
     amount: params.amount,
     recipientAddress: params.recipientAddress,
     merchantId: params.merchantId,
-    feeBps: params.feeBps,
     deadline: params.deadline,
     escrowDuration: params.escrowDuration,
   };
@@ -160,7 +157,6 @@ export function encodePayFunctionData(
   amount: bigint,
   recipientAddress: string,
   merchantId: string,
-  feeBps: number,
   deadline: bigint,
   escrowDuration: bigint,
   serverSignature: string
@@ -172,7 +168,6 @@ export function encodePayFunctionData(
     amount,
     recipientAddress,
     merchantId,
-    feeBps,
     deadline,
     escrowDuration,
     serverSignature,

@@ -227,7 +227,6 @@ For non-terminal statuses, a fresh server signature with a new deadline is gener
                     amountInWei,
                     recipientAddress,
                     merchantId,
-                    merchantRecord.fee_bps,
                     deadline,
                     escrowDuration
                   );
@@ -246,7 +245,6 @@ For non-terminal statuses, a fresh server signature with a new deadline is gener
               tokenDecimals: paymentData.token_decimals,
               recipientAddress: recipientAddress ?? '',
               merchantId,
-              feeBps: merchantRecord.fee_bps,
               deadline: deadline.toString(),
               escrowDuration: escrowDuration.toString(),
               forwarderAddress: chain.forwarder_address ?? undefined,

@@ -104,7 +104,6 @@ describe('Relay API Flow', () => {
       amount,
       createResponse.recipientAddress,
       createResponse.merchantId,
-      createResponse.feeBps,
       BigInt(createResponse.deadline),
       BigInt(createResponse.escrowDuration),
       createResponse.serverSignature
@@ -370,7 +369,6 @@ describe('Relay API Flow', () => {
         wrongAmount, // Different from DB amount
         createResponse.recipientAddress,
         createResponse.merchantId,
-        createResponse.feeBps,
         BigInt(createResponse.deadline),
         BigInt(createResponse.escrowDuration),
         createResponse.serverSignature,
@@ -426,7 +424,6 @@ describe('Relay API Flow', () => {
         BigInt(createResponse.amount),
         createResponse.recipientAddress,
         createResponse.merchantId,
-        createResponse.feeBps,
         BigInt(createResponse.deadline),
         BigInt(createResponse.escrowDuration),
         createResponse.serverSignature

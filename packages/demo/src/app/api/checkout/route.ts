@@ -128,7 +128,6 @@ export async function POST(request: NextRequest) {
         forwarderAddress: payment.forwarderAddress,
         recipientAddress: payment.recipientAddress,
         merchantId: payment.merchantId,
-        feeBps: payment.feeBps,
         serverSignature: payment.serverSignature,
       },
       { status: 201 }

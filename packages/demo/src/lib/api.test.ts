@@ -41,7 +41,6 @@ describe('createPayment', () => {
     expiresAt: new Date().toISOString(),
     recipientAddress: '0x',
     merchantId: '0x',
-    feeBps: 0,
     forwarderAddress: '0xabcdefabcdefabcdefabcdefabcdefabcdefabcd',
   };
 

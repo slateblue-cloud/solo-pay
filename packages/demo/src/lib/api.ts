@@ -403,7 +403,6 @@ export const CreatePaymentResponseSchema = z.object({
   expiresAt: z.string(),
   recipientAddress: z.string(),
   merchantId: z.string(),
-  feeBps: z.number(),
   forwarderAddress: z.string().optional(),
 });
 
@@ -591,7 +590,6 @@ export const CheckoutResponseSchema = z.object({
   // Server signature fields for V2 payment flow
   recipientAddress: z.string().optional(), // Merchant's wallet address
   merchantId: z.string().optional(), // bytes32 keccak256 of merchant_key
-  feeBps: z.number().optional(), // Fee in basis points (0-10000)
   deadline: z.string().optional(), // Deadline timestamp for server signature expiration
   escrowDuration: z.string().optional(), // Escrow duration in seconds
   serverSignature: z.string().optional(), // Server EIP-712 signature

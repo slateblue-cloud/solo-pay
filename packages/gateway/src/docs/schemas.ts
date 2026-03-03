@@ -127,11 +127,6 @@ export const PaymentInfoResponseSchema = {
       description: 'Merchant identifier (bytes32, keccak256 of merchant_key)',
       example: '0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef',
     },
-    feeBps: {
-      type: 'integer',
-      description: 'Fee in basis points (0-10000, where 10000 = 100%)',
-      example: 100,
-    },
   },
 } as const;
 
@@ -186,11 +181,6 @@ export const CreatePaymentResponseSchema = {
       type: 'string',
       description: 'Merchant identifier (bytes32, keccak256 of merchant_key)',
       example: '0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef',
-    },
-    feeBps: {
-      type: 'integer',
-      description: 'Fee in basis points (0-10000, where 10000 = 100%)',
-      example: 100,
     },
     serverSignature: {
       type: 'string',
@@ -262,7 +252,6 @@ export const PaymentStatusResponseSchema = {
         tokenDecimals: { type: 'integer', description: 'Token decimals' },
         recipientAddress: { type: 'string', description: 'Merchant recipient address' },
         merchantId: { type: 'string', description: 'Merchant identifier (bytes32)' },
-        feeBps: { type: 'integer', description: 'Fee in basis points' },
         deadline: { type: 'string', description: 'Signature deadline (unix timestamp)' },
         escrowDuration: { type: 'string', description: 'Escrow duration in seconds' },
         forwarderAddress: { type: 'string', description: 'Forwarder contract address' },

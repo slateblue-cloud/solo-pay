@@ -29,7 +29,7 @@ const MOCK_ERC20_ABI = [
 ];
 
 const PAYMENT_GATEWAY_ABI = [
-  'function pay(bytes32 paymentId, address tokenAddress, uint256 amount, address recipientAddress, bytes32 merchantId, uint16 feeBps, uint256 deadline, uint256 escrowDuration, bytes serverSignature, tuple(uint256 deadline, uint8 v, bytes32 r, bytes32 s) permit)',
+  'function pay(bytes32 paymentId, address tokenAddress, uint256 amount, address recipientAddress, bytes32 merchantId, uint256 deadline, uint256 escrowDuration, bytes serverSignature, tuple(uint256 deadline, uint8 v, bytes32 r, bytes32 s) permit)',
   'function processedPayments(bytes32 paymentId) view returns (bool)',
 ];
 
@@ -68,7 +68,6 @@ test.describe('Permit Payment (API + Chain)', () => {
       serverSignature: string;
       recipientAddress: string;
       merchantId: string;
-      feeBps: number;
       deadline: string;
       escrowDuration: string;
       amount: string;
@@ -78,7 +77,6 @@ test.describe('Permit Payment (API + Chain)', () => {
     const amount = BigInt(paymentData.amount);
     const recipientAddress = paymentData.recipientAddress;
     const merchantId = paymentData.merchantId;
-    const feeBps = paymentData.feeBps;
     const serverSignature = paymentData.serverSignature;
 
     // 2. Sign EIP-2612 permit
@@ -130,7 +128,6 @@ test.describe('Permit Payment (API + Chain)', () => {
       amount,
       recipientAddress,
       merchantId,
-      feeBps,
       payDeadline,
       BigInt(paymentData.escrowDuration ?? 86400),
       serverSignature,

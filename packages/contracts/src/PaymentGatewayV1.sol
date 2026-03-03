@@ -39,9 +39,9 @@ contract PaymentGatewayV1 is
   using ECDSA for bytes32;
 
   /// @notice EIP-712 typehash for PaymentRequest
-  /// @dev keccak256("PaymentRequest(bytes32 paymentId,address tokenAddress,uint256 amount,address recipientAddress,bytes32 merchantId,uint16 feeBps,uint256 deadline,uint256 escrowDuration)")
+  /// @dev keccak256("PaymentRequest(bytes32 paymentId,address tokenAddress,uint256 amount,address recipientAddress,bytes32 merchantId,uint256 deadline,uint256 escrowDuration)")
   bytes32 public constant PAYMENT_REQUEST_TYPEHASH =
-    0xd40604ddffff25a50a3648340d94a679a11c014c58d5eebd06ef46a1b15bf815;
+    0x4c9a1d78b1a0b9e8b33a9b69e03b89406e4ef1213a14b704777a3d0a79833695;
 
   /// @notice EIP-712 typehash for RefundRequest
   /// @dev keccak256("RefundRequest(bytes32 paymentId)")
@@ -100,6 +100,11 @@ contract PaymentGatewayV1 is
   /// @notice Address of the server signer for payment authorization
   address public signerAddress;
 
+  /// @notice Fee in basis points applied to payments (0-10000)
+  uint16 public feeBps;
+
+  /// @notice Initialize the trusted forwarder and disable initializers
+  /// @param trustedForwarderAddress Address of the ERC2771 trusted forwarder
   /// @custom:oz-upgrades-unsafe-allow constructor
   constructor(address trustedForwarderAddress) ERC2771ContextUpgradeable(trustedForwarderAddress) {
     _disableInitializers();
@@ -165,6 +170,18 @@ contract PaymentGatewayV1 is
   }
 
   /**
+   * @notice Set the fee in basis points
+   * @dev Only callable by owner
+   * @param newFeeBps The new fee in basis points (0-10000)
+   */
+  function setFeeBps(uint16 newFeeBps) external onlyOwner {
+    require(newFeeBps <= MAX_FEE_BPS, "PG: fee too high");
+    uint16 oldFeeBps = feeBps;
+    feeBps = newFeeBps;
+    emit FeeBpsChanged(oldFeeBps, newFeeBps);
+  }
+
+  /**
    * @notice Pay into escrow with server signature verification
    * @dev Tokens are transferred from payer to this contract.
    *      Uses _msgSender() to support both direct calls and meta-transactions
@@ -174,7 +191,6 @@ contract PaymentGatewayV1 is
    * @param amount Payment amount in token's smallest unit
    * @param recipientAddress Merchant's wallet address
    * @param merchantId Merchant identifier (bytes32)
-   * @param feeBps Fee in basis points (0-10000)
    * @param deadline Server signature expiration timestamp
    * @param escrowDuration Escrow duration in seconds
    * @param serverSignature Server's EIP-712 signature
@@ -186,7 +202,6 @@ contract PaymentGatewayV1 is
     uint256 amount,
     address recipientAddress,
     bytes32 merchantId,
-    uint16 feeBps,
     uint256 deadline,
     uint256 escrowDuration,
     bytes calldata serverSignature,
@@ -195,7 +210,7 @@ contract PaymentGatewayV1 is
     address payerAddress = _msgSender();
 
     _tryPermit(tokenAddress, payerAddress, amount, permit);
-    _validatePayment(paymentId, tokenAddress, amount, recipientAddress, feeBps, deadline);
+    _validatePayment(paymentId, tokenAddress, amount, recipientAddress, deadline);
     require(
       escrowDuration > 0 && escrowDuration <= MAX_ESCROW_DURATION,
       "PG: invalid escrowDuration"
@@ -207,7 +222,6 @@ contract PaymentGatewayV1 is
         amount,
         recipientAddress,
         merchantId,
-        feeBps,
         deadline,
         escrowDuration,
         serverSignature
@@ -249,7 +263,6 @@ contract PaymentGatewayV1 is
    * @param tokenAddress Token address
    * @param amount Payment amount
    * @param recipientAddress Recipient address
-   * @param feeBps Fee in basis points
    * @param deadline Signature deadline
    */
   function _validatePayment(
@@ -257,7 +270,6 @@ contract PaymentGatewayV1 is
     address tokenAddress,
     uint256 amount,
     address recipientAddress,
-    uint16 feeBps,
     uint256 deadline
   ) internal view {
     require(block.timestamp <= deadline, "PG: expired");
@@ -267,7 +279,6 @@ contract PaymentGatewayV1 is
     require(amount > 0, "PG: amount must be > 0");
     require(tokenAddress != address(0), "PG: invalid token");
     require(recipientAddress != address(0), "PG: invalid recipient");
-    require(feeBps <= MAX_FEE_BPS, "PG: fee too high");
   }
 
   /**
@@ -305,7 +316,6 @@ contract PaymentGatewayV1 is
    * @param amount Payment amount
    * @param recipientAddress Recipient address
    * @param merchantId Merchant identifier
-   * @param feeBps Fee in basis points
    * @param deadline Signature deadline
    * @param escrowDuration Escrow duration in seconds
    * @param signature Server signature
@@ -317,7 +327,6 @@ contract PaymentGatewayV1 is
     uint256 amount,
     address recipientAddress,
     bytes32 merchantId,
-    uint16 feeBps,
     uint256 deadline,
     uint256 escrowDuration,
     bytes calldata signature
@@ -330,7 +339,6 @@ contract PaymentGatewayV1 is
         amount,
         recipientAddress,
         merchantId,
-        feeBps,
         deadline,
         escrowDuration
       )
@@ -618,7 +626,9 @@ contract PaymentGatewayV1 is
   // ============ UUPS Override ============
 
   /**
-   * @dev Authorize contract upgrade (only owner)
+   * @notice Authorize contract upgrade
+   * @dev Only callable by owner
+   * @param newImplementation Address of the new implementation contract
    */
   function _authorizeUpgrade(address newImplementation) internal override onlyOwner {}
 }
