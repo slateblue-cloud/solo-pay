@@ -137,8 +137,8 @@ describe('Currency Conversion', () => {
       };
 
       const response = await client.createPayment(params);
-      const fiatAmount = response.fiatAmount!;
-      const tokenPrice = response.tokenPrice!;
+      const fiatAmount = response.fiatAmount as number;
+      const tokenPrice = response.tokenPrice as number;
       const amountInWei = BigInt(response.amount);
       const decimals = response.tokenDecimals;
 
@@ -213,8 +213,8 @@ describe('Currency Conversion', () => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'x-public-key': TEST_MERCHANT.publicKey!,
-          Origin: TEST_MERCHANT.origin!,
+          'x-public-key': TEST_MERCHANT.publicKey ?? '',
+          Origin: TEST_MERCHANT.origin ?? '',
         },
         body: JSON.stringify({
           orderId,

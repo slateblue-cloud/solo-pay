@@ -142,8 +142,8 @@ describe('Relay API Flow', () => {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-public-key': TEST_MERCHANT.publicKey!,
-        Origin: TEST_MERCHANT.origin!,
+        'x-public-key': TEST_MERCHANT.publicKey ?? '',
+        Origin: TEST_MERCHANT.origin ?? '',
       },
       body: JSON.stringify({
         paymentId: paymentHash,
@@ -176,8 +176,8 @@ describe('Relay API Flow', () => {
       try {
         const res = await fetch(`${GATEWAY_API_URL}/payments/${paymentHash}/relay`, {
           headers: {
-            'x-public-key': TEST_MERCHANT.publicKey!,
-            Origin: TEST_MERCHANT.origin!,
+            'x-public-key': TEST_MERCHANT.publicKey ?? '',
+            Origin: TEST_MERCHANT.origin ?? '',
           },
           signal: AbortSignal.timeout(5000),
         });
@@ -296,8 +296,8 @@ describe('Relay API Flow', () => {
 
       const res = await fetch(`${GATEWAY_API_URL}/payments/${createRes.paymentId}/relay`, {
         headers: {
-          'x-public-key': TEST_MERCHANT.publicKey!,
-          Origin: TEST_MERCHANT.origin!,
+          'x-public-key': TEST_MERCHANT.publicKey ?? '',
+          Origin: TEST_MERCHANT.origin ?? '',
         },
       });
 
@@ -322,8 +322,8 @@ describe('Relay API Flow', () => {
 
       const res = await fetch(`${GATEWAY_API_URL}/payments/${createResponse.paymentId}/relay`, {
         headers: {
-          'x-public-key': TEST_MERCHANT.publicKey!,
-          Origin: TEST_MERCHANT.origin!,
+          'x-public-key': TEST_MERCHANT.publicKey ?? '',
+          Origin: TEST_MERCHANT.origin ?? '',
         },
       });
 

@@ -207,7 +207,7 @@ describe('Authentication & Isolation', () => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'x-public-key': merchantA.publicKey!,
+          'x-public-key': merchantA.publicKey ?? '',
           Origin: 'http://evil-origin.example.com',
         },
         body: JSON.stringify({
