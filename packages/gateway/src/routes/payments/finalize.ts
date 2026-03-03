@@ -187,7 +187,8 @@ Finalizes an escrowed payment, releasing funds to the merchant.
         // 11. Submit via relayer
         const relayResult = await relayerService.submitDirectTransaction(
           chainContracts.gateway as Address,
-          calldata
+          calldata,
+          '300000'
         );
 
         // 12. Create audit event
