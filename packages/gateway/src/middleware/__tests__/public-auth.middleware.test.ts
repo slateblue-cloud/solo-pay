@@ -11,7 +11,6 @@ const mockMerchant = {
   public_key: 'pk_live_abc123',
   public_key_hash: 'hash_of_pk',
   webhook_url: null,
-  fee_bps: 0,
   recipient_address: '0x70997970C51812dc3A010C7d01b50e0d17dc79C8',
   escrow_duration: null,
   is_enabled: true,

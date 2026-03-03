@@ -46,7 +46,6 @@ describe('Direct Payment Integration', () => {
   it('should complete a payment successfully with no fee (escrow + finalize)', async () => {
     const paymentId = generatePaymentId(`ORDER_DIRECT_${Date.now()}`);
     const amount = parseUnits('100', token.decimals);
-    const feeBps = 0;
 
     const initialPayerBalance = await getTokenBalance(token.address, payerAddress);
     const initialRecipientBalance = await getTokenBalance(token.address, recipientAddress);
@@ -59,7 +58,6 @@ describe('Direct Payment Integration', () => {
       amount,
       recipientAddress: recipientAddress,
       merchantId,
-      feeBps,
       deadline,
       escrowDuration: DEFAULT_ESCROW_DURATION,
     };
@@ -76,7 +74,6 @@ describe('Direct Payment Integration', () => {
       amount,
       recipientAddress,
       merchantId,
-      feeBps,
       deadline,
       DEFAULT_ESCROW_DURATION,
       serverSignature,
@@ -104,7 +101,6 @@ describe('Direct Payment Integration', () => {
   it('should split payment with fee: fee to treasury, rest to recipient', async () => {
     const paymentId = generatePaymentId(`ORDER_FEE_${Date.now()}`);
     const amount = parseUnits('100', token.decimals);
-    const feeBps = 500; // 5%
 
     const initialPayerBalance = await getTokenBalance(token.address, payerAddress);
     const initialTreasuryBalance = await getTokenBalance(token.address, treasuryAddress);
@@ -118,7 +114,6 @@ describe('Direct Payment Integration', () => {
       amount,
       recipientAddress: recipientAddress,
       merchantId,
-      feeBps,
       deadline,
       escrowDuration: DEFAULT_ESCROW_DURATION,
     };
@@ -129,13 +124,17 @@ describe('Direct Payment Integration', () => {
     const wallet = getWallet(payerPrivateKey);
     const gateway = getContract(gatewayAddress, PaymentGatewayABI, wallet);
 
+    // Set 5% fee on the contract before pay
+    const deployerWallet = getWallet(HARDHAT_ACCOUNTS.deployer.privateKey);
+    const gatewayAsDeployer = getContract(gatewayAddress, PaymentGatewayABI, deployerWallet);
+    await (await gatewayAsDeployer.setFeeBps(500)).wait();
+
     const tx = await gateway.pay(
       paymentId,
       token.address,
       amount,
       recipientAddress,
       merchantId,
-      feeBps,
       deadline,
       DEFAULT_ESCROW_DURATION,
       serverSignature,
@@ -150,7 +149,7 @@ describe('Direct Payment Integration', () => {
     const finalizeTx = await gatewayAsSigner.finalize(paymentId, finalizeSignature);
     await finalizeTx.wait();
 
-    const expectedFee = (amount * BigInt(feeBps)) / 10000n;
+    const expectedFee = (amount * 500n) / 10000n;
     const expectedRecipientAmount = amount - expectedFee;
 
     const finalPayerBalance = await getTokenBalance(token.address, payerAddress);
@@ -160,12 +159,14 @@ describe('Direct Payment Integration', () => {
     expect(finalPayerBalance).toBe(initialPayerBalance - amount);
     expect(finalTreasuryBalance).toBe(initialTreasuryBalance + expectedFee);
     expect(finalRecipientBalance).toBe(initialRecipientBalance + expectedRecipientAmount);
+
+    // Reset fee to 0
+    await (await gatewayAsDeployer.setFeeBps(0)).wait();
   });
 
   it('should reject duplicate payment ID', async () => {
     const paymentId = generatePaymentId(`ORDER_DUP_${Date.now()}`);
     const amount = parseUnits('50', token.decimals);
-    const feeBps = 0;
 
     const deadline = getDeadline(1);
     const paymentParams: PaymentParams = {
@@ -174,7 +175,6 @@ describe('Direct Payment Integration', () => {
       amount,
       recipientAddress: recipientAddress,
       merchantId,
-      feeBps,
       deadline,
       escrowDuration: DEFAULT_ESCROW_DURATION,
     };
@@ -191,7 +191,6 @@ describe('Direct Payment Integration', () => {
       amount,
       recipientAddress,
       merchantId,
-      feeBps,
       deadline,
       DEFAULT_ESCROW_DURATION,
       serverSignature,
@@ -206,7 +205,6 @@ describe('Direct Payment Integration', () => {
         amount,
         recipientAddress,
         merchantId,
-        feeBps,
         deadline,
         DEFAULT_ESCROW_DURATION,
         serverSignature,
@@ -217,7 +215,6 @@ describe('Direct Payment Integration', () => {
 
   it('should reject zero amount payment', async () => {
     const paymentId = generatePaymentId(`ORDER_ZERO_${Date.now()}`);
-    const feeBps = 0;
 
     const deadline = getDeadline(1);
     const paymentParams: PaymentParams = {
@@ -226,7 +223,6 @@ describe('Direct Payment Integration', () => {
       amount: 0n,
       recipientAddress: recipientAddress,
       merchantId,
-      feeBps,
       deadline,
       escrowDuration: DEFAULT_ESCROW_DURATION,
     };
@@ -242,7 +238,6 @@ describe('Direct Payment Integration', () => {
         0n,
         recipientAddress,
         merchantId,
-        feeBps,
         deadline,
         DEFAULT_ESCROW_DURATION,
         serverSignature,
@@ -254,7 +249,6 @@ describe('Direct Payment Integration', () => {
   it('should reject invalid server signature', async () => {
     const paymentId = generatePaymentId(`ORDER_INVALID_SIG_${Date.now()}`);
     const amount = parseUnits('50', token.decimals);
-    const feeBps = 0;
 
     // Sign with wrong key (relayer instead of signer)
     const deadline = getDeadline(1);
@@ -264,7 +258,6 @@ describe('Direct Payment Integration', () => {
       amount,
       recipientAddress: recipientAddress,
       merchantId,
-      feeBps,
       deadline,
       escrowDuration: DEFAULT_ESCROW_DURATION,
     };
@@ -285,7 +278,6 @@ describe('Direct Payment Integration', () => {
         amount,
         recipientAddress,
         merchantId,
-        feeBps,
         deadline,
         DEFAULT_ESCROW_DURATION,
         wrongSignature,
@@ -298,7 +290,6 @@ describe('Direct Payment Integration', () => {
     const paymentId = generatePaymentId(`ORDER_INSUFFICIENT_${Date.now()}`);
     const balance = await getTokenBalance(token.address, payerAddress);
     const amount = balance + parseUnits('1000', token.decimals);
-    const feeBps = 0;
 
     const deadline = getDeadline(1);
     const paymentParams: PaymentParams = {
@@ -307,7 +298,6 @@ describe('Direct Payment Integration', () => {
       amount,
       recipientAddress: recipientAddress,
       merchantId,
-      feeBps,
       deadline,
       escrowDuration: DEFAULT_ESCROW_DURATION,
     };
@@ -325,7 +315,6 @@ describe('Direct Payment Integration', () => {
         amount,
         recipientAddress,
         merchantId,
-        feeBps,
         deadline,
         DEFAULT_ESCROW_DURATION,
         serverSignature,

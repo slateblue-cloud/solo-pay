@@ -1,5 +1,5 @@
 {
   "PaymentGateway#ExternalForwarder": "0xE8a3C8e530dddd14e02DA1C81Df6a15f41ad78DE",
-  "PaymentGateway#PaymentGatewayV1": "0xe44fB1C38C339B306FF773c3F2c419E08cC52f2f",
-  "PaymentGateway#PaymentGatewayProxy": "0x3a88752837ccA9e5195d7175bbc926CB9C14c994"
+  "PaymentGateway#PaymentGatewayV1": "0x5c28c8D46c4ac2C13DA46421C2cfFDeC5e745cC6",
+  "PaymentGateway#PaymentGatewayProxy": "0xaC82AAa33eD4C0D9A7DFC34a2c58f5eAc8dB1f69"
 }

@@ -111,7 +111,6 @@ describe('SoloPayClient', () => {
           expiresAt: '2025-12-31T00:00:00Z',
           recipientAddress: '0xRecipient',
           merchantId: '0xMerchant',
-          feeBps: 0,
         }),
       });
 
@@ -945,7 +944,6 @@ describe('SoloPayClient', () => {
           expiresAt: '2025-12-31T00:00:00Z',
           recipientAddress: '0xRecipient',
           merchantId: '0xMerchant',
-          feeBps: 0,
         }),
       });
 

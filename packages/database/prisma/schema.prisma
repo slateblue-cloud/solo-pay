@@ -96,7 +96,6 @@ model Merchant {
   public_key        String?   @unique @db.VarChar(255) // pk_live_xxx for client-side integration
   public_key_hash   String?   @unique @db.VarChar(64) // SHA-256 hash of public_key (same pattern as api_key_hash)
   webhook_url       String?   @db.VarChar(500)
-  fee_bps           Int       @default(0) // 0 ~ 10000 basis points (100% = 10000)
   recipient_address String?   @db.VarChar(42) // 0x... Ethereum address
   escrow_duration   Int? // escrow duration in seconds; null = use DEFAULT_ESCROW_DURATION env var
   is_enabled        Boolean   @default(true)

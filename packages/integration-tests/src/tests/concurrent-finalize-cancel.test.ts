@@ -86,7 +86,6 @@ describe('Concurrent Finalize/Cancel', () => {
       amount,
       createRes.recipientAddress,
       createRes.merchantId,
-      createRes.feeBps,
       BigInt(createRes.deadline),
       BigInt(createRes.escrowDuration),
       createRes.serverSignature,

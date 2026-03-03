@@ -67,7 +67,6 @@ export interface CreatePaymentResponse {
   expiresAt: string;
   recipientAddress: string;
   merchantId: string;
-  feeBps: number;
   /** Payment deadline (unix timestamp) included in server signature */
   deadline: string;
   /** Escrow duration (seconds) included in server signature */

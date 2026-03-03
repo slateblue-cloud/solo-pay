@@ -91,7 +91,6 @@ describe('GET /payments/:id', () => {
         id: 1,
         merchant_key: 'merchant_demo_001',
         recipient_address: '0x' + '1'.repeat(40),
-        fee_bps: 100,
         escrow_duration: 300,
         webhook_url: 'https://merchant.example/webhook',
       }),

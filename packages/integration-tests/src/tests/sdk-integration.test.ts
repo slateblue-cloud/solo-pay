@@ -119,7 +119,6 @@ describe('SDK Integration', () => {
       expect(response.serverSignature).toBeDefined();
       expect(response.recipientAddress).toBeDefined();
       expect(response.merchantId).toBeDefined();
-      expect(response.feeBps).toBeDefined();
     });
 
     it('should return payment hash and gateway address', async () => {
@@ -190,7 +189,6 @@ describe('SDK Integration', () => {
         amount,
         createResponse.recipientAddress,
         createResponse.merchantId,
-        createResponse.feeBps,
         BigInt(createResponse.deadline),
         BigInt(createResponse.escrowDuration),
         createResponse.serverSignature,
@@ -217,13 +215,8 @@ describe('SDK Integration', () => {
       const createResponse = await client.createPayment(makeCreatePaymentParams(5));
       const paymentId = createResponse.paymentId;
 
-      const {
-        recipientAddress,
-        merchantId: respMerchantId,
-        feeBps,
-        serverSignature,
-      } = createResponse;
-      if (!recipientAddress || !respMerchantId || feeBps === undefined || !serverSignature) {
+      const { recipientAddress, merchantId: respMerchantId, serverSignature } = createResponse;
+      if (!recipientAddress || !respMerchantId || !serverSignature) {
         throw new Error('Server signature fields missing from response');
       }
       const forwarderAddress = createResponse.forwarderAddress;
@@ -242,7 +235,6 @@ describe('SDK Integration', () => {
         amount,
         recipientAddress,
         respMerchantId,
-        feeBps,
         BigInt(createResponse.deadline),
         BigInt(createResponse.escrowDuration),
         serverSignature
@@ -293,13 +285,8 @@ describe('SDK Integration', () => {
 
       await approveToken(token.address, createResponse.gatewayAddress, amount, payerPrivateKey);
 
-      const {
-        recipientAddress,
-        merchantId: respMerchantId,
-        feeBps,
-        serverSignature,
-      } = createResponse;
-      if (!recipientAddress || !respMerchantId || feeBps === undefined || !serverSignature) {
+      const { recipientAddress, merchantId: respMerchantId, serverSignature } = createResponse;
+      if (!recipientAddress || !respMerchantId || !serverSignature) {
         throw new Error('Server signature fields missing from response');
       }
       const forwarderAddress = createResponse.forwarderAddress;
@@ -316,7 +303,6 @@ describe('SDK Integration', () => {
         amount,
         recipientAddress,
         respMerchantId,
-        feeBps,
         BigInt(createResponse.deadline),
         BigInt(createResponse.escrowDuration),
         serverSignature

@@ -10,7 +10,6 @@ interface PaymentRequest {
   amount: bigint;
   recipientAddress: Address;
   merchantId: Hex;
-  feeBps: number;
   deadline: bigint;
   escrowDuration: bigint;
 }
@@ -88,7 +87,6 @@ export class ServerSigningService {
         { name: 'amount', type: 'uint256' },
         { name: 'recipientAddress', type: 'address' },
         { name: 'merchantId', type: 'bytes32' },
-        { name: 'feeBps', type: 'uint16' },
         { name: 'deadline', type: 'uint256' },
         { name: 'escrowDuration', type: 'uint256' },
       ],
@@ -121,7 +119,6 @@ export class ServerSigningService {
    * @param amount - Payment amount in wei
    * @param recipientAddress - Recipient address (merchant's wallet)
    * @param merchantId - Merchant identifier (bytes32)
-   * @param feeBps - Fee in basis points (0-10000)
    * @returns EIP-712 signature
    */
   async signPaymentRequest(
@@ -130,7 +127,6 @@ export class ServerSigningService {
     amount: bigint,
     recipientAddress: Address,
     merchantId: Hex,
-    feeBps: number,
     deadline: bigint,
     escrowDuration: bigint
   ): Promise<Hex> {
@@ -140,7 +136,6 @@ export class ServerSigningService {
       amount,
       recipientAddress,
       merchantId,
-      feeBps,
       deadline,
       escrowDuration,
     };

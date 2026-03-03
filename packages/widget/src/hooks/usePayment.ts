@@ -69,7 +69,6 @@ export function usePayment({ paymentDetails }: UsePaymentParams): UsePaymentRetu
   const amount = paymentDetails?.amount ? BigInt(paymentDetails.amount) : undefined;
   const recipientAddress = paymentDetails?.recipientAddress as `0x${string}` | undefined;
   const merchantId = paymentDetails?.merchantId as `0x${string}` | undefined;
-  const feeBps = paymentDetails?.feeBps ?? 0;
   const deadline = paymentDetails?.deadline ? BigInt(paymentDetails.deadline) : undefined;
   const escrowDuration = paymentDetails?.escrowDuration
     ? BigInt(paymentDetails.escrowDuration)
@@ -148,7 +147,6 @@ export function usePayment({ paymentDetails }: UsePaymentParams): UsePaymentRetu
           amount,
           recipientAddress,
           merchantId,
-          feeBps,
           deadline,
           escrowDuration,
           serverSignature,
@@ -165,7 +163,6 @@ export function usePayment({ paymentDetails }: UsePaymentParams): UsePaymentRetu
       amount,
       recipientAddress,
       merchantId,
-      feeBps,
       deadline,
       escrowDuration,
       serverSignature,

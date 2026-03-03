@@ -83,7 +83,6 @@ const mockMerchant = {
   chain_id: 1,
   is_enabled: true,
   recipient_address: '0x70997970C51812dc3A010C7d01b50e0d17dc79C8',
-  fee_bps: 0,
 };
 
 const mockChain = {

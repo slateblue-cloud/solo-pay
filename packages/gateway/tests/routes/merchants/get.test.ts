@@ -19,7 +19,6 @@ const mockMerchant = {
   public_key: 'pk_test_demo',
   public_key_hash: null,
   webhook_url: 'http://demo:3000/api/webhook',
-  fee_bps: 0,
   recipient_address: '0x70997970C51812dc3A010C7d01b50e0d17dc79C8',
   is_enabled: true,
   is_deleted: false,

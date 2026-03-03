@@ -55,7 +55,6 @@ describe('Payment Lifecycle Integration', () => {
     it('should transition: NOT_PROCESSED -> ESCROWED (direct)', async () => {
       const paymentId = generatePaymentId(`LIFECYCLE_DIRECT_${Date.now()}`);
       const amount = parseUnits('10', token.decimals);
-      const feeBps = 0;
 
       const gateway = getContract(gatewayAddress, PaymentGatewayABI);
 
@@ -70,7 +69,6 @@ describe('Payment Lifecycle Integration', () => {
         amount,
         recipientAddress: recipientAddress,
         merchantId,
-        feeBps,
         deadline,
         escrowDuration: DEFAULT_ESCROW_DURATION,
       };
@@ -86,7 +84,6 @@ describe('Payment Lifecycle Integration', () => {
         amount,
         recipientAddress,
         merchantId,
-        feeBps,
         deadline,
         DEFAULT_ESCROW_DURATION,
         serverSignature,
@@ -103,7 +100,6 @@ describe('Payment Lifecycle Integration', () => {
     it('should transition: NOT_PROCESSED -> ESCROWED (gasless)', async () => {
       const paymentId = generatePaymentId(`LIFECYCLE_GASLESS_${Date.now()}`);
       const amount = parseUnits('10', token.decimals);
-      const feeBps = 0;
 
       const gateway = getContract(gatewayAddress, PaymentGatewayABI);
 
@@ -118,7 +114,6 @@ describe('Payment Lifecycle Integration', () => {
         amount,
         recipientAddress: recipientAddress,
         merchantId,
-        feeBps,
         deadline: paymentDeadline,
         escrowDuration: DEFAULT_ESCROW_DURATION,
       };
@@ -132,7 +127,6 @@ describe('Payment Lifecycle Integration', () => {
         amount,
         recipientAddress,
         merchantId,
-        feeBps,
         paymentDeadline,
         DEFAULT_ESCROW_DURATION,
         serverSignature
@@ -177,7 +171,6 @@ describe('Payment Lifecycle Integration', () => {
     it('should not allow re-processing of completed payment', async () => {
       const paymentId = generatePaymentId(`FINALITY_${Date.now()}`);
       const amount = parseUnits('10', token.decimals);
-      const feeBps = 0;
 
       // Create server signature
       const deadline = getDeadline(1);
@@ -187,7 +180,6 @@ describe('Payment Lifecycle Integration', () => {
         amount,
         recipientAddress: recipientAddress,
         merchantId,
-        feeBps,
         deadline,
         escrowDuration: DEFAULT_ESCROW_DURATION,
       };
@@ -204,7 +196,6 @@ describe('Payment Lifecycle Integration', () => {
         amount,
         recipientAddress,
         merchantId,
-        feeBps,
         deadline,
         DEFAULT_ESCROW_DURATION,
         serverSignature,
@@ -219,7 +210,6 @@ describe('Payment Lifecycle Integration', () => {
           amount,
           recipientAddress,
           merchantId,
-          feeBps,
           deadline,
           DEFAULT_ESCROW_DURATION,
           serverSignature,
@@ -236,7 +226,6 @@ describe('Payment Lifecycle Integration', () => {
       ];
       const amount = parseUnits('5', token.decimals);
       const totalAmount = amount * BigInt(paymentIds.length);
-      const feeBps = 0;
 
       await approveToken(token.address, gatewayAddress, totalAmount, payerPrivateKey);
 
@@ -248,7 +237,6 @@ describe('Payment Lifecycle Integration', () => {
           amount,
           recipientAddress: recipientAddress,
           merchantId,
-          feeBps,
           deadline,
           escrowDuration: DEFAULT_ESCROW_DURATION,
         };
@@ -262,7 +250,6 @@ describe('Payment Lifecycle Integration', () => {
           amount,
           recipientAddress,
           merchantId,
-          feeBps,
           deadline,
           DEFAULT_ESCROW_DURATION,
           serverSignature,

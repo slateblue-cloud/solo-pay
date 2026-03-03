@@ -93,7 +93,6 @@ describe('ServerSigningService', () => {
       expect(fieldNames).toContain('amount');
       expect(fieldNames).toContain('recipientAddress');
       expect(fieldNames).toContain('merchantId');
-      expect(fieldNames).toContain('feeBps');
       expect(fieldNames).toContain('deadline');
       expect(fieldNames).toContain('escrowDuration');
     });
@@ -109,7 +108,6 @@ describe('ServerSigningService', () => {
       expect(fieldMap.amount).toBe('uint256');
       expect(fieldMap.recipientAddress).toBe('address');
       expect(fieldMap.merchantId).toBe('bytes32');
-      expect(fieldMap.feeBps).toBe('uint16');
       expect(fieldMap.deadline).toBe('uint256');
       expect(fieldMap.escrowDuration).toBe('uint256');
     });
@@ -168,7 +166,6 @@ describe('ServerSigningService', () => {
       amount: 1000000n,
       recipientAddress: '0x0000000000000000000000000000000000000002' as const,
       merchantId: '0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890' as const,
-      feeBps: 100,
       deadline: testDeadline,
       escrowDuration: testEscrowDuration,
     };
@@ -180,7 +177,6 @@ describe('ServerSigningService', () => {
         validPaymentRequest.amount,
         validPaymentRequest.recipientAddress,
         validPaymentRequest.merchantId,
-        validPaymentRequest.feeBps,
         validPaymentRequest.deadline,
         validPaymentRequest.escrowDuration
       );
@@ -196,7 +192,6 @@ describe('ServerSigningService', () => {
         validPaymentRequest.amount,
         validPaymentRequest.recipientAddress,
         validPaymentRequest.merchantId,
-        validPaymentRequest.feeBps,
         validPaymentRequest.deadline,
         validPaymentRequest.escrowDuration
       );
@@ -221,7 +216,6 @@ describe('ServerSigningService', () => {
         validPaymentRequest.amount,
         validPaymentRequest.recipientAddress,
         validPaymentRequest.merchantId,
-        validPaymentRequest.feeBps,
         validPaymentRequest.deadline,
         validPaymentRequest.escrowDuration
       );
@@ -234,7 +228,6 @@ describe('ServerSigningService', () => {
         validPaymentRequest.amount,
         validPaymentRequest.recipientAddress,
         validPaymentRequest.merchantId,
-        validPaymentRequest.feeBps,
         validPaymentRequest.deadline,
         validPaymentRequest.escrowDuration
       );
@@ -249,7 +242,6 @@ describe('ServerSigningService', () => {
         validPaymentRequest.amount,
         validPaymentRequest.recipientAddress,
         validPaymentRequest.merchantId,
-        validPaymentRequest.feeBps,
         validPaymentRequest.deadline,
         validPaymentRequest.escrowDuration
       );
@@ -260,35 +252,8 @@ describe('ServerSigningService', () => {
         2000000n, // Different amount
         validPaymentRequest.recipientAddress,
         validPaymentRequest.merchantId,
-        validPaymentRequest.feeBps,
         validPaymentRequest.deadline,
         validPaymentRequest.escrowDuration
-      );
-
-      expect(signature1).not.toBe(signature2);
-    });
-
-    it('should produce different signatures for different fee bps', async () => {
-      const signature1 = await serverSigningService.signPaymentRequest(
-        validPaymentRequest.paymentId,
-        validPaymentRequest.tokenAddress,
-        validPaymentRequest.amount,
-        validPaymentRequest.recipientAddress,
-        validPaymentRequest.merchantId,
-        100, // 1%
-        testDeadline,
-        testEscrowDuration
-      );
-
-      const signature2 = await serverSigningService.signPaymentRequest(
-        validPaymentRequest.paymentId,
-        validPaymentRequest.tokenAddress,
-        validPaymentRequest.amount,
-        validPaymentRequest.recipientAddress,
-        validPaymentRequest.merchantId,
-        200, // 2%
-        testDeadline,
-        testEscrowDuration
       );
 
       expect(signature1).not.toBe(signature2);
@@ -301,7 +266,6 @@ describe('ServerSigningService', () => {
         validPaymentRequest.amount,
         validPaymentRequest.recipientAddress,
         validPaymentRequest.merchantId,
-        validPaymentRequest.feeBps,
         validPaymentRequest.deadline,
         validPaymentRequest.escrowDuration
       );
@@ -312,7 +276,6 @@ describe('ServerSigningService', () => {
         validPaymentRequest.amount,
         '0x0000000000000000000000000000000000000003' as const,
         validPaymentRequest.merchantId,
-        validPaymentRequest.feeBps,
         validPaymentRequest.deadline,
         validPaymentRequest.escrowDuration
       );

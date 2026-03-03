@@ -56,7 +56,6 @@ describe('Gasless Payment Integration', () => {
   it('should complete a gasless payment via forwarder with no fee (escrow + finalize)', async () => {
     const paymentId = generatePaymentId(`ORDER_GASLESS_${Date.now()}`);
     const amount = parseUnits('100', token.decimals);
-    const feeBps = 0;
 
     const initialPayerBalance = await getTokenBalance(token.address, payerAddress);
     const initialRecipientBalance = await getTokenBalance(token.address, recipientAddress);
@@ -69,7 +68,6 @@ describe('Gasless Payment Integration', () => {
       amount,
       recipientAddress: recipientAddress,
       merchantId,
-      feeBps,
       deadline: paymentDeadline,
       escrowDuration: DEFAULT_ESCROW_DURATION,
     };
@@ -83,7 +81,6 @@ describe('Gasless Payment Integration', () => {
       amount,
       recipientAddress,
       merchantId,
-      feeBps,
       paymentDeadline,
       DEFAULT_ESCROW_DURATION,
       serverSignature
@@ -141,11 +138,15 @@ describe('Gasless Payment Integration', () => {
   it('should complete a gasless payment with fee split', async () => {
     const paymentId = generatePaymentId(`ORDER_GASLESS_FEE_${Date.now()}`);
     const amount = parseUnits('100', token.decimals);
-    const feeBps = 500; // 5%
 
     const initialPayerBalance = await getTokenBalance(token.address, payerAddress);
     const initialTreasuryBalance = await getTokenBalance(token.address, treasuryAddress);
     const initialRecipientBalance = await getTokenBalance(token.address, recipientAddress);
+
+    // Set 5% fee on the contract before pay
+    const deployerWallet = getWallet(HARDHAT_ACCOUNTS.deployer.privateKey);
+    const gatewayAsDeployer = getContract(gatewayAddress, PaymentGatewayABI, deployerWallet);
+    await (await gatewayAsDeployer.setFeeBps(500)).wait();
 
     // Create server signature with fee
     const paymentDeadline = getDeadline(1);
@@ -155,7 +156,6 @@ describe('Gasless Payment Integration', () => {
       amount,
       recipientAddress: recipientAddress,
       merchantId,
-      feeBps,
       deadline: paymentDeadline,
       escrowDuration: DEFAULT_ESCROW_DURATION,
     };
@@ -169,7 +169,6 @@ describe('Gasless Payment Integration', () => {
       amount,
       recipientAddress,
       merchantId,
-      feeBps,
       paymentDeadline,
       DEFAULT_ESCROW_DURATION,
       serverSignature
@@ -212,7 +211,7 @@ describe('Gasless Payment Integration', () => {
     const finalizeTx = await gatewayWithSigner.finalize(paymentId, finalizeSignature);
     await finalizeTx.wait();
 
-    const expectedFee = (amount * BigInt(feeBps)) / 10000n;
+    const expectedFee = (amount * 500n) / 10000n;
     const expectedRecipientAmount = amount - expectedFee;
 
     const finalPayerBalance = await getTokenBalance(token.address, payerAddress);
@@ -222,12 +221,14 @@ describe('Gasless Payment Integration', () => {
     expect(finalPayerBalance).toBe(initialPayerBalance - amount);
     expect(finalTreasuryBalance).toBe(initialTreasuryBalance + expectedFee);
     expect(finalRecipientBalance).toBe(initialRecipientBalance + expectedRecipientAmount);
+
+    // Reset fee to 0
+    await (await gatewayAsDeployer.setFeeBps(0)).wait();
   });
 
   it('should reject expired deadline', async () => {
     const paymentId = generatePaymentId(`ORDER_EXPIRED_${Date.now()}`);
     const amount = parseUnits('50', token.decimals);
-    const feeBps = 0;
 
     // Create server signature
     const paymentDeadline = getDeadline(1);
@@ -237,7 +238,6 @@ describe('Gasless Payment Integration', () => {
       amount,
       recipientAddress: recipientAddress,
       merchantId,
-      feeBps,
       deadline: paymentDeadline,
       escrowDuration: DEFAULT_ESCROW_DURATION,
     };
@@ -251,7 +251,6 @@ describe('Gasless Payment Integration', () => {
       amount,
       recipientAddress,
       merchantId,
-      feeBps,
       paymentDeadline,
       DEFAULT_ESCROW_DURATION,
       serverSignature
@@ -290,7 +289,6 @@ describe('Gasless Payment Integration', () => {
   it('should reject invalid forwarder signature', async () => {
     const paymentId = generatePaymentId(`ORDER_INVALID_FWD_SIG_${Date.now()}`);
     const amount = parseUnits('50', token.decimals);
-    const feeBps = 0;
 
     // Create server signature
     const paymentDeadline = getDeadline(1);
@@ -300,7 +298,6 @@ describe('Gasless Payment Integration', () => {
       amount,
       recipientAddress: recipientAddress,
       merchantId,
-      feeBps,
       deadline: paymentDeadline,
       escrowDuration: DEFAULT_ESCROW_DURATION,
     };
@@ -314,7 +311,6 @@ describe('Gasless Payment Integration', () => {
       amount,
       recipientAddress,
       merchantId,
-      feeBps,
       paymentDeadline,
       DEFAULT_ESCROW_DURATION,
       serverSignature
@@ -355,7 +351,6 @@ describe('Gasless Payment Integration', () => {
     const paymentId1 = generatePaymentId(`ORDER_REPLAY_1_${Date.now()}`);
     const paymentId2 = generatePaymentId(`ORDER_REPLAY_2_${Date.now()}`);
     const amount = parseUnits('25', token.decimals);
-    const feeBps = 0;
 
     await approveToken(token.address, gatewayAddress, amount * 2n, payerPrivateKey);
 
@@ -370,7 +365,6 @@ describe('Gasless Payment Integration', () => {
       amount,
       recipientAddress: recipientAddress,
       merchantId,
-      feeBps,
       deadline: paymentDeadline1,
       escrowDuration: DEFAULT_ESCROW_DURATION,
     };
@@ -382,7 +376,6 @@ describe('Gasless Payment Integration', () => {
       amount,
       recipientAddress,
       merchantId,
-      feeBps,
       paymentDeadline1,
       DEFAULT_ESCROW_DURATION,
       serverSignature1
@@ -422,7 +415,6 @@ describe('Gasless Payment Integration', () => {
       amount,
       recipientAddress: recipientAddress,
       merchantId,
-      feeBps,
       deadline: paymentDeadline2,
       escrowDuration: DEFAULT_ESCROW_DURATION,
     };
@@ -434,7 +426,6 @@ describe('Gasless Payment Integration', () => {
       amount,
       recipientAddress,
       merchantId,
-      feeBps,
       paymentDeadline2,
       DEFAULT_ESCROW_DURATION,
       serverSignature2
@@ -466,7 +457,6 @@ describe('Gasless Payment Integration', () => {
   it('should reject invalid server signature in gasless payment', async () => {
     const paymentId = generatePaymentId(`ORDER_GASLESS_INVALID_SERVER_${Date.now()}`);
     const amount = parseUnits('50', token.decimals);
-    const feeBps = 0;
 
     // Create server signature with wrong key (relayer instead of signer)
     const paymentDeadline = getDeadline(1);
@@ -476,7 +466,6 @@ describe('Gasless Payment Integration', () => {
       amount,
       recipientAddress: recipientAddress,
       merchantId,
-      feeBps,
       deadline: paymentDeadline,
       escrowDuration: DEFAULT_ESCROW_DURATION,
     };
@@ -493,7 +482,6 @@ describe('Gasless Payment Integration', () => {
       amount,
       recipientAddress,
       merchantId,
-      feeBps,
       paymentDeadline,
       DEFAULT_ESCROW_DURATION,
       wrongServerSignature
