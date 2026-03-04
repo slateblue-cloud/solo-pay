@@ -73,16 +73,15 @@ describe('Authentication & Isolation', () => {
       const orderId = `AUTH_CROSS_FIN_${Date.now()}`;
       const paymentHash = await createPaymentForMerchantA(orderId);
 
-      // Merchant B tries to finalize Merchant A's payment
-      // Server returns 401 because the API key doesn't match the payment's merchant
+      // Merchant B tries to finalize Merchant A's payment → 403
       const res = await fetch(`${GATEWAY_API_URL}/payments/${paymentHash}/finalize`, {
         method: 'POST',
         headers: { 'x-api-key': merchantB.apiKey },
       });
 
-      expect(res.status).toBe(401);
+      expect(res.status).toBe(403);
       const body = (await res.json()) as { code: string };
-      expect(body.code).toBe('UNAUTHORIZED');
+      expect(body.code).toBe('FORBIDDEN');
     });
 
     it('should reject cancel when using a different merchant API key', async () => {
@@ -91,16 +90,15 @@ describe('Authentication & Isolation', () => {
       const orderId = `AUTH_CROSS_CAN_${Date.now()}`;
       const paymentHash = await createPaymentForMerchantA(orderId);
 
-      // Merchant B tries to cancel Merchant A's payment
-      // Server returns 401 because the API key doesn't match the payment's merchant
+      // Merchant B tries to cancel Merchant A's payment → 403
       const res = await fetch(`${GATEWAY_API_URL}/payments/${paymentHash}/cancel`, {
         method: 'POST',
         headers: { 'x-api-key': merchantB.apiKey },
       });
 
-      expect(res.status).toBe(401);
+      expect(res.status).toBe(403);
       const body = (await res.json()) as { code: string };
-      expect(body.code).toBe('UNAUTHORIZED');
+      expect(body.code).toBe('FORBIDDEN');
     });
   });
 

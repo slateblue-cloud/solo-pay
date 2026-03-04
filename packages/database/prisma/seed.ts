@@ -235,7 +235,7 @@ const merchants: MerchantModel[] = [
     merchant_key: 'merchant_metastar_001',
     name: 'Metastar Global',
     chain_id: 3,
-    api_key_hash: '0136f3e97619f4aa51dffe177e9b7d6bf495ffd6b09547f5463ef483d1db705a',
+    api_key_hash: '00606379f53e32b91a80af5e8056a8e4763f0ae93cbb8d42227ffa8525de26ad',
     public_key: null,
     public_key_hash: null,
     webhook_url: null,
