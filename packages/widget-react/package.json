@@ -42,7 +42,7 @@
     "react",
     "payment"
   ],
-  "author": "MSQ Team",
+  "author": "Solo Pay Team",
   "license": "MIT",
   "engines": {
     "node": ">=16.0.0"
@@ -52,11 +52,11 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/globalmsq/solo-pay",
+    "url": "https://github.com/supertrust/solo-pay",
     "directory": "packages/widget-react"
   },
   "homepage": "",
   "bugs": {
-    "url": "https://github.com/globalmsq/solo-pay/issues"
+    "url": "https://github.com/supertrust/solo-pay/issues"
   }
 }

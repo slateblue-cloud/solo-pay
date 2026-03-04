@@ -87,7 +87,7 @@ cd docker && docker-compose up
 ### Installation
 
 ```bash
-pnpm add @globalmsq/solopay
+pnpm add @solo-pay/gateway-sdk
 ```
 
 ### Client Initialization
@@ -96,7 +96,7 @@ Initialize SoloPay SDK as singleton on merchant server:
 
 ```typescript
 // lib/solopay-server.ts
-import { SoloPayClient } from '@globalmsq/solopay';
+import { SoloPayClient } from '@solo-pay/gateway-sdk';
 
 let solopayClient: SoloPayClient | null = null;
 
@@ -271,7 +271,7 @@ export async function GET(
 ```typescript
 // app/api/checkout/route.ts
 import { NextRequest, NextResponse } from 'next/server';
-import { SoloPayClient } from '@globalmsq/solopay';
+import { SoloPayClient } from '@solo-pay/gateway-sdk';
 import { getProductById } from '@/lib/products';
 import { getMerchantConfig } from '@/lib/merchant';
 
@@ -584,7 +584,7 @@ SoloPay covers gas fees.
 ### Error Handling Pattern
 
 ```typescript
-import { SoloPayError } from '@globalmsq/solopay';
+import { SoloPayError } from '@solo-pay/gateway-sdk';
 
 try {
   const result = await client.getPaymentStatus(paymentId);

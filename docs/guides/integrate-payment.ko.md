@@ -7,7 +7,7 @@ SoloPay SDK를 사용하여 상점에 블록체인 결제를 통합하는 가이
 ## SDK 설치
 
 ```bash
-pnpm add @globalmsq/solopay
+pnpm add @solo-pay/gateway-sdk
 ```
 
 **요구사항**:
@@ -18,7 +18,7 @@ pnpm add @globalmsq/solopay
 ## SDK 초기화
 
 ```typescript
-import { SoloPayClient } from '@globalmsq/solopay';
+import { SoloPayClient } from '@solo-pay/gateway-sdk';
 
 const client = new SoloPayClient({
   environment: 'development', // or 'staging', 'production', 'custom'
@@ -31,8 +31,8 @@ const client = new SoloPayClient({
 | Environment | API URL                         |
 | ----------- | ------------------------------- |
 | development | http://localhost:3001           |
-| staging     | https://pay-api.staging.msq.com |
-| production  | https://pay-api.msq.com         |
+| staging     | https://pay-api.staging.sut.com |
+| production  | https://pay-api.sut.com         |
 | custom      | `apiUrl` 파라미터 필요          |
 
 ## Direct Payment 구현
@@ -194,7 +194,7 @@ history.data.forEach((payment) => {
 ### 에러 핸들링 예제
 
 ```typescript
-import { SoloPayError } from '@globalmsq/solopay';
+import { SoloPayError } from '@solo-pay/gateway-sdk';
 
 try {
   await client.createPayment(params);
@@ -266,7 +266,7 @@ if (BigInt(allowance) < BigInt(amount)) {
 ### 상점서버 (Backend)
 
 ```typescript
-import { SoloPayClient } from '@globalmsq/solopay';
+import { SoloPayClient } from '@solo-pay/gateway-sdk';
 
 const client = new SoloPayClient({
   environment: 'production',

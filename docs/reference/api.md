@@ -8,7 +8,7 @@ Complete reference for all SoloPay REST API endpoints.
 
 | Item           | Value                                                           |
 | -------------- | --------------------------------------------------------------- |
-| Base URL       | `http://localhost:3001` (dev), `https://pay-api.msq.com` (prod) |
+| Base URL       | `http://localhost:3001` (dev), `https://pay-api.sut.com` (prod) |
 | Protocol       | REST API (HTTP/HTTPS)                                           |
 | Content-Type   | `application/json`                                              |
 | Authentication | x-api-key (payment API only)                                    |
@@ -414,7 +414,7 @@ curl "http://localhost:3001/tokens/0xE4C687167705Abf55d709395f92e254bdF5825a2/ba
 ### JavaScript/TypeScript (SDK)
 
 ```typescript
-import { SoloPayClient } from '@globalmsq/solopay';
+import { SoloPayClient } from '@solo-pay/gateway-sdk';
 
 const client = new SoloPayClient({
   environment: 'development',

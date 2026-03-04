@@ -146,9 +146,8 @@ const chains: ChainModel[] = [
 // Tokens
 // id=1: TEST on Localhost (chain_id=1) - MockERC20, no permit
 // id=2: SUT on Polygon (chain_id=5) - permit enabled
-// id=3: MSQ on Polygon (chain_id=5) - permit enabled
+// id=3: DST on Polygon (chain_id=5) - permit enabled
 // id=4: SUT on Amoy (chain_id=3) - permit enabled
-// id=5: MSQ on Amoy (chain_id=3) - permit enabled
 const tokens: TokenModel[] = [
   {
     id: 1,
@@ -156,7 +155,7 @@ const tokens: TokenModel[] = [
     address: '0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512',
     symbol: 'TEST',
     decimals: 18,
-    cmc_slug: 'msquare-global', // for testing
+    cmc_slug: null, // for testing
     permit_enabled: false,
     is_enabled: true,
     is_deleted: false,
@@ -181,20 +180,6 @@ const tokens: TokenModel[] = [
   {
     id: 3,
     chain_id: 5,
-    address: '0x6A8Ec2d9BfBDD20A7F5A4E89D640F7E7cebA4499',
-    symbol: 'MSQ',
-    decimals: 18,
-    cmc_slug: 'msquare-global',
-    permit_enabled: true,
-    is_enabled: true,
-    is_deleted: false,
-    deleted_at: null,
-    created_at: new Date(),
-    updated_at: new Date(),
-  },
-  {
-    id: 4,
-    chain_id: 5,
     address: '0x82DbF4227a981211d84f59092889eAdbb9C2a4D2',
     symbol: 'DST',
     decimals: 18,
@@ -207,24 +192,10 @@ const tokens: TokenModel[] = [
     updated_at: new Date(),
   },
   {
-    id: 5,
+    id: 4,
     chain_id: 3,
     address: '0xE4C687167705Abf55d709395f92e254bdF5825a2',
     symbol: 'SUT',
-    decimals: 18,
-    cmc_slug: null,
-    permit_enabled: true,
-    is_enabled: true,
-    is_deleted: false,
-    deleted_at: null,
-    created_at: new Date(),
-    updated_at: new Date(),
-  },
-  {
-    id: 6,
-    chain_id: 3,
-    address: '0x7350C119cb048c2Ea6b2532bcE82c2F7c042ff6b',
-    symbol: 'MSQ',
     decimals: 18,
     cmc_slug: null,
     permit_enabled: true,
@@ -238,7 +209,7 @@ const tokens: TokenModel[] = [
 
 // Merchants
 // id=1: Demo Store (chain_id=1, Localhost) - API Key: 123
-// id=2: Metastar Global (chain_id=3, Amoy) - API Key: msq_sk_metastar_123
+// id=2: Metastar Global (chain_id=3, Amoy) - API Key: sp_sk_metastar_123
 // id=3: Sample Merchant (chain_id=1, Localhost) - API Key: sample_api_key_001
 const merchants: MerchantModel[] = [
   {
@@ -264,7 +235,7 @@ const merchants: MerchantModel[] = [
     merchant_key: 'merchant_metastar_001',
     name: 'Metastar Global',
     chain_id: 3,
-    api_key_hash: '0136f3e97619f4aa51dffe177e9b7d6bf495ffd6b09547f5463ef483d1db705a',
+    api_key_hash: '00606379f53e32b91a80af5e8056a8e4763f0ae93cbb8d42227ffa8525de26ad',
     public_key: null,
     public_key_hash: null,
     webhook_url: null,
@@ -313,7 +284,7 @@ const paymentMethods: MerchantPaymentMethodModel[] = [
   {
     id: 2,
     merchant_id: 2,
-    token_id: 5,
+    token_id: 4,
     is_enabled: true,
     is_deleted: false,
     deleted_at: null,

@@ -4,7 +4,7 @@ import terser from '@rollup/plugin-terser';
 
 const banner = `/*!
  * @solo-pay/widget-js v0.1.0
- * (c) ${new Date().getFullYear()} MSQ Team
+ * (c) ${new Date().getFullYear()} Solo Pay Team
  * Released under the MIT License.
  */`;
 

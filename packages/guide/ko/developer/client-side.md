@@ -58,7 +58,7 @@ URL 파라미터는 사용자가 조작할 수 있습니다. 반드시 **API를 
 Callback URL에서 `paymentId`를 받은 즉시, 상태 조회 API를 호출하여 결제 상태를 검증합니다. `GET /payments/:id` 엔드포인트는 `x-public-key` 헤더를 사용하며 브라우저에서 직접 호출할 수 있습니다.
 
 ```typescript
-const response = await fetch(`https://pay-api.staging.msq.com/api/v1/payments/0xabc123...`, {
+const response = await fetch(`https://pay-api.staging.sut.com/api/v1/payments/0xabc123...`, {
   headers: { 'x-public-key': 'pk_test_xxxxx' },
 });
 const result = await response.json();

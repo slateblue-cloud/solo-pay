@@ -106,7 +106,7 @@ npx hardhat ignition deploy ignition/modules/PaymentGateway.ts \
   --parameters ignition/parameters/network.json
 ```
 
-**Example for Polygon Amoy with msq-relayer-service Forwarder:**
+**Example for Polygon Amoy with solo-pay-relayer-service Forwarder:**
 
 ```bash
 # Set environment

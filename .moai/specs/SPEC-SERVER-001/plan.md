@@ -1,6 +1,6 @@
 ---
 id: SPEC-SERVER-001
-title: MSQPay 결제 서버 구현 계획 (Implementation Plan)
+title: SoloPay 결제 서버 구현 계획 (Implementation Plan)
 created_at: 2025-11-28
 updated_at: 2025-11-28
 status: draft
@@ -10,7 +10,7 @@ status: draft
 
 ## 1. 개요 (Overview)
 
-이 문서는 SPEC-SERVER-001 (MSQPay 결제 서버)의 TDD 기반 구현 계획을 정의합니다. RED-GREEN-REFACTOR 사이클을 따르며, 테스트 커버리지 90% 이상을 목표로 합니다.
+이 문서는 SPEC-SERVER-001 (SoloPay 결제 서버)의 TDD 기반 구현 계획을 정의합니다. RED-GREEN-REFACTOR 사이클을 따르며, 테스트 커버리지 90% 이상을 목표로 합니다.
 
 ---
 
@@ -258,7 +258,7 @@ export class ApiError extends Error {
         message: this.message,
         field: this.field,
         value: this.value,
-        docs_url: `https://docs.msqpay.io/errors/${this.code}`,
+        docs_url: `https://docs.solopay.io/errors/${this.code}`,
       },
     };
   }
@@ -372,7 +372,7 @@ DEFENDER_SECRET_KEY=your_defender_secret_key
 RELAYER_ADDRESS=0x...
 
 # Database Configuration
-DATABASE_URL=mysql://user:password@localhost:3306/msqpay
+DATABASE_URL=mysql://user:password@localhost:3306/solopay
 DATABASE_POOL_MIN=2
 DATABASE_POOL_MAX=10
 
@@ -441,7 +441,7 @@ CREATE INDEX idx_payment_intents_created_at ON payment_intents(created_at DESC);
 -- ALTER TABLE payment_intents ADD INDEX idx_payment_intents_expires_at_pending (expires_at) WHERE status = 'pending';
 
 -- 테이블 및 컬럼 설명
-ALTER TABLE payment_intents COMMENT = 'MSQPay 결제 의도 저장 테이블 (Payment Intents)';
+ALTER TABLE payment_intents COMMENT = 'SoloPay 결제 의도 저장 테이블 (Payment Intents)';
 ALTER TABLE payment_intents MODIFY payment_id VARCHAR(36) COMMENT '서버 발급 UUID (클라이언트에 노출되는 ID)';
 ALTER TABLE payment_intents MODIFY amount DECIMAL(78, 0) COMMENT 'Wei 단위 결제 금액 (uint256 compatible)';
 ALTER TABLE payment_intents MODIFY status VARCHAR(20) COMMENT '결제 상태: pending, processing, completed, failed, expired';

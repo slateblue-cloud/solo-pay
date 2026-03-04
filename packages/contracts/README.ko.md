@@ -106,7 +106,7 @@ npx hardhat ignition deploy ignition/modules/PaymentGateway.ts \
   --parameters ignition/parameters/network.json
 ```
 
-**Polygon Amoy + msq-relayer-service Forwarder 예시:**
+**Polygon Amoy + solo-pay-relayer-service Forwarder 예시:**
 
 ```bash
 # 환경변수 설정

@@ -3,7 +3,7 @@ pragma solidity ^0.8.24;
 
 /**
  * @title IPaymentGateway
- * @author MSQ Team
+ * @author Solo Pay Team
  * @notice Interface for the PaymentGateway contract
  */
 interface IPaymentGateway {

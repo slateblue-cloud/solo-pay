@@ -29,7 +29,7 @@ If you need a custom flow instead of the widget, follow the steps below. All ste
 Call `POST /payments` with the `x-public-key` header. This can be called directly from the browser.
 
 ```typescript
-const response = await fetch('https://pay-api.staging.msq.com/api/v1/payments', {
+const response = await fetch('https://pay-api.staging.sut.com/api/v1/payments', {
   method: 'POST',
   headers: {
     'x-public-key': 'pk_test_xxxxx',
@@ -130,7 +130,7 @@ const forwardRequest = {
   }),
 };
 
-// EIP-712 Sign — domain name/version must match the forwarder contract used by the relay API (e.g. MSQPay, SoloForwarder, or ERC2771Forwarder)
+// EIP-712 Sign — domain name/version must match the forwarder contract used by the relay API (e.g. SoloPay, SoloForwarder, or ERC2771Forwarder)
 const signature = await signTypedDataAsync({
   domain: {
     name: 'ERC2771Forwarder', // Must match your deployed forwarder; relay server validates this
@@ -165,7 +165,7 @@ The `pay` function requires `deadline`, `escrowDuration`, and `serverSignature` 
 
 ```typescript
 const result = await fetch(
-  `https://pay-api.staging.msq.com/api/v1/payments/${payment.paymentId}/relay`,
+  `https://pay-api.staging.sut.com/api/v1/payments/${payment.paymentId}/relay`,
   {
     method: 'POST',
     headers: {
@@ -195,13 +195,13 @@ const result = await fetch(
 ```typescript
 // Relay status (by paymentId)
 const relayStatus = await fetch(
-  `https://pay-api.staging.msq.com/api/v1/payments/${paymentId}/relay`,
+  `https://pay-api.staging.sut.com/api/v1/payments/${paymentId}/relay`,
   { headers: { 'x-public-key': 'pk_test_xxxxx' } }
 ).then((r) => r.json());
 // relayStatus.data.status: 'QUEUED' | 'SUBMITTED' | 'CONFIRMED' | 'FAILED'
 
 // Payment status
-const paymentStatus = await fetch(`https://pay-api.staging.msq.com/api/v1/payments/${paymentId}`, {
+const paymentStatus = await fetch(`https://pay-api.staging.sut.com/api/v1/payments/${paymentId}`, {
   headers: { 'x-public-key': 'pk_test_xxxxx' },
 }).then((r) => r.json());
 // paymentStatus.data.status: 'CREATED' | 'ESCROWED' | 'FINALIZE_SUBMITTED' | 'FINALIZED' | 'CANCEL_SUBMITTED' | 'CANCELLED' | 'REFUND_SUBMITTED' | 'REFUNDED' | 'EXPIRED' | 'FAILED'
@@ -251,7 +251,7 @@ function GaslessPayment({ payment }) {
     });
 
     const result = await fetch(
-      `https://pay-api.staging.msq.com/api/v1/payments/${paymentId}/relay`,
+      `https://pay-api.staging.sut.com/api/v1/payments/${paymentId}/relay`,
       {
         method: 'POST',
         headers: { 'x-public-key': 'pk_test_xxxxx', 'Content-Type': 'application/json' },

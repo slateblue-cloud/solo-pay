@@ -38,7 +38,7 @@ React 프로젝트라면 [`@solo-pay/widget-react`의 `useWidget` 훅](/ko/widge
 Callback URL에서 `paymentId`를 받은 즉시 서버에서 최종 상태를 확인합니다.
 
 ```bash
-curl https://pay-api.staging.msq.com/api/v1/payments/0xabc123... \
+curl https://pay-api.staging.sut.com/api/v1/payments/0xabc123... \
   -H "x-public-key: pk_test_xxxxx"
 ```
 

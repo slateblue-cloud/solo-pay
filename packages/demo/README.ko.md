@@ -87,7 +87,7 @@ cd docker && docker-compose up
 ### 설치
 
 ```bash
-pnpm add @globalmsq/solopay
+pnpm add @solo-pay/gateway-sdk
 ```
 
 ### 클라이언트 초기화
@@ -96,7 +96,7 @@ pnpm add @globalmsq/solopay
 
 ```typescript
 // lib/solopay-server.ts
-import { SoloPayClient } from '@globalmsq/solopay';
+import { SoloPayClient } from '@solo-pay/gateway-sdk';
 
 let solopayClient: SoloPayClient | null = null;
 
@@ -271,7 +271,7 @@ export async function GET(
 ```typescript
 // app/api/checkout/route.ts
 import { NextRequest, NextResponse } from 'next/server';
-import { SoloPayClient } from '@globalmsq/solopay';
+import { SoloPayClient } from '@solo-pay/gateway-sdk';
 import { getProductById } from '@/lib/products';
 import { getMerchantConfig } from '@/lib/merchant';
 
@@ -586,7 +586,7 @@ SoloPay가 가스비를 대납하는 방식입니다.
 ### 에러 처리 패턴
 
 ```typescript
-import { SoloPayError } from '@globalmsq/solopay';
+import { SoloPayError } from '@solo-pay/gateway-sdk';
 
 try {
   const result = await client.getPaymentStatus(paymentId);

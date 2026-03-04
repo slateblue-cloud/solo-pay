@@ -26,7 +26,7 @@ function getDeployedAddress(contractId: string): string | null {
  *
  * Supports both:
  * - MockERC20 (deployed by solopay standalone)
- * - SampleToken (deployed by msq-relayer-service)
+ * - SampleToken (deployed by solo-pay-relayer-service)
  *
  * Both tokens have mint(address, uint256) with onlyOwner modifier.
  * Account #0 is the owner for both.

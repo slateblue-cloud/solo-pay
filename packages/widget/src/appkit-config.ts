@@ -8,7 +8,7 @@ export const APPKIT_WALLET_IDS = [
   '4622a2b2d6af1c9844944291e5e7351a6aa24cd7b23099efac1b2fd875da31a0', // Trust Wallet
 ] as const;
 
-/** App metadata for wallet connection modal (same shape as msqpay.js). url set at runtime via getMetadata(). */
+/** App metadata for wallet connection modal (same shape as solopay.js). url set at runtime via getMetadata(). */
 export const metadata = {
   name: process.env.NEXT_PUBLIC_APP_NAME ?? 'Solo Pay',
   description: 'Cryptocurrency Payment',

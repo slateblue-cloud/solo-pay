@@ -11,7 +11,7 @@ updated: '2025-11-30'
 
 ## 개요
 
-이 문서는 SPEC-DEMO-001 (Next.js API Routes를 통한 MSQPay SDK 통합)의 상세 수락 기준을 정의합니다.
+이 문서는 SPEC-DEMO-001 (Next.js API Routes를 통한 SoloPay SDK 통합)의 상세 수락 기준을 정의합니다.
 
 모든 시나리오는 Given-When-Then 형식으로 작성되며, 기능 검증을 위한 구체적인 테스트 케이스를 포함합니다.
 
@@ -25,7 +25,7 @@ updated: '2025-11-30'
 
 - Payment Server가 http://localhost:3001에서 실행 중
 - Demo App이 http://localhost:3000에서 실행 중
-- MSQPay SDK가 `workspace:*`로 설치됨
+- SoloPay SDK가 `workspace:*`로 설치됨
 - 결제가 생성된 상태 (paymentId 존재)
 
 #### When (실행 조건)
@@ -34,7 +34,7 @@ updated: '2025-11-30'
 
 #### Then (예상 결과)
 
-- API Routes가 `getMSQPayClient()` 호출
+- API Routes가 `getSoloPayClient()` 호출
 - SDK의 `client.getPaymentStatus(paymentId)` 메서드 실행
 - Payment Server로부터 결제 상태 수신
 - Frontend에 200 status code 반환
@@ -253,7 +253,7 @@ updated: '2025-11-30'
 
 #### Given (전제 조건)
 
-- `.env.local`에 `MSQPAY_API_KEY` 설정됨
+- `.env.local`에 `SOLOPAY_API_KEY` 설정됨
 
 #### When (실행 조건)
 
@@ -261,15 +261,15 @@ updated: '2025-11-30'
 
 #### Then (예상 결과)
 
-- Frontend에서 `MSQPAY_API_KEY` 접근 불가
+- Frontend에서 `SOLOPAY_API_KEY` 접근 불가
 - 브라우저 DevTools에서 환경 변수 노출 안 됨
-- API Routes에서만 `process.env.MSQPAY_API_KEY` 사용
+- API Routes에서만 `process.env.SOLOPAY_API_KEY` 사용
 
 #### 검증 방법
 
 1. 브라우저 DevTools Console에서 환경 변수 접근 시도:
    ```javascript
-   console.log(process.env.MSQPAY_API_KEY); // undefined 반환
+   console.log(process.env.SOLOPAY_API_KEY); // undefined 반환
    ```
 2. Network 탭에서 Request Headers 확인:
    - Authorization 헤더 없음 (API Key 노출 안 됨)

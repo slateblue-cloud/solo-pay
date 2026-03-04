@@ -1,13 +1,13 @@
 [English](sdk.md) | [한국어](sdk.ko.md)
 
-# SoloPay SDK (`@globalmsq/solopay`)
+# SoloPay SDK (`@solo-pay/gateway-sdk`)
 
 상점 서버가 SoloPay 결제 API와 상호작용하기 위한 경량 TypeScript SDK입니다. Node.js 18+ 네이티브 `fetch`를 사용하며 외부 의존성이 없습니다.
 
 ## 설치
 
 ```bash
-pnpm add @globalmsq/solopay
+pnpm add @solo-pay/gateway-sdk
 ```
 
 ## 빠른 시작
@@ -15,7 +15,7 @@ pnpm add @globalmsq/solopay
 ### 기본 사용법
 
 ```typescript
-import { SoloPayClient } from '@globalmsq/solopay';
+import { SoloPayClient } from '@solo-pay/gateway-sdk';
 
 // 클라이언트 초기화
 const client = new SoloPayClient({
@@ -40,8 +40,8 @@ console.log(`Payment created: ${payment.paymentId}`);
 ### 지원되는 환경
 
 - **development**: `http://localhost:3001`
-- **staging**: `https://pay-api.staging.msq.com`
-- **production**: `https://pay-api.msq.com`
+- **staging**: `https://pay-api.staging.sut.com`
+- **production**: `https://pay-api.sut.com`
 - **custom**: 설정에서 커스텀 `apiUrl` 제공
 
 ### 설정 예제
@@ -219,7 +219,7 @@ client.setApiUrl('https://new-api.example.com');
 
 ```typescript
 const url = client.getApiUrl();
-console.log(url); // https://pay-api.msq.com
+console.log(url); // https://pay-api.sut.com
 ```
 
 ## 에러 처리
@@ -271,7 +271,7 @@ import {
   PaymentHistoryItem,
   PaymentHistoryResponse,
   ErrorResponse,
-} from '@globalmsq/solopay';
+} from '@solo-pay/gateway-sdk';
 ```
 
 ### 타입 정의
@@ -347,7 +347,7 @@ interface PaymentHistoryItem {
 ## 전체 예제
 
 ```typescript
-import { SoloPayClient, SoloPayError } from '@globalmsq/solopay';
+import { SoloPayClient, SoloPayError } from '@solo-pay/gateway-sdk';
 
 async function processPayment() {
   const client = new SoloPayClient({
@@ -440,4 +440,4 @@ MIT
 1. 발생한 `SoloPayError`의 에러 코드 및 상세 정보 확인
 2. API 키 및 환경 설정 확인
 3. Node.js 버전 >= 18.0.0 확인
-4. [API 문서](https://docs.msq.com/api) 검토
+4. [API 문서](https://docs.sut.com/api) 검토

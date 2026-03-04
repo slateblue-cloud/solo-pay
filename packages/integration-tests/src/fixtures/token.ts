@@ -14,7 +14,7 @@ export interface TokenFixture {
  *
  * Note: 머천트는 자신의 체인에 맞는 토큰만 사용 가능
  * - Demo Merchant (chain_id=1) → TEST 토큰 (token_id=1)
- * - MetaStar Merchant (chain_id=3) → SUT on Amoy 토큰 (token_id=3)
+ * - MetaStar Merchant (chain_id=3) → SUT on Amoy 토큰 (token_id=4)
  */
 export const TEST_TOKENS: Record<string, TokenFixture> = {
   // TEST token on Localhost (id=1, chain_id=1, network_id=31337)
@@ -37,10 +37,10 @@ export const TEST_TOKENS: Record<string, TokenFixture> = {
     dbChainId: 5,
     networkId: 137,
   },
-  // SUT token on Amoy (id=3, chain_id=3, network_id=80002)
+  // SUT token on Amoy (id=4, chain_id=3, network_id=80002)
   // Used by: MetaStar Merchant
   sutAmoy: {
-    id: 3,
+    id: 4,
     address: '0xE4C687167705Abf55d709395f92e254bdF5825a2',
     symbol: 'SUT',
     decimals: 18,

@@ -3,7 +3,7 @@
 ---
 
 id: SPEC-RELAYER-002
-title: simple-relayer와 msq-relayer-service API 호환성 구현
+title: simple-relayer와 solo-pay-relayer-service API 호환성 구현
 phase: acceptance-criteria
 
 ---
@@ -14,7 +14,7 @@ phase: acceptance-criteria
 
 **TC-0.1**: 패키지 빌드 성공
 
-- **Given**: packages/simple-relayer 디렉토리가 존재하고 package.json의 name이 @msqpay/simple-relayer임
+- **Given**: packages/simple-relayer 디렉토리가 존재하고 package.json의 name이 @solopay/simple-relayer임
 - **When**: pnpm build 명령을 실행함
 - **Then**: 빌드가 성공하고 dist/ 디렉토리에 결과물이 생성됨
 
@@ -131,8 +131,8 @@ phase: acceptance-criteria
 **TC-3.3**: 환경변수 전환 테스트
 
 - **Given**: pay-server가 실행 중임
-- **When**: RELAY_API_URL을 msq-relayer-service URL로 변경함
-- **Then**: 코드 수정 없이 msq-relayer-service와 통신함
+- **When**: RELAY_API_URL을 solo-pay-relayer-service URL로 변경함
+- **Then**: 코드 수정 없이 solo-pay-relayer-service와 통신함
 
 ### TC-4: 인증 검증
 
@@ -171,7 +171,7 @@ phase: acceptance-criteria
 **TC-5.3**: 릴레이어 전환 E2E
 
 - **Given**: 전체 스택이 실행 중임
-- **When**: RELAY_API_URL을 외부 msq-relayer-service로 변경함
+- **When**: RELAY_API_URL을 외부 solo-pay-relayer-service로 변경함
 - **Then**: 동일한 결제 플로우가 정상 동작함
 
 ## 품질 게이트 기준
@@ -189,7 +189,7 @@ phase: acceptance-criteria
 
 ### API 호환성
 
-- [ ] msq-relayer-service API 스펙 100% 준수
+- [ ] solo-pay-relayer-service API 스펙 100% 준수
 - [ ] 레거시 엔드포인트 완전 제거
 
 ### 문서화
@@ -212,7 +212,7 @@ phase: acceptance-criteria
 3. **테스트 검증**
    - [ ] TC-0 ~ TC-5 모든 테스트 케이스 통과
    - [ ] 로컬 환경 E2E 테스트 통과
-   - [ ] (선택) 외부 msq-relayer-service 연동 테스트 통과
+   - [ ] (선택) 외부 solo-pay-relayer-service 연동 테스트 통과
 
 4. **문서화**
    - [ ] SPEC 문서 최종 업데이트
@@ -254,7 +254,7 @@ curl -X POST http://localhost:3002/api/v1/relay/gasless -H "Content-Type: applic
 
 ```bash
 # 1. 환경변수 변경
-export RELAY_API_URL=https://msq-relayer-service-url
+export RELAY_API_URL=https://solo-pay-relayer-service-url
 
 # 2. pay-server 재시작
 docker-compose restart server

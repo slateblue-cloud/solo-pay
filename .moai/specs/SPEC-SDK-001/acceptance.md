@@ -2,7 +2,7 @@
 
 ## Overview
 
-상점서버용 결제 SDK (`@globalmsq/msqpay`) 인수 조건입니다.
+상점서버용 결제 SDK (`@solo-pay/gateway-sdk`) 인수 조건입니다.
 
 ---
 
@@ -36,7 +36,7 @@ const response = await client.createPayment(params);
 
 ### AC-002: 에러 처리
 
-**조건**: 에러 발생 시 MSQPayError 인스턴스를 throw해야 한다.
+**조건**: 에러 발생 시 SoloPayError 인스턴스를 throw해야 한다.
 
 **검증 방법**:
 
@@ -44,7 +44,7 @@ const response = await client.createPayment(params);
 try {
   await client.createPayment(invalidParams);
 } catch (error) {
-  expect(error).toBeInstanceOf(MSQPayError);
+  expect(error).toBeInstanceOf(SoloPayError);
   expect(error.code).toBe('VALIDATION_ERROR');
   expect(error.statusCode).toBe(400);
 }
@@ -126,10 +126,10 @@ describe('createPayment', () => {
 ### TC-002: createPayment VALIDATION_ERROR
 
 ```typescript
-it('should throw MSQPayError on validation failure', async () => {
+it('should throw SoloPayError on validation failure', async () => {
   mockFetchError(400, { code: 'VALIDATION_ERROR', message: '입력 검증 실패' });
 
-  await expect(client.createPayment(invalidParams)).rejects.toThrow(MSQPayError);
+  await expect(client.createPayment(invalidParams)).rejects.toThrow(SoloPayError);
 });
 ```
 
@@ -149,7 +149,7 @@ it('should get payment status successfully', async () => {
 ### TC-004: getPaymentStatus NOT_FOUND
 
 ```typescript
-it('should throw MSQPayError when payment not found', async () => {
+it('should throw SoloPayError when payment not found', async () => {
   mockFetchError(404, { code: 'NOT_FOUND', message: '결제 정보를 찾을 수 없습니다' });
 
   await expect(client.getPaymentStatus('invalid-id')).rejects.toMatchObject({
@@ -203,12 +203,12 @@ it('should execute relay successfully', async () => {
 ```typescript
 describe('environment', () => {
   it('should use development URL', () => {
-    const client = new MSQPayClient({ environment: 'development', apiKey: 'test' });
+    const client = new SoloPayClient({ environment: 'development', apiKey: 'test' });
     expect(client.getApiUrl()).toBe('http://localhost:3001');
   });
 
   it('should use custom URL', () => {
-    const client = new MSQPayClient({
+    const client = new SoloPayClient({
       environment: 'custom',
       apiKey: 'test',
       apiUrl: 'https://custom.api.com',
@@ -217,7 +217,7 @@ describe('environment', () => {
   });
 
   it('should throw error when custom environment without apiUrl', () => {
-    expect(() => new MSQPayClient({ environment: 'custom', apiKey: 'test' })).toThrow();
+    expect(() => new SoloPayClient({ environment: 'custom', apiKey: 'test' })).toThrow();
   });
 });
 ```
@@ -227,7 +227,7 @@ describe('environment', () => {
 ```typescript
 describe('URL management', () => {
   it('should change API URL', () => {
-    const client = new MSQPayClient({ environment: 'development', apiKey: 'test' });
+    const client = new SoloPayClient({ environment: 'development', apiKey: 'test' });
     client.setApiUrl('https://new.api.com');
     expect(client.getApiUrl()).toBe('https://new.api.com');
   });

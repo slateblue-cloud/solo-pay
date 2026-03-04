@@ -33,7 +33,7 @@ describe('SignatureService', () => {
       const domain = signatureService.getDomain();
 
       expect(domain).toBeDefined();
-      expect(domain.name).toBe('MSQPay');
+      expect(domain.name).toBe('SoloPay');
       expect(domain.version).toBe('1');
       expect(domain.chainId).toBe(chainId);
       expect(domain.verifyingContract).toBe(forwarderAddress);

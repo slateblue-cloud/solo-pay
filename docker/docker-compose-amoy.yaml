@@ -159,7 +159,7 @@ services:
       #   condition: service_healthy
     networks:
       - solo-pay-network
-      - msq-network
+      - solopay-network
 
   # Demo App (Next.js)
   demo:
@@ -193,7 +193,7 @@ services:
 networks:
   solo-pay-network:
     driver: bridge
-  msq-network:
+  solopay-network:
     external: true
 
 volumes:

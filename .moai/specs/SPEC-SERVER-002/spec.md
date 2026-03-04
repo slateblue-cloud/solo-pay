@@ -84,7 +84,7 @@ acceptance_criteria:
 ## Assumptions (가정)
 
 **A1. 컨트랙트 배포**
-MSQPay 스마트 컨트랙트가 이미 배포되어 있으며, 주소가 환경 변수로 제공된다고 가정한다.
+SoloPay 스마트 컨트랙트가 이미 배포되어 있으며, 주소가 환경 변수로 제공된다고 가정한다.
 
 **A2. RPC 엔드포인트**
 안정적인 Polygon RPC 엔드포인트(Alchemy, Infura 등)가 제공된다고 가정한다.
@@ -420,7 +420,7 @@ class PaymentError extends Error {
 
 ### Contract Dependencies
 
-- **MSQPay.sol**: 결제 데이터 저장 및 조회
+- **SoloPay.sol**: 결제 데이터 저장 및 조회
 - **USDC Contract**: ERC20 토큰 인터페이스
 
 ---

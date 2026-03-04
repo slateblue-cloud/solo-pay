@@ -10,7 +10,7 @@ interface RelayRequestBody {
 }
 
 /**
- * ERC2771 Gasless Request (msq-relayer-service 호환)
+ * ERC2771 Gasless Request (solo-pay-relayer-service 호환)
  */
 interface GaslessRelayRequestBody {
   request: {

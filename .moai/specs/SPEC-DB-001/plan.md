@@ -443,7 +443,7 @@ model PaymentEvent {
 
 ```
 # Database
-DATABASE_URL=mysql://msqpay:pass@mysql:3306/msqpay
+DATABASE_URL=mysql://solopay:pass@mysql:3306/solopay
 
 # Redis
 REDIS_HOST=redis

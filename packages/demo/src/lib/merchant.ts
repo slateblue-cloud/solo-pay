@@ -47,7 +47,7 @@ export interface MerchantConfig {
 const CHAIN_CONFIGS: Record<number, Omit<MerchantConfig, 'merchantId' | 'publicKey' | 'origin'>> = {
   // Hardhat Local (chainId: 31337)
   // Deployment order: Forwarder (nonce 0) → Token (nonce 1)
-  // Same address as msq-relayer-service SampleToken
+  // Same address as solo-pay-relayer-service SampleToken
   31337: {
     chainId: 31337,
     tokenSymbol: 'TEST',
@@ -64,8 +64,8 @@ const CHAIN_CONFIGS: Record<number, Omit<MerchantConfig, 'merchantId' | 'publicK
   // Polygon Mainnet (chainId: 137)
   137: {
     chainId: 137,
-    tokenSymbol: 'TEST-MSQ',
-    tokenAddress: '0x3894c0a581eee053f9e220c4d2b4434f825af437',
+    tokenSymbol: 'TEST-SUT',
+    tokenAddress: '0xd5b32FDcE221542D046eca5954CB1D1A32F357D9',
     tokenDecimals: 18,
   },
 };

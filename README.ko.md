@@ -22,7 +22,7 @@ Multi-Service Blockchain Payment Gateway - ERC-20 토큰 결제 게이트웨이
 
 - **Direct Payment**: 사용자가 가스비를 직접 지불
 - **Gasless Payment**: Meta-transaction을 통한 가스비 대납 (Relayer Service)
-- **TypeScript SDK**: 상점서버용 API 클라이언트 (`@globalmsq/solopay`)
+- **TypeScript SDK**: 상점서버용 API 클라이언트 (`@solo-pay/gateway-sdk`)
 - **결제서버**: paymentId 발급, Contract 상태 조회, Gasless Relay
 - **Demo App**: 테스트용 웹앱
 
@@ -155,10 +155,10 @@ pnpm dev
 
 Block Explorer: [amoy.polygonscan.com](https://amoy.polygonscan.com/address/0xF3a0661743cD5cF970144a4Ed022E27c05b33BB5)
 
-## SDK Usage (@globalmsq/solopay)
+## SDK Usage (@solo-pay/gateway-sdk)
 
 ```typescript
-import { SoloPayClient } from '@globalmsq/solopay';
+import { SoloPayClient } from '@solo-pay/gateway-sdk';
 
 // 초기화
 const client = new SoloPayClient({

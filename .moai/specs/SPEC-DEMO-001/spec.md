@@ -17,19 +17,19 @@ priority: 'high'
 
 ---
 
-# SPEC-DEMO-001: Next.js API Routes를 통한 MSQPay SDK 통합
+# SPEC-DEMO-001: Next.js API Routes를 통한 SoloPay SDK 통합
 
 ## 1. 개요
 
 ### 1.1 목적
 
-Demo Application에 Next.js API Routes 레이어를 추가하여 MSQPay SDK를 서버사이드에서 안전하게 사용할 수 있도록 통합합니다.
+Demo Application에 Next.js API Routes 레이어를 추가하여 SoloPay SDK를 서버사이드에서 안전하게 사용할 수 있도록 통합합니다.
 
 ### 1.2 배경
 
 현재 Demo App의 Frontend는 Payment Server API를 직접 호출하고 있습니다. 이를 Next.js API Routes를 통해 간접 호출하도록 변경하여 다음과 같은 이점을 얻습니다:
 
-- MSQPay SDK (@globalmsq/msqpay)를 서버사이드에서 사용
+- SoloPay SDK (@solo-pay/gateway-sdk)를 서버사이드에서 사용
 - 무상태(Stateless) 아키텍처 유지
 - 모노리포 내에서 간단히 처리 (별도 서버 프로세스 불필요)
 - 타입 안정성 향상 및 환경 변수 보안 강화
@@ -53,14 +53,14 @@ Browser Frontend → Payment Server API (직접 호출)
 ### 2.2 목표 상태 (Target State)
 
 ```
-Browser Frontend → Next.js API Routes → MSQPayClient (SDK) → Payment Server
+Browser Frontend → Next.js API Routes → SoloPayClient (SDK) → Payment Server
                    /api/payments/*                             http://localhost:3001
 ```
 
 ### 2.3 데이터 흐름
 
 1. Frontend가 `/api/payments/*` 호출 (Next.js API Routes)
-2. API Routes가 `MSQPayClient` (SDK)로 요청 처리
+2. API Routes가 `SoloPayClient` (SDK)로 요청 처리
 3. SDK가 Payment Server로 HTTP 요청 전송
 4. Payment Server 응답 → SDK → API Routes → Frontend
 
@@ -80,22 +80,22 @@ Browser Frontend → Next.js API Routes → MSQPayClient (SDK) → Payment Serve
 
 #### REQ-DEMO-001-F01: SDK 의존성 관리
 
-**UBIQUITOUS** 시스템은 MSQPay SDK (@globalmsq/msqpay)를 workspace 의존성으로 추가해야 한다.
+**UBIQUITOUS** 시스템은 SoloPay SDK (@solo-pay/gateway-sdk)를 workspace 의존성으로 추가해야 한다.
 
 **수락 기준**:
 
-- `apps/demo/package.json`에 `"@globalmsq/msqpay": "workspace:*"` 추가
+- `apps/demo/package.json`에 `"@solo-pay/gateway-sdk": "workspace:*"` 추가
 - 모노리포 루트에서 `pnpm install` 실행 성공
-- `node_modules/@globalmsq/msqpay` symlink 생성 확인
+- `node_modules/@solo-pay/gateway-sdk` symlink 생성 확인
 
 #### REQ-DEMO-001-F02: SDK Singleton 초기화
 
-**UBIQUITOUS** 시스템은 MSQPayClient 인스턴스를 Singleton 패턴으로 관리해야 한다.
+**UBIQUITOUS** 시스템은 SoloPayClient 인스턴스를 Singleton 패턴으로 관리해야 한다.
 
 **수락 기준**:
 
-- `apps/demo/src/lib/msqpay-server.ts` 파일 생성
-- `getMSQPayClient()` 함수가 단일 인스턴스 반환
+- `apps/demo/src/lib/solopay-server.ts` 파일 생성
+- `getSoloPayClient()` 함수가 단일 인스턴스 반환
 - `environment: 'development'` 설정으로 localhost:3001 연결
 
 #### REQ-DEMO-001-F03: Payment Status API Route
@@ -182,7 +182,7 @@ Browser Frontend → Next.js API Routes → MSQPayClient (SDK) → Payment Serve
 
 **수락 기준**:
 
-- `.env.local`에 `MSQPAY_API_KEY` 저장
+- `.env.local`에 `SOLOPAY_API_KEY` 저장
 - Frontend에서 환경 변수 접근 불가
 - API Routes에서만 `process.env` 사용
 
@@ -209,7 +209,7 @@ apps/demo/src/app/api/payments/
 
 **수락 기준**:
 
-- `MSQPayClient` import 사용
+- `SoloPayClient` import 사용
 - SDK 메서드 타입 추론 활용
 - `NextRequest`, `NextResponse` 타입 사용
 
@@ -223,7 +223,7 @@ apps/demo/src/app/api/payments/
 
 - Next.js 14.2.5 (App Router)
 - TypeScript
-- MSQPayClient SDK (@globalmsq/msqpay)
+- SoloPayClient SDK (@solo-pay/gateway-sdk)
 - pnpm workspace
 
 #### REQ-DEMO-001-C02: 코드 변경 최소화
@@ -242,7 +242,7 @@ apps/demo/src/app/api/payments/
 
 **수락 기준**:
 
-- `.env.local`에 `MSQPAY_API_KEY` 설정
+- `.env.local`에 `SOLOPAY_API_KEY` 설정
 - Payment Server URL은 SDK에서 자동 설정 (http://localhost:3001)
 
 ---
@@ -309,7 +309,7 @@ apps/demo/src/app/api/payments/
 
 | 파일 경로                                           | 용도          | 라인 수 |
 | --------------------------------------------------- | ------------- | ------- |
-| `src/lib/msqpay-server.ts`                          | SDK singleton | 20      |
+| `src/lib/solopay-server.ts`                          | SDK singleton | 20      |
 | `src/app/api/payments/[paymentId]/status/route.ts`  | 상태 조회     | 25      |
 | `src/app/api/payments/history/route.ts`             | 이력 조회     | 30      |
 | `src/app/api/payments/[paymentId]/gasless/route.ts` | Gasless       | 30      |
@@ -338,7 +338,7 @@ apps/demo/src/app/api/payments/
 **해결**:
 
 - 모노리포 루트에서 `pnpm install` 실행
-- symlink 확인 (`node_modules/@globalmsq/msqpay`)
+- symlink 확인 (`node_modules/@solo-pay/gateway-sdk`)
 
 **롤백**: 필요시 `"file:../../packages/sdk"` 사용
 
@@ -366,17 +366,17 @@ apps/demo/src/app/api/payments/
 
 ### 6.1 관련 SPEC
 
-- **SPEC-SDK-001**: MSQPay SDK 구현 (의존성)
+- **SPEC-SDK-001**: SoloPay SDK 구현 (의존성)
 - **SPEC-SERVER-002**: 무상태 결제 서버 API (연동 대상)
 
 ### 6.2 관련 문서
 
 - Next.js 14 API Routes 공식 문서
-- MSQPay SDK 문서 (packages/sdk/README.md)
+- SoloPay SDK 문서 (packages/sdk/README.md)
 
 ### 6.3 관련 코드
 
-- `packages/sdk/src/index.ts` - MSQPayClient 클래스
+- `packages/sdk/src/index.ts` - SoloPayClient 클래스
 - `packages/pay-server/src/routes/payment.ts` - Payment Server API
 
 ---
@@ -384,7 +384,7 @@ apps/demo/src/app/api/payments/
 ## 7. 성공 기준
 
 - ✅ Frontend가 `/api/payments/*` 호출
-- ✅ API Routes가 `MSQPayClient` 사용
+- ✅ API Routes가 `SoloPayClient` 사용
 - ✅ 기존 결제 플로우 무수정 동작
 - ✅ Payment History 정상 표시
 - ✅ 에러 처리 유지

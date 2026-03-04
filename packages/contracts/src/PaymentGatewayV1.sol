@@ -15,7 +15,7 @@ import { IPaymentGateway } from "./interfaces/IPaymentGateway.sol";
 
 /**
  * @title PaymentGatewayV1
- * @author MSQ Team
+ * @author Solo Pay Team
  * @notice Escrow-based blockchain payment gateway with meta-transaction support
  * @dev Uses UUPS proxy pattern for upgradeability and ERC2771 for meta-transactions
  *
@@ -25,7 +25,7 @@ import { IPaymentGateway } from "./interfaces/IPaymentGateway.sol";
  * - cancel(): Tokens returned to payer (Cancelled)
  * - refund(): Post-finalization refund from merchant to payer (Refunded)
  *
- * @custom:security-contact security@msq.io
+ * @custom:security-contact security@sut.com
  */
 contract PaymentGatewayV1 is
   UUPSUpgradeable,

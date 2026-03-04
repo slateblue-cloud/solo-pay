@@ -29,7 +29,7 @@
 `x-public-key` 헤더와 함께 `POST /payments`를 호출합니다. 브라우저에서 직접 호출할 수 있습니다.
 
 ```typescript
-const response = await fetch('https://pay-api.staging.msq.com/api/v1/payments', {
+const response = await fetch('https://pay-api.staging.sut.com/api/v1/payments', {
   method: 'POST',
   headers: {
     'x-public-key': 'pk_test_xxxxx',
@@ -130,7 +130,7 @@ const forwardRequest = {
   }),
 };
 
-// EIP-712 서명 — domain name/version은 릴레이 API가 사용하는 forwarder 컨트랙트와 일치해야 함 (예: MSQPay, SoloForwarder, ERC2771Forwarder)
+// EIP-712 서명 — domain name/version은 릴레이 API가 사용하는 forwarder 컨트랙트와 일치해야 함 (예: SoloPay, SoloForwarder, ERC2771Forwarder)
 const signature = await signTypedDataAsync({
   domain: {
     name: 'ERC2771Forwarder', // 배포된 forwarder와 일치해야 함; 릴레이 서버가 검증함
@@ -165,7 +165,7 @@ const signature = await signTypedDataAsync({
 
 ```typescript
 const result = await fetch(
-  `https://pay-api.staging.msq.com/api/v1/payments/${payment.paymentId}/relay`,
+  `https://pay-api.staging.sut.com/api/v1/payments/${payment.paymentId}/relay`,
   {
     method: 'POST',
     headers: {
@@ -195,13 +195,13 @@ const result = await fetch(
 ```typescript
 // 릴레이 상태 (paymentId 기준)
 const relayStatus = await fetch(
-  `https://pay-api.staging.msq.com/api/v1/payments/${paymentId}/relay`,
+  `https://pay-api.staging.sut.com/api/v1/payments/${paymentId}/relay`,
   { headers: { 'x-public-key': 'pk_test_xxxxx' } }
 ).then((r) => r.json());
 // relayStatus.data.status: 'QUEUED' | 'SUBMITTED' | 'CONFIRMED' | 'FAILED'
 
 // 결제 상태
-const paymentStatus = await fetch(`https://pay-api.staging.msq.com/api/v1/payments/${paymentId}`, {
+const paymentStatus = await fetch(`https://pay-api.staging.sut.com/api/v1/payments/${paymentId}`, {
   headers: { 'x-public-key': 'pk_test_xxxxx' },
 }).then((r) => r.json());
 // paymentStatus.data.status: 'CREATED' | 'ESCROWED' | 'FINALIZE_SUBMITTED' | 'FINALIZED' | 'CANCEL_SUBMITTED' | 'CANCELLED' | 'REFUND_SUBMITTED' | 'REFUNDED' | 'EXPIRED' | 'FAILED'
@@ -251,7 +251,7 @@ function GaslessPayment({ payment }) {
     });
 
     const result = await fetch(
-      `https://pay-api.staging.msq.com/api/v1/payments/${paymentId}/relay`,
+      `https://pay-api.staging.sut.com/api/v1/payments/${paymentId}/relay`,
       {
         method: 'POST',
         headers: { 'x-public-key': 'pk_test_xxxxx', 'Content-Type': 'application/json' },

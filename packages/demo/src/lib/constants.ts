@@ -24,7 +24,7 @@ export const TOAST_DURATION = 3000;
 
 // Default token symbol per chain (UI display only)
 export const DEFAULT_TOKEN_SYMBOL: Record<number, string> = {
-  [polygon.id]: 'TEST-MSQ',
+  [polygon.id]: 'TEST-SUT',
   [polygonAmoy.id]: 'SUT',
   [hardhat.id]: 'TEST',
 };
@@ -32,7 +32,7 @@ export const DEFAULT_TOKEN_SYMBOL: Record<number, string> = {
 // Token addresses per chain (UI display only - for polygonscan links etc.)
 export const TOKENS: Record<number, Record<string, `0x${string}`>> = {
   [polygon.id]: {
-    'TEST-MSQ': '0x3894c0a581eee053f9e220c4d2b4434f825af437',
+    'TEST-SUT': '0xd5b32FDcE221542D046eca5954CB1D1A32F357D9',
   },
   [polygonAmoy.id]: {
     SUT: '0xE4C687167705Abf55d709395f92e254bdF5825a2',

@@ -6,11 +6,11 @@
 
 ```bash
 # orderId로 조회
-curl "https://pay-api.staging.msq.com/api/v1/merchant/payments?orderId=order-001" \
+curl "https://pay-api.staging.sut.com/api/v1/merchant/payments?orderId=order-001" \
   -H "x-api-key: sk_xxxxx"
 
 # paymentId로 조회
-curl "https://pay-api.staging.msq.com/api/v1/merchant/payments/0xabc123..." \
+curl "https://pay-api.staging.sut.com/api/v1/merchant/payments/0xabc123..." \
   -H "x-api-key: sk_xxxxx"
 ```
 

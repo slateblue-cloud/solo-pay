@@ -2,7 +2,7 @@
 
 ## Overview
 
-상점서버용 결제 SDK (`@globalmsq/msqpay`) 구현 계획입니다.
+상점서버용 결제 SDK (`@solo-pay/gateway-sdk`) 구현 계획입니다.
 
 ---
 
@@ -45,9 +45,9 @@ packages/sdk/
 
 ```json
 {
-  "name": "@globalmsq/msqpay",
+  "name": "@solo-pay/gateway-sdk",
   "version": "0.1.0",
-  "description": "MSQPay SDK for store servers",
+  "description": "SoloPay SDK for store servers",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "files": ["dist"],
@@ -124,7 +124,7 @@ export default defineConfig({
 **내용**:
 
 - Environment 타입
-- MSQPayConfig 인터페이스
+- SoloPayConfig 인터페이스
 - CreatePaymentParams/Response
 - PaymentStatusResponse
 - GaslessParams/Response
@@ -142,14 +142,14 @@ export default defineConfig({
 
 **내용**:
 
-- MSQPayError 클래스
+- SoloPayError 클래스
 - 에러 코드 상수
 
 ### 3.4 client.ts (메인 클라이언트)
 
 **내용**:
 
-- MSQPayClient 클래스
+- SoloPayClient 클래스
 - constructor (config 처리)
 - setApiUrl / getApiUrl
 - createPayment
@@ -163,8 +163,8 @@ export default defineConfig({
 **내용**:
 
 - 모든 타입 export
-- MSQPayClient export
-- MSQPayError export
+- SoloPayClient export
+- SoloPayError export
 
 ---
 
@@ -235,9 +235,9 @@ git checkout -b feature/SPEC-SDK-001
 
 ```bash
 git add packages/sdk/
-git commit -m "feat(sdk): implement @globalmsq/msqpay HTTP client
+git commit -m "feat(sdk): implement @solo-pay/gateway-sdk HTTP client
 
-- Add MSQPayClient class with 4 API methods
+- Add SoloPayClient class with 4 API methods
 - createPayment, getPaymentStatus, submitGasless, executeRelay
 - Native fetch (no external dependencies)
 - 90%+ test coverage

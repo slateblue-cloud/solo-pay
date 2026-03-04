@@ -133,7 +133,7 @@ jobs:
       - name: Checkout infra repo
         uses: actions/checkout@v4
         with:
-          repository: globalmsq/solo-pay-infra
+          repository: supertrust/solo-pay-infra
           token: ${{ secrets.PAT_TOKEN }}
           path: solo-pay-infra
 

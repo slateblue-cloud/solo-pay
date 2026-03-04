@@ -14,7 +14,7 @@ import type { IgnitionModuleResult } from '@nomicfoundation/ignition-core';
  * - treasury: Address of the treasury to receive payments (default: Account #2)
  * - signerAddress: Address of the server signer for payment authorization (default: Account #4)
  * - forwarderAddress: Optional existing ERC2771Forwarder address to reuse
- *   - If provided: Uses existing forwarder (e.g., from msq-relayer-service)
+ *   - If provided: Uses existing forwarder (e.g., from solo-pay-relayer-service)
  *   - If not provided: Deploys new SoloForwarder
  *
  * Note: MockERC20 is deployed separately via MockERC20.ts module
@@ -36,7 +36,7 @@ const PaymentGatewayModule: ReturnType<
   let forwarder;
 
   if (forwarderAddress) {
-    // Reuse existing forwarder (e.g., from msq-relayer-service)
+    // Reuse existing forwarder (e.g., from solo-pay-relayer-service)
     forwarder = m.contractAt('ERC2771Forwarder', forwarderAddress, {
       id: 'ExternalForwarder',
     });

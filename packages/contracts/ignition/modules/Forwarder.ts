@@ -8,7 +8,7 @@ import type { IgnitionModuleResult } from '@nomicfoundation/ignition-core';
  * to ensure consistent addresses across deployment modes:
  *
  * - Standalone mode: Forwarder at nonce 0 = 0x5FbDB2315678afecb367f032d93F642f64180aa3
- * - Relayer mode: msq-relayer-service also deploys Forwarder at nonce 0
+ * - Relayer mode: solo-pay-relayer-service also deploys Forwarder at nonce 0
  *
  * This ensures Token is always at nonce 1 = 0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512
  */

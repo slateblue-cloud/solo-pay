@@ -322,7 +322,7 @@ Local 환경:
 
 ## 관련 문서
 
-- SPEC-API-001: MSQPay API 서버 구현
+- SPEC-API-001: SoloPay API 서버 구현
 - SPEC-SERVER-001: Payment Server 초기 설정
 - EIP-712: Typed structured data hashing and signing
 - ERC-2771: Secure Protocol for Native Meta Transactions

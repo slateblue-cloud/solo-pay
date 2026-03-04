@@ -1,6 +1,6 @@
 ---
 id: SPEC-SERVER-001
-title: MSQPay 결제 서버 (Payment Server)
+title: SoloPay 결제 서버 (Payment Server)
 category: backend
 status: superseded
 superseded_by: SPEC-SERVER-002
@@ -15,7 +15,7 @@ tags:
   - polygon-amoy
 ---
 
-# SPEC-SERVER-001: MSQPay 결제 서버 (Payment Server)
+# SPEC-SERVER-001: SoloPay 결제 서버 (Payment Server)
 
 > **Note**: 이 SPEC은 SPEC-SERVER-002로 대체되었습니다. 최신 결제 서버 사양은 SPEC-SERVER-002를 참조하세요.
 
@@ -23,7 +23,7 @@ tags:
 
 ### 1.1 목적 (Purpose)
 
-MSQPay 블록체인 결제 게이트웨이의 백엔드 API 서버를 구현합니다. 결제 생성, 상태 조회, Gasless 트랜잭션 실행, 통계 조회 기능을 제공하며, Polygon Amoy Testnet 기반의 PaymentProcessor 스마트 컨트랙트와 상호작용합니다.
+SoloPay 블록체인 결제 게이트웨이의 백엔드 API 서버를 구현합니다. 결제 생성, 상태 조회, Gasless 트랜잭션 실행, 통계 조회 기능을 제공하며, Polygon Amoy Testnet 기반의 PaymentProcessor 스마트 컨트랙트와 상호작용합니다.
 
 ### 1.2 범위 (Scope)
 
@@ -462,7 +462,7 @@ interface IPaymentProcessor {
 
 ```typescript
 const EIP712_DOMAIN = {
-  name: 'MSQPay',
+  name: 'SoloPay',
   version: '1',
   chainId: 80002,
   verifyingContract: PAYMENT_PROCESSOR_ADDRESS,
@@ -574,7 +574,7 @@ CREATE INDEX idx_payment_intents_created_at ON payment_intents(created_at DESC);
 CREATE INDEX idx_payment_intents_expires_at_pending ON payment_intents(expires_at) WHERE status = 'pending'; -- MySQL 8.0.13+ 지원
 
 -- 테이블 및 컬럼 설명
-ALTER TABLE payment_intents COMMENT = 'MSQPay 결제 의도 저장 테이블 (Payment Intents)';
+ALTER TABLE payment_intents COMMENT = 'SoloPay 결제 의도 저장 테이블 (Payment Intents)';
 ALTER TABLE payment_intents MODIFY payment_id VARCHAR(36) COMMENT '서버 발급 UUID (클라이언트에 노출되는 ID)';
 ALTER TABLE payment_intents MODIFY amount DECIMAL(78, 0) COMMENT 'Wei 단위 결제 금액 (uint256 compatible)';
 ALTER TABLE payment_intents MODIFY status VARCHAR(20) COMMENT '결제 상태: pending, processing, completed, failed, expired';
@@ -589,22 +589,22 @@ ALTER TABLE payment_intents MODIFY expires_at DATETIME(3) COMMENT '결제 만료
 
 ### 비즈니스 메트릭
 
-- `msqpay_payments_total{status}`: 결제 건수 (status별)
-- `msqpay_payment_amount_total{token_address}`: 총 결제 금액 (토큰별)
-- `msqpay_payment_success_rate`: 결제 성공률 (completed / total)
-- `msqpay_payment_expiration_rate`: 결제 만료율 (expired / total)
+- `solopay_payments_total{status}`: 결제 건수 (status별)
+- `solopay_payment_amount_total{token_address}`: 총 결제 금액 (토큰별)
+- `solopay_payment_success_rate`: 결제 성공률 (completed / total)
+- `solopay_payment_expiration_rate`: 결제 만료율 (expired / total)
 
 ### 성능 메트릭
 
-- `msqpay_api_request_duration_seconds{endpoint, method}`: API 응답 시간 (히스토그램)
-- `msqpay_api_requests_total{endpoint, method, status}`: API 요청 수
-- `msqpay_gasless_execution_duration_seconds`: Gasless TX 실행 시간
+- `solopay_api_request_duration_seconds{endpoint, method}`: API 응답 시간 (히스토그램)
+- `solopay_api_requests_total{endpoint, method, status}`: API 요청 수
+- `solopay_gasless_execution_duration_seconds`: Gasless TX 실행 시간
 
 ### 시스템 메트릭
 
-- `msqpay_db_connections_active`: MySQL 활성 연결 수
-- `msqpay_redis_cache_hit_rate`: Redis 캐시 적중률
-- `msqpay_oz_defender_requests_total{status}`: OZ Defender API 호출 수
+- `solopay_db_connections_active`: MySQL 활성 연결 수
+- `solopay_redis_cache_hit_rate`: Redis 캐시 적중률
+- `solopay_oz_defender_requests_total{status}`: OZ Defender API 호출 수
 
 ---
 
@@ -660,9 +660,9 @@ ALTER TABLE payment_intents MODIFY expires_at DATETIME(3) COMMENT '결제 만료
 
 ## 7. 참조 문서 (References)
 
-- [MSQPay Architecture Documentation](../../../docs/architecture.md)
-- [MSQPay Implementation Plan](../../../docs/implementation-plan.md)
-- [MSQPay PRD](../../../docs/prd.md)
+- [SoloPay Architecture Documentation](../../../docs/architecture.md)
+- [SoloPay Implementation Plan](../../../docs/implementation-plan.md)
+- [SoloPay PRD](../../../docs/prd.md)
 - [Fastify Documentation](https://fastify.dev/)
 - [viem 2.0 Documentation](https://viem.sh/)
 - [OpenZeppelin Defender SDK](https://docs.openzeppelin.com/defender/sdk)

@@ -23,7 +23,7 @@ interface TypedDataTypes {
 export class SignatureService {
   private forwarderAddress: Address;
   private chainId: number;
-  private name = 'MSQPay';
+  private name = 'SoloPay';
   private version = '1';
 
   constructor(forwarderAddress: Address, chainId: number) {

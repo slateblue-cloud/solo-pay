@@ -64,7 +64,7 @@ function writeIgnitionParameters(forwarderAddress: string): string {
  * 2. MockERC20 (nonce 1) - skip if TOKEN_ADDRESS is set
  * 3. PaymentGateway (nonce 2-3) - always deploy if not present
  *
- * This order matches msq-relayer-service deployment:
+ * This order matches solo-pay-relayer-service deployment:
  * - Forwarder at 0x5FbDB2315678afecb367f032d93F642f64180aa3 (nonce 0)
  * - Token at 0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512 (nonce 1)
  */

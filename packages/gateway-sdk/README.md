@@ -1,4 +1,4 @@
-# SoloPay SDK (`@globalmsq/solopay`)
+# SoloPay SDK (`@solo-pay/gateway-sdk`)
 
 [English](README.md) | [한국어](README.ko.md)
 
@@ -7,7 +7,7 @@ A lightweight TypeScript SDK for store servers to interact with the SoloPay paym
 ## Installation
 
 ```bash
-pnpm add @globalmsq/solopay
+pnpm add @solo-pay/gateway-sdk
 ```
 
 ## Quick Start
@@ -15,7 +15,7 @@ pnpm add @globalmsq/solopay
 ### Basic Usage
 
 ```typescript
-import { SoloPayClient } from '@globalmsq/solopay';
+import { SoloPayClient } from '@solo-pay/gateway-sdk';
 
 // Initialize the client
 const client = new SoloPayClient({
@@ -40,8 +40,8 @@ console.log(`Payment created: ${payment.paymentId}`);
 ### Supported Environments
 
 - **development**: `http://localhost:3001`
-- **staging**: `https://pay-api.staging.msq.com`
-- **production**: `https://pay-api.msq.com`
+- **staging**: `https://pay-api.staging.sut.com`
+- **production**: `https://pay-api.sut.com`
 - **custom**: Provide custom `apiUrl` in config
 
 ### Configuration Examples
@@ -207,7 +207,7 @@ Get the current API URL.
 
 ```typescript
 const url = client.getApiUrl();
-console.log(url); // https://pay-api.msq.com
+console.log(url); // https://pay-api.sut.com
 ```
 
 ## Error Handling
@@ -259,7 +259,7 @@ import {
   PaymentHistoryItem,
   PaymentHistoryResponse,
   ErrorResponse,
-} from '@globalmsq/solopay';
+} from '@solo-pay/gateway-sdk';
 ```
 
 ### Type Definitions
@@ -318,7 +318,7 @@ interface PaymentHistoryItem {
 ## Complete Example
 
 ```typescript
-import { SoloPayClient, SoloPayError } from '@globalmsq/solopay';
+import { SoloPayClient, SoloPayError } from '@solo-pay/gateway-sdk';
 
 async function processPayment() {
   const client = new SoloPayClient({
@@ -411,4 +411,4 @@ For issues or questions:
 1. Check the error code and details in the thrown `SoloPayError`
 2. Verify your API key and environment configuration
 3. Ensure Node.js version >= 18.0.0
-4. Review the [API documentation](https://docs.msq.com/api)
+4. Review the [API documentation](https://docs.sut.com/api)

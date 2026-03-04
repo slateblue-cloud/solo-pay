@@ -30,7 +30,7 @@ Request both keys from your administrator.
 The API Key is used for server-side management operations such as merchant info queries, webhook verification, and payment history.
 
 ```bash
-curl https://pay-api.staging.msq.com/api/v1/merchant \
+curl https://pay-api.staging.sut.com/api/v1/merchant \
   -H "x-api-key: sk_xxxxx"
 ```
 

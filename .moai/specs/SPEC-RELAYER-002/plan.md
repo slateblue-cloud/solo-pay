@@ -3,7 +3,7 @@
 ---
 
 id: SPEC-RELAYER-002
-title: simple-relayer와 msq-relayer-service API 호환성 구현
+title: simple-relayer와 solo-pay-relayer-service API 호환성 구현
 phase: implementation-plan
 
 ---
@@ -31,7 +31,7 @@ phase: implementation-plan
 **0.1 패키지 디렉토리 리네이밍**
 
 - [ ] `packages/simple-defender/` -> `packages/simple-relayer/` 이동
-- [ ] `packages/simple-defender/package.json` name을 `@msqpay/simple-relayer`로 변경
+- [ ] `packages/simple-defender/package.json` name을 `@solopay/simple-relayer`로 변경
 - [ ] `pnpm-workspace.yaml` 패키지 경로 확인 (필요시 업데이트)
 
 **0.2 pay-server 서비스 클래스 리네이밍**
@@ -80,7 +80,7 @@ phase: implementation-plan
 
 ### 목표
 
-msq-relayer-service 호환 API 엔드포인트 구조 구현
+solo-pay-relayer-service 호환 API 엔드포인트 구조 구현
 
 ### 작업 목록
 
@@ -108,7 +108,7 @@ msq-relayer-service 호환 API 엔드포인트 구조 구현
 
 ### 목표
 
-msq-relayer-service 호환 request body 형식 구현
+solo-pay-relayer-service 호환 request body 형식 구현
 
 ### 작업 목록
 
@@ -215,13 +215,13 @@ X-API-Key 헤더 기반 인증 구현
 
 ### 목표
 
-msq-relayer-service와 동일한 응답 형식 구현
+solo-pay-relayer-service와 동일한 응답 형식 구현
 
 ### 작업 목록
 
 **5.1 성공 응답 형식 통일**
 
-- [ ] msq-relayer-service 응답 형식 분석
+- [ ] solo-pay-relayer-service 응답 형식 분석
 - [ ] simple-relayer 응답 형식 일치화
 
 **5.2 에러 응답 형식 통일**
@@ -249,7 +249,7 @@ msq-relayer-service와 동일한 응답 형식 구현
 
 **Integration.2 외부 서비스 테스트**
 
-- [ ] RELAY_API_URL을 msq-relayer-service로 변경
+- [ ] RELAY_API_URL을 solo-pay-relayer-service로 변경
 - [ ] 동일한 테스트 시나리오 실행
 - [ ] 호환성 확인
 
@@ -287,7 +287,7 @@ pay-server
 RelayerService (HTTP Client)
     |
     v
-simple-relayer (or msq-relayer-service)
+simple-relayer (or solo-pay-relayer-service)
     |
     v
 ERC2771Forwarder Contract
@@ -299,7 +299,7 @@ Blockchain
 ### API 호환성 레이어
 
 ```
-msq-relayer-service API Spec
+solo-pay-relayer-service API Spec
     ^
     |
 simple-relayer (100% 호환)
@@ -328,7 +328,7 @@ RelayerService Client
 ## 완료 기준
 
 1. [ ] 모든 defender 용어가 relayer로 변경됨
-2. [ ] simple-relayer가 msq-relayer-service API 스펙과 100% 호환됨
+2. [ ] simple-relayer가 solo-pay-relayer-service API 스펙과 100% 호환됨
 3. [ ] pay-server가 RELAY_API_URL만 변경하면 릴레이어 전환 가능함
 4. [ ] 모든 테스트 통과
 5. [ ] Docker Compose로 전체 스택 정상 동작

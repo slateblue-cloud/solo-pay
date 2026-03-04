@@ -326,7 +326,7 @@ payments JOIN merchant_payment_methods JOIN tokens JOIN chains JOIN merchants
 ### 4.3 환경 변수
 
 ```
-DATABASE_URL=mysql://msqpay:pass@localhost:3306/msqpay
+DATABASE_URL=mysql://solopay:pass@localhost:3306/solopay
 REDIS_URL=redis://localhost:6379
 ```
 

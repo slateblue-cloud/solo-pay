@@ -1,6 +1,6 @@
 # @solo-pay/widget-react
 
-React hook wrapper for the SoloPay payment widget. Uses the vanilla [@solo-pay/widget-js](https://github.com/globalmsq/solo-pay) core under the hood.
+React hook wrapper for the SoloPay payment widget. Uses the vanilla [@solo-pay/widget-js](https://github.com/supertrust/solo-pay) core under the hood.
 
 ## Install
 

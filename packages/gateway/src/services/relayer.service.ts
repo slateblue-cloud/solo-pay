@@ -33,7 +33,7 @@ interface RelayerInfo {
  * Relayer 서비스 - Gasless 트랜잭션 릴레이
  *
  * HTTP 클라이언트를 통해 Relayer API와 통신합니다.
- * - Production: msq-relayer-service API
+ * - Production: solo-pay-relayer-service API
  * - Local: simple-relayer HTTP 서비스 (simple-relayer:3001)
  *
  * 환경변수 RELAY_API_URL만 변경하면 동일한 코드로 양쪽 환경에서 동작합니다.
@@ -55,7 +55,7 @@ export class RelayerService {
   /**
    * HTTP 요청 헤더 생성
    *
-   * relay-api (msq-relayer-service)는 x-api-key 헤더만 필요.
+   * relay-api (solo-pay-relayer-service)는 x-api-key 헤더만 필요.
    * Secret은 불필요하며, 헤더 이름은 소문자로 전송.
    */
   private getHeaders(): Record<string, string> {
