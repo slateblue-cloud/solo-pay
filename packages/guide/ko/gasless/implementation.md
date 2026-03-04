@@ -105,7 +105,7 @@ const nonce = await publicClient.readContract({
   args: [userAddress],
 });
 
-// Forward Request 구성
+// Forward Request 구성 (PaymentGateway.pay — deadline/escrowDuration은 API 응답에서 사용)
 const forwardRequest = {
   from: userAddress,
   to: gatewayAddress,
@@ -115,23 +115,25 @@ const forwardRequest = {
   deadline: BigInt(Math.floor(Date.now() / 1000) + 3600), // 1시간
   data: encodeFunctionData({
     abi: PaymentGatewayABI,
-    functionName: 'payWithSignature',
+    functionName: 'pay',
     args: [
       paymentId,
       tokenAddress,
       BigInt(amount),
       recipientAddress,
       merchantId,
-      feeBps,
+      BigInt(deadline), // payment.deadline (API)
+      BigInt(escrowDuration), // payment.escrowDuration (API)
       serverSignature,
+      permitData, // EIP-2612 permit, 또는 zero permit { deadline: 0, v: 0, r: '0x00...', s: '0x00...' }
     ],
   }),
 };
 
-// EIP-712 서명
+// EIP-712 서명 — domain name/version은 릴레이 API가 사용하는 forwarder 컨트랙트와 일치해야 함 (예: MSQPay, SoloForwarder, ERC2771Forwarder)
 const signature = await signTypedDataAsync({
   domain: {
-    name: 'ERC2771Forwarder',
+    name: 'ERC2771Forwarder', // 배포된 forwarder와 일치해야 함; 릴레이 서버가 검증함
     version: '1',
     chainId: 80002, // Polygon Amoy
     verifyingContract: forwarderAddress,
@@ -154,7 +156,7 @@ const signature = await signTypedDataAsync({
 
 ::: warning 중요
 서명은 트랜잭션이 아니므로 **가스비가 부과되지 않습니다**.
-`payWithSignature` 함수는 인자로 `serverSignature`가 필요합니다.
+`pay` 함수는 API 응답의 `deadline`, `escrowDuration`, `serverSignature`가 필요합니다. EIP-2612를 사용하지 않을 때는 zero permit을 전달하세요.
 :::
 
 ## Step 4: 가스리스 요청 제출
@@ -214,7 +216,7 @@ function GaslessPayment({ payment }) {
   const { signTypedDataAsync } = useSignTypedData();
 
   const { paymentId, forwarderAddress, gatewayAddress, amount, tokenAddress,
-          recipientAddress, merchantId, feeBps, serverSignature, chainId } = payment;
+          recipientAddress, merchantId, deadline, escrowDuration, serverSignature, chainId } = payment;
 
   const handleGaslessPayment = async () => {
     const nonce = await publicClient.readContract({
@@ -222,12 +224,16 @@ function GaslessPayment({ payment }) {
       functionName: 'nonces', args: [address],
     });
 
+    const payDeadline = BigInt(deadline);
+    const payEscrowDuration = BigInt(escrowDuration);
+    const zeroPermit = { deadline: 0, v: 0, r: '0x0000000000000000000000000000000000000000000000000000000000000000' as const, s: '0x0000000000000000000000000000000000000000000000000000000000000000' as const };
+
     const forwardRequest = {
       from: address, to: gatewayAddress, value: 0n, gas: 200000n, nonce,
       deadline: BigInt(Math.floor(Date.now() / 1000) + 3600),
       data: encodeFunctionData({
-        abi: PaymentGatewayABI, functionName: 'payWithSignature',
-        args: [paymentId, tokenAddress, BigInt(amount), recipientAddress, merchantId, feeBps, serverSignature],
+        abi: PaymentGatewayABI, functionName: 'pay',
+        args: [paymentId, tokenAddress, BigInt(amount), recipientAddress, merchantId, payDeadline, payEscrowDuration, serverSignature, zeroPermit],
       }),
     };
 

@@ -23,7 +23,7 @@ Every SoloPay payment is processed in the following 5 steps.
          ↓
 
 [4] Blockchain (PaymentGateway Contract)
-    payWithSignature() executes → token transfer & event emitted
+    pay() executes → token transfer & event emitted
 
          ↓
 
@@ -40,7 +40,7 @@ After payment is **ESCROWED**, the merchant server can call **POST /payments/:id
 | **1. Payment Request**      | SoloPay Widget | `POST /payments` → get `paymentId`, `serverSignature`            |
 | **2. Signing**              | User Wallet    | EIP-712 sign only (no TX, no gas)                                |
 | **3. Relayer**              | SoloPay Server | Verify signature → submit on-chain TX                            |
-| **4. Contract**             | Blockchain     | `payWithSignature()` → token escrowed                            |
+| **4. Contract**             | Blockchain     | `pay()` → token escrowed                                         |
 | **5. Webhook**              | SoloPay Server | Sends events to your Webhook URL (see rows below)                |
 | **5a.** `payment.created`   | SoloPay Server | Right after creation. Optional: track pending                    |
 | **5b.** `payment.escrowed`  | SoloPay Server | User payment confirmed on-chain. Call **finalize** or **cancel** |
