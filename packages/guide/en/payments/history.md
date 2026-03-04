@@ -76,5 +76,5 @@ Use Subgraph for bulk history queries or complex filtering.
 
 ## Next Steps
 
-- [Refunds](/en/api/) - Payment refund processing
+- [Refunds](/en/payments/refunds) - Payment refund processing
 - [Error Codes](/en/api/errors) - Error handling

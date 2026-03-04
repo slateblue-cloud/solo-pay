@@ -75,6 +75,6 @@ Contact the SoloPay operations team or use the dashboard to activate payment met
 
 ## Next Steps
 
+- [Quick Start](/en/developer/quick-start) — Create your first payment in 5 minutes
 - [How Payments Work](/en/developer/how-it-works) — Understand the full pipeline and architecture
 - [Choose Integration Method](/en/developer/integration-methods) — Select the method that fits your setup
-- [Quick Start](/en/getting-started/quick-start) — Create your first payment in 5 minutes

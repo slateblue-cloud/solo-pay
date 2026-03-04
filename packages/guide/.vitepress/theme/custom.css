@@ -1,6 +1,36 @@
 /**
- * MSQPay Documentation - 반응형 UX 개선
+ * SoloPay Documentation - Responsive UX
  */
+
+/* Navbar logo: slightly larger for visibility */
+.VPNavBar .VPImage.logo {
+  height: 44px !important;
+  width: auto !important;
+}
+
+/* Navbar title "SoloPay": gradient text (match logo blue → purple) */
+.VPNavBar .name.clip {
+  background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  font-weight: 600;
+}
+
+/* Quick Start: make sidebar label bold (matches .item > a.link > p.text structure) */
+.VPSidebar a.link[href*='quick-start'],
+.VPSidebar a.link[href*='quick-start'] .text,
+.VPSidebar .item a.link[href*='quick-start'],
+.VPSidebar .item a.link[href*='quick-start'] .text {
+  font-weight: 700 !important;
+}
+
+/* Subtitle (first paragraph under H1) slightly larger for clarity */
+.vp-doc h1 + p {
+  font-size: 1.125em;
+  line-height: 1.65;
+  color: var(--vp-c-text-2);
+}
 
 .vp-doc table {
   display: block;
@@ -13,6 +43,12 @@
 .vp-doc table td {
   min-width: 80px;
   white-space: normal;
+}
+
+/* Keep first column (Step / 단계) on one line */
+.vp-doc table th:first-child,
+.vp-doc table td:first-child {
+  white-space: nowrap;
 }
 
 @media (max-width: 768px) {
@@ -46,21 +82,21 @@
 }
 
 @media (max-width: 768px) {
-  /* 사이드바 링크 */
+  /* Sidebar links */
   .VPSidebarItem .link {
     min-height: 44px;
     display: flex;
     align-items: center;
   }
 
-  /* 네비게이션 링크 */
+  /* Navigation links */
   .VPNavBarMenuLink {
     min-height: 44px;
     display: flex;
     align-items: center;
   }
 
-  /* 목차(outline) 링크 */
+  /* Outline / table of contents links */
   .VPDocOutlineItem a {
     min-height: 40px;
     display: flex;
@@ -131,7 +167,7 @@
     line-height: 1.7;
   }
 
-  /* 제목과 콘텐츠 간격 */
+  /* Spacing between headings and content */
   .vp-doc h2 {
     margin-top: 40px;
   }

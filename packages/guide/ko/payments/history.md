@@ -76,5 +76,5 @@ query PaymentHistory($payer: Bytes!) {
 
 ## 다음 단계
 
-- [환불](/ko/api/) - 결제 환불 처리
+- [환불](/ko/payments/refunds) - 결제 환불 처리
 - [에러 코드](/ko/api/errors) - 에러 처리

@@ -75,6 +75,6 @@ SoloPay 운영팀에 문의하거나 대시보드를 통해 결제 수단을 활
 
 ## 다음 단계
 
+- [빠른 시작](/ko/developer/quick-start) — 5분 안에 첫 결제 만들기
 - [결제 동작 원리](/ko/developer/how-it-works) — 전체 파이프라인 및 아키텍처 이해
 - [연동 방식 선택](/ko/developer/integration-methods) — 가맹점 환경에 맞는 방식 선택
-- [빠른 시작](/ko/getting-started/quick-start) — 5분 안에 첫 결제 만들기
