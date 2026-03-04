@@ -352,7 +352,7 @@ recipientAddress: "0x...",
 
 **작업**:
 
-1. MSQPayClient 인스턴스 생성
+1. SoloPayClient 인스턴스 생성
 2. POST 핸들러 작성
 3. Request body 검증
 4. SDK createPayment 호출
@@ -362,9 +362,9 @@ recipientAddress: "0x...",
 
 ```typescript
 import { NextRequest, NextResponse } from 'next/server';
-import { MSQPayClient } from '@msqpay/sdk';
+import { SoloPayClient } from '@solopay/sdk';
 
-const client = new MSQPayClient({
+const client = new SoloPayClient({
   baseURL: process.env.NEXT_PUBLIC_SERVER_URL || 'http://localhost:3001',
 });
 

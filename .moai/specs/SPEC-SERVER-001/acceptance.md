@@ -1,6 +1,6 @@
 ---
 id: SPEC-SERVER-001
-title: MSQPay 결제 서버 수용 테스트 시나리오 (Acceptance Test Scenarios)
+title: SoloPay 결제 서버 수용 테스트 시나리오 (Acceptance Test Scenarios)
 created_at: 2025-11-28
 updated_at: 2025-11-28
 status: draft
@@ -10,7 +10,7 @@ status: draft
 
 ## 1. 개요 (Overview)
 
-이 문서는 SPEC-SERVER-001 (MSQPay 결제 서버)의 수용 기준을 Given-When-Then 형식의 테스트 시나리오로 정의합니다. 모든 시나리오는 자동화된 테스트로 구현되어야 합니다.
+이 문서는 SPEC-SERVER-001 (SoloPay 결제 서버)의 수용 기준을 Given-When-Then 형식의 테스트 시나리오로 정의합니다. 모든 시나리오는 자동화된 테스트로 구현되어야 합니다.
 
 ---
 

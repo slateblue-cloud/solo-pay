@@ -29,7 +29,7 @@ No request body. The payment ID is in the URL path.
 ### Example
 
 ```bash
-curl -X POST https://pay-api.staging.msq.com/api/v1/payments/0xabc123... \
+curl -X POST https://pay-api.staging.sut.com/api/v1/payments/0xabc123... \
   -H "x-api-key: sk_test_xxxxx"
 ```
 

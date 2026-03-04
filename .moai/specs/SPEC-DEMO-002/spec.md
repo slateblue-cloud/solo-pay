@@ -198,7 +198,7 @@ SPEC-API-001의 서버 기반 블록체인 설정을 Demo App에 적용합니다
 
 - **Parent**: SPEC-API-001 (서버/SDK 구현 완료)
 - **Libraries**: Zod (⚠️ 설치 필요), Wagmi, Viem, React
-- **Services**: MSQPay Server (packages/pay-server)
+- **Services**: SoloPay Server (packages/pay-server)
 
 ---
 

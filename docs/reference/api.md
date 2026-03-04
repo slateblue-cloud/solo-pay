@@ -8,7 +8,7 @@ Complete reference for all SoloPay REST API endpoints.
 
 | Item           | Value                                                           |
 | -------------- | --------------------------------------------------------------- |
-| Base URL       | `http://localhost:3001` (dev), `https://pay-api.msq.com` (prod) |
+| Base URL       | `http://localhost:3001` (dev), `https://pay-api.sut.com` (prod) |
 | Protocol       | REST API (HTTP/HTTPS)                                           |
 | Content-Type   | `application/json`                                              |
 | Authentication | x-api-key (payment API only)                                    |

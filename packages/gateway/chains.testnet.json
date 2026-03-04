@@ -4,7 +4,7 @@
       "chainId": 80002,
       "name": "Polygon Amoy",
       "rpcUrl": "https://rpc-amoy.polygon.technology",
-      "subgraphUrl": "https://api.studio.thegraph.com/query/.../msqpay-amoy/...",
+      "subgraphUrl": "https://api.studio.thegraph.com/query/.../solopay-amoy/...",
       "nativeCurrency": {
         "name": "POL",
         "symbol": "POL",

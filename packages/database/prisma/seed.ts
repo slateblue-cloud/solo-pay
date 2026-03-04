@@ -146,9 +146,7 @@ const chains: ChainModel[] = [
 // Tokens
 // id=1: TEST on Localhost (chain_id=1) - MockERC20, no permit
 // id=2: SUT on Polygon (chain_id=5) - permit enabled
-// id=3: MSQ on Polygon (chain_id=5) - permit enabled
 // id=4: SUT on Amoy (chain_id=3) - permit enabled
-// id=5: MSQ on Amoy (chain_id=3) - permit enabled
 const tokens: TokenModel[] = [
   {
     id: 1,
@@ -156,7 +154,7 @@ const tokens: TokenModel[] = [
     address: '0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512',
     symbol: 'TEST',
     decimals: 18,
-    cmc_slug: 'msquare-global', // for testing
+    cmc_slug: null, // for testing
     permit_enabled: false,
     is_enabled: true,
     is_deleted: false,
@@ -171,20 +169,6 @@ const tokens: TokenModel[] = [
     symbol: 'SUT',
     decimals: 18,
     cmc_slug: 'supertrust',
-    permit_enabled: true,
-    is_enabled: true,
-    is_deleted: false,
-    deleted_at: null,
-    created_at: new Date(),
-    updated_at: new Date(),
-  },
-  {
-    id: 3,
-    chain_id: 5,
-    address: '0x6A8Ec2d9BfBDD20A7F5A4E89D640F7E7cebA4499',
-    symbol: 'MSQ',
-    decimals: 18,
-    cmc_slug: 'msquare-global',
     permit_enabled: true,
     is_enabled: true,
     is_deleted: false,
@@ -220,25 +204,11 @@ const tokens: TokenModel[] = [
     created_at: new Date(),
     updated_at: new Date(),
   },
-  {
-    id: 6,
-    chain_id: 3,
-    address: '0x7350C119cb048c2Ea6b2532bcE82c2F7c042ff6b',
-    symbol: 'MSQ',
-    decimals: 18,
-    cmc_slug: null,
-    permit_enabled: true,
-    is_enabled: true,
-    is_deleted: false,
-    deleted_at: null,
-    created_at: new Date(),
-    updated_at: new Date(),
-  },
 ];
 
 // Merchants
 // id=1: Demo Store (chain_id=1, Localhost) - API Key: 123
-// id=2: Metastar Global (chain_id=3, Amoy) - API Key: msq_sk_metastar_123
+// id=2: Metastar Global (chain_id=3, Amoy) - API Key: sp_sk_metastar_123
 // id=3: Sample Merchant (chain_id=1, Localhost) - API Key: sample_api_key_001
 const merchants: MerchantModel[] = [
   {

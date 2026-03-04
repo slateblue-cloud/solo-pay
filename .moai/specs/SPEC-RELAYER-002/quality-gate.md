@@ -55,12 +55,12 @@
 
 1. simple-relayer/package.json:
    - "keywords": ["defender", ...] (여전히 "defender" 포함)
-   - "description": "... (Defender/msq-relayer compatible)"
+   - "description": "... (Defender/solo-pay-relayer compatible)"
 
 2. simple-relayer/src/server.ts 라인 77:
    - ║ SimpleDefender Server ║
 
-3. 패키지명은 정상: @msqpay/simple-relayer
+3. 패키지명은 정상: @solopay/simple-relayer
 
 영향도: 문서화 및 유지보수성 감소
 
@@ -139,7 +139,7 @@
 
 ### Phase 0: 네이밍 리팩토링
 
-- REQ-0.1 ✓ 패키지 리네이밍: @msqpay/simple-relayer
+- REQ-0.1 ✓ 패키지 리네이밍: @solopay/simple-relayer
 - REQ-0.2 ✓ 서비스 클래스: RelayerService
 - REQ-0.3 ✓ 환경변수: RELAY_API_URL 등
 - REQ-0.4 ⚠️ Docker 설정: 부분 (출력 메시지에 SimpleDefender 유지)
@@ -260,7 +260,7 @@
 
 **강점**:
 
-- API 설계: msq-relayer-service와 완벽 호환
+- API 설계: solo-pay-relayer-service와 완벽 호환
 - 타입 안정성: TypeScript 활용 우수
 - 요구사항 추적: SPEC 문서 완벽
 
@@ -273,5 +273,5 @@
 **권장**:
 
 - X-API-Key 인증 먼저 구현 후 머지
-- 실제 msq-relayer-service와 호환성 E2E 테스트 추가
+- 실제 solo-pay-relayer-service와 호환성 E2E 테스트 추가
 - 콘솔 메시지, 키워드 정리

@@ -54,23 +54,23 @@ pnpm install
 
 #### Step 1.2: SDK Singleton 생성
 
-**파일**: `apps/demo/src/lib/msqpay-server.ts` (NEW - 20 lines)
+**파일**: `apps/demo/src/lib/solopay-server.ts` (NEW - 20 lines)
 
 **구현 내용**:
 
 ```typescript
-import { MSQPayClient } from '@solo-pay/gateway-sdk';
+import { SoloPayClient } from '@solo-pay/gateway-sdk';
 
-let msqpayClient: MSQPayClient | null = null;
+let solopayClient: SoloPayClient | null = null;
 
-export function getMSQPayClient(): MSQPayClient {
-  if (!msqpayClient) {
-    msqpayClient = new MSQPayClient({
+export function getSoloPayClient(): SoloPayClient {
+  if (!solopayClient) {
+    solopayClient = new SoloPayClient({
       environment: 'development',
-      apiKey: process.env.MSQPAY_API_KEY || 'dev-key-not-required',
+      apiKey: process.env.SOLOPAY_API_KEY || 'dev-key-not-required',
     });
   }
-  return msqpayClient;
+  return solopayClient;
 }
 ```
 
@@ -105,11 +105,11 @@ apps/demo/src/app/api/payments/
 
 ```typescript
 import { NextRequest, NextResponse } from 'next/server';
-import { getMSQPayClient } from '@/lib/msqpay-server';
+import { getSoloPayClient } from '@/lib/solopay-server';
 
 export async function GET(request: NextRequest, { params }: { params: { paymentId: string } }) {
   try {
-    const client = getMSQPayClient();
+    const client = getSoloPayClient();
     const response = await client.getPaymentStatus(params.paymentId);
     return NextResponse.json(response);
   } catch (error) {
@@ -180,11 +180,11 @@ export async function GET(request: NextRequest) {
 
 ```typescript
 import { NextRequest, NextResponse } from 'next/server';
-import { getMSQPayClient } from '@/lib/msqpay-server';
+import { getSoloPayClient } from '@/lib/solopay-server';
 
 export async function POST(request: NextRequest, { params }: { params: { paymentId: string } }) {
   try {
-    const client = getMSQPayClient();
+    const client = getSoloPayClient();
     const body = await request.json();
 
     const response = await client.submitGasless({
@@ -218,11 +218,11 @@ export async function POST(request: NextRequest, { params }: { params: { payment
 
 ```typescript
 import { NextRequest, NextResponse } from 'next/server';
-import { getMSQPayClient } from '@/lib/msqpay-server';
+import { getSoloPayClient } from '@/lib/solopay-server';
 
 export async function POST(request: NextRequest, { params }: { params: { paymentId: string } }) {
   try {
-    const client = getMSQPayClient();
+    const client = getSoloPayClient();
     const body = await request.json();
 
     const response = await client.executeRelay({
@@ -288,7 +288,7 @@ cd apps/demo && pnpm build
 **내용**:
 
 ```bash
-MSQPAY_API_KEY=dev-key-not-required
+SOLOPAY_API_KEY=dev-key-not-required
 
 # Note: SDK가 environment: 'development' 사용
 # Payment Server: http://localhost:3001
@@ -296,7 +296,7 @@ MSQPAY_API_KEY=dev-key-not-required
 
 **설명**:
 
-- `MSQPAY_API_KEY`: 서버사이드 환경 변수 (Frontend 노출 안 됨)
+- `SOLOPAY_API_KEY`: 서버사이드 환경 변수 (Frontend 노출 안 됨)
 - SDK가 `development` 모드에서 localhost:3001 자동 연결
 
 ---
@@ -305,7 +305,7 @@ MSQPAY_API_KEY=dev-key-not-required
 
 ### Top 5 Critical Files
 
-#### 1. `apps/demo/src/lib/msqpay-server.ts` (NEW)
+#### 1. `apps/demo/src/lib/solopay-server.ts` (NEW)
 
 - SDK singleton 초기화
 - 모든 API Routes의 core
@@ -340,7 +340,7 @@ MSQPAY_API_KEY=dev-key-not-required
 
 - **Next.js**: 14.2.5 (App Router)
 - **TypeScript**: 5.x
-- **MSQPay SDK**: @solo-pay/gateway-sdk (workspace:\*)
+- **SoloPay SDK**: @solo-pay/gateway-sdk (workspace:\*)
 - **Package Manager**: pnpm workspace
 
 ### 개발 환경
@@ -443,7 +443,7 @@ cd apps/demo && pnpm dev  # Port 3000
 ### 필수 요구사항
 
 - ✅ Frontend가 `/api/payments/*` 호출
-- ✅ API Routes가 `MSQPayClient` 사용
+- ✅ API Routes가 `SoloPayClient` 사용
 - ✅ 기존 결제 플로우 무수정 동작
 - ✅ Payment History 정상 표시
 - ✅ 에러 처리 유지

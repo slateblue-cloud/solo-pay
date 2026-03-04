@@ -97,8 +97,8 @@ services:
     networks:
       - solo-pay-network
 
-  # Contract Deployment (uses external hardhat-node from msq-relayer-service)
-  # Note: hardhat-node must be running in msq-relayer-service before starting this
+  # Contract Deployment (uses external hardhat-node from solo-pay-relayer-service)
+  # Note: hardhat-node must be running in solo-pay-relayer-service before starting this
   contracts-init:
     build:
       context: ..
@@ -111,14 +111,14 @@ services:
     environment:
       HARDHAT_NETWORK: localhost
       RPC_URL: http://hardhat-node:8545
-      # Reuse contracts from msq-relayer-service (deployed at nonces 0-2)
+      # Reuse contracts from solo-pay-relayer-service (deployed at nonces 0-2)
       # Setting these addresses skips MockERC20 and Forwarder deployment
       # - TOKEN_ADDRESS set → skip MockERC20, use SampleToken
       # - FORWARDER_ADDRESS set → skip Forwarder, reuse existing
       TOKEN_ADDRESS: '0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512'
       FORWARDER_ADDRESS: '0x5FbDB2315678afecb367f032d93F642f64180aa3'
     networks:
-      - msq-network
+      - solopay-network
     restart: 'no'
 
   # Payment Gateway (Fastify)
@@ -156,7 +156,7 @@ services:
         condition: service_completed_successfully
     networks:
       - solo-pay-network
-      - msq-network
+      - solopay-network
 
   # Demo App (Next.js)
   demo:
@@ -191,7 +191,7 @@ services:
 networks:
   solo-pay-network:
     driver: bridge
-  msq-network:
+  solopay-network:
     external: true
 
 volumes:

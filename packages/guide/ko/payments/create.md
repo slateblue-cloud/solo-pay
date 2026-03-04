@@ -34,7 +34,7 @@ SoloPay 위젯을 사용하면 **결제 생성은 위젯이 자동으로 처리*
 ## REST API
 
 ```bash
-curl -X POST https://pay-api.staging.msq.com/api/v1/payments \
+curl -X POST https://pay-api.staging.sut.com/api/v1/payments \
   -H "x-public-key: pk_test_xxxxx" \
   -H "Origin: https://yourshop.com" \
   -H "Content-Type: application/json" \

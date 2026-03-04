@@ -31,7 +31,7 @@ describe('SoloPayClient', () => {
         environment: 'staging',
         apiKey: 'test-key',
       });
-      expect(stagingClient.getApiUrl()).toBe('https://pay-api.staging.msq.com/api/v1');
+      expect(stagingClient.getApiUrl()).toBe('https://pay-api.staging.sut.com/api/v1');
     });
 
     it('TC-007.3: should initialize with production environment', () => {
@@ -39,7 +39,7 @@ describe('SoloPayClient', () => {
         environment: 'production',
         apiKey: 'test-key',
       });
-      expect(prodClient.getApiUrl()).toBe('https://pay-api.msq.com/api/v1');
+      expect(prodClient.getApiUrl()).toBe('https://pay-api.sut.com/api/v1');
     });
 
     it('TC-007.4: should initialize with custom environment and apiUrl', () => {

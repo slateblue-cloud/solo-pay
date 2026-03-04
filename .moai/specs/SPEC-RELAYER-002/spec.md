@@ -3,7 +3,7 @@
 ---
 
 id: SPEC-RELAYER-002
-title: simple-relayer와 msq-relayer-service API 호환성 구현
+title: simple-relayer와 solo-pay-relayer-service API 호환성 구현
 status: draft
 created: 2025-12-26
 author: workflow-spec
@@ -13,12 +13,12 @@ tags: [relayer, api-compatibility, refactoring, gasless-transaction]
 
 ## 개요
 
-simple-defender 패키지를 simple-relayer로 리네이밍하고, msq-relayer-service와 100% API 호환성을 확보하여 pay-server가 URL 변경만으로 두 릴레이어 서비스 간 전환이 가능하도록 한다.
+simple-defender 패키지를 simple-relayer로 리네이밍하고, solo-pay-relayer-service와 100% API 호환성을 확보하여 pay-server가 URL 변경만으로 두 릴레이어 서비스 간 전환이 가능하도록 한다.
 
 ## 목표
 
 1. **네이밍 통일**: defender 관련 모든 명칭을 relayer로 변경
-2. **API 호환성**: msq-relayer-service의 API 스펙과 완전 호환
+2. **API 호환성**: solo-pay-relayer-service의 API 스펙과 완전 호환
 3. **무중단 전환**: pay-server가 RELAY_API_URL 환경변수만 변경하면 릴레이어 서비스 전환 가능
 4. **하위 호환성 유지 불필요**: 기존 defender API는 제거하고 새로운 relayer API로 완전 교체
 
@@ -26,21 +26,21 @@ simple-defender 패키지를 simple-relayer로 리네이밍하고, msq-relayer-s
 
 ### 현재 상태
 
-- **패키지**: `packages/simple-defender/` (`@msqpay/simple-defender`)
+- **패키지**: `packages/simple-defender/` (`@solopay/simple-defender`)
 - **서비스 클래스**: `DefenderService` (pay-server 내부)
 - **환경변수**: `DEFENDER_API_URL`, `DEFENDER_API_KEY`, `DEFENDER_API_SECRET`
 - **Docker 서비스명**: `simple-defender`
 
 ### 목표 상태
 
-- **패키지**: `packages/simple-relayer/` (`@msqpay/simple-relayer`)
+- **패키지**: `packages/simple-relayer/` (`@solopay/simple-relayer`)
 - **서비스 클래스**: `RelayerService` (pay-server 내부)
 - **환경변수**: `RELAY_API_URL`, `RELAY_API_KEY`
 - **Docker 서비스명**: `simple-relayer`
 
 ### API 엔드포인트 변경
 
-| 기능          | 현재 (simple-defender) | 목표 (msq-relayer-service 호환)            |
+| 기능          | 현재 (simple-defender) | 목표 (solo-pay-relayer-service 호환)            |
 | ------------- | ---------------------- | ------------------------------------------ |
 | Direct Relay  | `POST /relay`          | `POST /api/v1/relay/direct`                |
 | Gasless Relay | `POST /relay/forward`  | `POST /api/v1/relay/gasless`               |
@@ -69,7 +69,7 @@ simple-defender 패키지를 simple-relayer로 리네이밍하고, msq-relayer-s
 }
 ```
 
-**목표 형식 (msq-relayer-service)**:
+**목표 형식 (solo-pay-relayer-service)**:
 
 ```json
 {
@@ -96,12 +96,12 @@ simple-defender 패키지를 simple-relayer로 리네이밍하고, msq-relayer-s
 
 ### 인증 방식
 
-- **헤더**: `X-API-Key` (msq-relayer-service 호환)
+- **헤더**: `X-API-Key` (solo-pay-relayer-service 호환)
 - **로컬 개발**: API Key 검증 생략 가능 (환경변수 설정에 따라)
 
 ## 가정 (Assumptions)
 
-1. msq-relayer-service의 API 스펙이 확정되어 변경되지 않음
+1. solo-pay-relayer-service의 API 스펙이 확정되어 변경되지 않음
 2. pay-server 외에 simple-defender를 직접 사용하는 다른 클라이언트 없음
 3. 기존 simple-defender의 하위 호환성 유지 불필요
 4. 모든 변경은 하나의 PR에서 atomic하게 진행
@@ -114,7 +114,7 @@ simple-defender 패키지를 simple-relayer로 리네이밍하고, msq-relayer-s
 
 - WHEN 빌드 시스템이 패키지를 인식할 때
 - THE SYSTEM SHALL packages/simple-defender를 packages/simple-relayer로 리네이밍한다
-- THE SYSTEM SHALL package.json의 name을 @msqpay/simple-relayer로 변경한다
+- THE SYSTEM SHALL package.json의 name을 @solopay/simple-relayer로 변경한다
 
 **REQ-0.2**: 서비스 클래스 리네이밍
 
@@ -158,7 +158,7 @@ simple-defender 패키지를 simple-relayer로 리네이밍하고, msq-relayer-s
 
 - WHEN 클라이언트가 가스리스 릴레이를 요청할 때
 - THE SYSTEM SHALL POST /api/v1/relay/gasless 엔드포인트를 제공한다
-- THE SYSTEM SHALL msq-relayer-service 호환 request body를 처리한다
+- THE SYSTEM SHALL solo-pay-relayer-service 호환 request body를 처리한다
 
 **REQ-1.4**: 상태 조회 엔드포인트
 
@@ -227,7 +227,7 @@ simple-defender 패키지를 simple-relayer로 리네이밍하고, msq-relayer-s
 **REQ-5.1**: 표준 응답 형식
 
 - WHEN API가 응답을 반환할 때
-- THE SYSTEM SHALL msq-relayer-service와 동일한 응답 형식을 사용한다
+- THE SYSTEM SHALL solo-pay-relayer-service와 동일한 응답 형식을 사용한다
 
 **REQ-5.2**: 에러 응답 형식
 
@@ -276,7 +276,7 @@ simple-defender 패키지를 simple-relayer로 리네이밍하고, msq-relayer-s
 ### 테스트 전략
 
 1. **로컬 테스트**: simple-relayer 변경 후 pay-server와 통합 테스트
-2. **외부 테스트**: msq-relayer-service 연결 테스트 (URL만 변경하여 동작 확인)
+2. **외부 테스트**: solo-pay-relayer-service 연결 테스트 (URL만 변경하여 동작 확인)
 
 ### 마이그레이션 순서
 
@@ -293,7 +293,7 @@ simple-defender 패키지를 simple-relayer로 리네이밍하고, msq-relayer-s
 - **관련 SPEC**: SPEC-RELAY-001 (simple-defender 최초 구현)
 - **관련 SPEC**: SPEC-SERVER-001 (pay-server 릴레이어 통합)
 - **선행 작업**: 없음
-- **후속 작업**: msq-relayer-service 연동 테스트
+- **후속 작업**: solo-pay-relayer-service 연동 테스트
 
 ## 위험 요소 및 대응
 
@@ -309,11 +309,11 @@ simple-defender 패키지를 simple-relayer로 리네이밍하고, msq-relayer-s
 
 ### 위험 3: API 호환성 불일치
 
-- **원인**: msq-relayer-service 스펙 변경
+- **원인**: solo-pay-relayer-service 스펙 변경
 - **대응**: API 스펙 문서 확인 후 구현
 
 ## 제약사항 (Constraints)
 
 - **하위 호환성**: 기존 defender API 하위 호환성 유지 불필요
-- **외부 의존성**: msq-relayer-service API 스펙에 종속
+- **외부 의존성**: solo-pay-relayer-service API 스펙에 종속
 - **테스트 환경**: 로컬 simple-relayer로 먼저 테스트, 이후 외부 서비스 테스트

@@ -6,7 +6,7 @@ import { ERC20Permit } from "@openzeppelin/contracts/token/ERC20/extensions/ERC2
 
 /**
  * @title MockERC20
- * @author MSQ Team
+ * @author Solo Pay Team
  * @notice Mock ERC20 token for testing purposes with Permit (EIP-2612) support
  */
 contract MockERC20 is ERC20, ERC20Permit {

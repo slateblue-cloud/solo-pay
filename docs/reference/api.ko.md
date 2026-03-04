@@ -8,7 +8,7 @@ SoloPay REST API 전체 엔드포인트 레퍼런스입니다.
 
 | 항목           | 값                                                              |
 | -------------- | --------------------------------------------------------------- |
-| Base URL       | `http://localhost:3001` (dev), `https://pay-api.msq.com` (prod) |
+| Base URL       | `http://localhost:3001` (dev), `https://pay-api.sut.com` (prod) |
 | Protocol       | REST API (HTTP/HTTPS)                                           |
 | Content-Type   | `application/json`                                              |
 | Authentication | x-api-key (결제 API만)                                          |

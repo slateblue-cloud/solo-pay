@@ -6,11 +6,11 @@ Query merchant payment history. Requires API Key authentication.
 
 ```bash
 # Query by orderId
-curl "https://pay-api.staging.msq.com/api/v1/merchant/payments?orderId=order-001" \
+curl "https://pay-api.staging.sut.com/api/v1/merchant/payments?orderId=order-001" \
   -H "x-api-key: sk_xxxxx"
 
 # Query by paymentId
-curl "https://pay-api.staging.msq.com/api/v1/merchant/payments/0xabc123..." \
+curl "https://pay-api.staging.sut.com/api/v1/merchant/payments/0xabc123..." \
   -H "x-api-key: sk_xxxxx"
 ```
 

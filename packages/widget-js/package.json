@@ -39,10 +39,10 @@
     "usdt",
     "stablecoin",
     "web3",
-    "msq",
+    "solopay",
     "sut"
   ],
-  "author": "MSQ Team",
+  "author": "Solo Pay Team",
   "license": "MIT",
   "devDependencies": {
     "@rollup/plugin-node-resolve": "^15.2.3",

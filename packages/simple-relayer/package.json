@@ -1,7 +1,7 @@
 {
   "name": "@solo-pay/simple-relayer",
   "version": "1.0.0",
-  "description": "Simple HTTP service for gasless transaction relay (Defender/msq-relayer compatible)",
+  "description": "Simple HTTP service for gasless transaction relay (Defender/solo-pay-relayer compatible)",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "scripts": {
@@ -35,6 +35,6 @@
     "relay",
     "http-service"
   ],
-  "author": "MSQ Team",
+  "author": "Solo Pay Team",
   "license": "MIT"
 }

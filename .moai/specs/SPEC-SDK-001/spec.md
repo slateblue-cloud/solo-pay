@@ -36,17 +36,17 @@ traceability:
     - DESIGN-002: 환경별 URL 관리
     - DESIGN-003: 에러 처리 전략
   implementation:
-    - IMPL-001: MSQPayClient.createPayment()
-    - IMPL-002: MSQPayClient.getPaymentStatus()
-    - IMPL-003: MSQPayClient.submitGasless()
-    - IMPL-004: MSQPayClient.executeRelay()
+    - IMPL-001: SoloPayClient.createPayment()
+    - IMPL-002: SoloPayClient.getPaymentStatus()
+    - IMPL-003: SoloPayClient.submitGasless()
+    - IMPL-004: SoloPayClient.executeRelay()
   test:
     - TEST-001: 성공 케이스 테스트
     - TEST-002: 에러 핸들링 테스트
     - TEST-003: 환경별 URL 테스트
 acceptance_criteria:
   - AC-001: 모든 API 메서드가 서버 응답 타입과 일치
-  - AC-002: 에러 발생 시 MSQPayError 인스턴스 throw
+  - AC-002: 에러 발생 시 SoloPayError 인스턴스 throw
   - AC-003: 테스트 커버리지 ≥ 90%
   - AC-004: Node 18+ native fetch 사용 (외부 의존성 없음)
 ```
@@ -92,8 +92,8 @@ SDK는 Node.js 18+ 환경에서 실행되어야 한다 (native fetch 지원).
 **A3. 네트워크 환경**
 
 - Development: `http://localhost:3001`
-- Staging: `https://pay-api.staging.msq.com`
-- Production: `https://pay-api.msq.com`
+- Staging: `https://pay-api.staging.sut.com`
+- Production: `https://pay-api.sut.com`
 
 **A4. HTTPS 통신**
 Production 환경에서는 HTTPS 통신이 보장된다고 가정한다.
@@ -230,7 +230,7 @@ interface RelayResponse {
 
 #### NFR3. 에러 처리
 
-- 모든 API 에러를 MSQPayError로 래핑
+- 모든 API 에러를 SoloPayError로 래핑
 - 에러 코드, HTTP 상태 코드, 상세 정보 포함
 - 서버 에러 코드와 일치
 
@@ -247,11 +247,11 @@ interface RelayResponse {
 ### SDK 클래스 구조
 
 ```typescript
-class MSQPayClient {
+class SoloPayClient {
   private apiUrl: string;
   private apiKey: string;
 
-  constructor(config: MSQPayConfig);
+  constructor(config: SoloPayConfig);
 
   // URL 관리
   setApiUrl(url: string): void;
@@ -300,8 +300,8 @@ type Environment = 'development' | 'staging' | 'production' | 'custom';
 
 const API_URLS: Record<Environment, string> = {
   development: 'http://localhost:3001',
-  staging: 'https://pay-api.staging.msq.com',
-  production: 'https://pay-api.msq.com',
+  staging: 'https://pay-api.staging.sut.com',
+  production: 'https://pay-api.sut.com',
   custom: '', // Must be set via config.apiUrl
 };
 ```
@@ -309,7 +309,7 @@ const API_URLS: Record<Environment, string> = {
 ### 에러 처리
 
 ```typescript
-class MSQPayError extends Error {
+class SoloPayError extends Error {
   code: string;
   statusCode: number;
   details?: unknown;
@@ -346,10 +346,10 @@ const ERROR_CODES = {
 
 | Requirement | Implementation                    | Test                       |
 | ----------- | --------------------------------- | -------------------------- |
-| REQ-SDK-001 | `MSQPayClient.createPayment()`    | `createPayment.test.ts`    |
-| REQ-SDK-002 | `MSQPayClient.getPaymentStatus()` | `getPaymentStatus.test.ts` |
-| REQ-SDK-003 | `MSQPayClient.submitGasless()`    | `submitGasless.test.ts`    |
-| REQ-SDK-004 | `MSQPayClient.executeRelay()`     | `executeRelay.test.ts`     |
+| REQ-SDK-001 | `SoloPayClient.createPayment()`    | `createPayment.test.ts`    |
+| REQ-SDK-002 | `SoloPayClient.getPaymentStatus()` | `getPaymentStatus.test.ts` |
+| REQ-SDK-003 | `SoloPayClient.submitGasless()`    | `submitGasless.test.ts`    |
+| REQ-SDK-004 | `SoloPayClient.executeRelay()`     | `executeRelay.test.ts`     |
 
 ### Design Decisions
 
@@ -423,7 +423,7 @@ const ERROR_CODES = {
 
 - ✅ Phase 1 (Cleanup): 기존 SDK 삭제
 - ✅ Phase 2 (Package Setup): 5개 소스 파일 + 설정 파일 생성
-- ✅ Phase 3 (Core Implementation): MSQPayClient & 타입 정의 완료
+- ✅ Phase 3 (Core Implementation): SoloPayClient & 타입 정의 완료
 - ✅ Phase 4 (Testing): 26개 테스트 케이스, 100% 커버리지
 - ✅ Phase 5 (Documentation): README.md 및 SPEC 문서 완성
 - ✅ Phase 6 (Git Operations): feature/SPEC-SDK-001 브랜치 & 커밋 완료

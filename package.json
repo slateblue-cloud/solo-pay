@@ -20,7 +20,7 @@
     "polygon",
     "meta-transaction"
   ],
-  "author": "MSQ Team",
+  "author": "Solo Pay Team",
   "license": "MIT",
   "engines": {
     "node": ">=18.0.0",

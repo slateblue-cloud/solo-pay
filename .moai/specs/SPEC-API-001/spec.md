@@ -21,7 +21,7 @@ priority: 'high'
 
 ## 1. Environment (환경)
 
-**시스템**: MSQ Pay 결제 시스템
+**시스템**: Solo Pay 결제 시스템
 **대상 컴포넌트**:
 
 - packages/pay-server (결제 서버)
@@ -199,7 +199,7 @@ priority: 'high'
    ```typescript
    export const CreatePaymentSchema = z.object({
      amount: z.number().positive(),
-     currency: z.string(), // "SUT", "MSQ", "TEST"
+     currency: z.string(), // "SUT", "TEST"
      chainId: z.number().int().positive(),
      recipientAddress: z.string().regex(/^0x[a-fA-F0-9]{40}$/),
    });
@@ -331,9 +331,9 @@ priority: 'high'
 
    ```typescript
    import { NextRequest, NextResponse } from 'next/server';
-   import { MSQPayClient } from '@msqpay/sdk';
+   import { SoloPayClient } from '@solopay/sdk';
 
-   const client = new MSQPayClient({
+   const client = new SoloPayClient({
      baseURL: process.env.NEXT_PUBLIC_SERVER_URL || 'http://localhost:3001',
    });
 
@@ -394,7 +394,7 @@ priority: 'high'
    ↓ (3) POST /api/payments/create { amount, currency, chainId, recipientAddress }
 [Demo Backend] (Next.js API Route)
    ↓ (4) SDK.createPayment()
-[MSQPay SDK]
+[SoloPay SDK]
    ↓ (5) POST /payments/create
 [Payment Server]
    ├─ (6) chains.ts에서 chainId로 컨트랙트 조회

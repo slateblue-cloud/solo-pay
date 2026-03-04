@@ -4,7 +4,7 @@
       "chainId": 137,
       "name": "Polygon",
       "rpcUrl": "https://polygon-rpc.com",
-      "subgraphUrl": "https://api.thegraph.com/subgraphs/name/msqpay/polygon",
+      "subgraphUrl": "https://api.thegraph.com/subgraphs/name/solopay/polygon",
       "nativeCurrency": {
         "name": "POL",
         "symbol": "POL",
@@ -29,7 +29,7 @@
       "chainId": 56,
       "name": "BSC",
       "rpcUrl": "https://bsc-dataseed.binance.org",
-      "subgraphUrl": "https://api.thegraph.com/subgraphs/name/msqpay/bsc",
+      "subgraphUrl": "https://api.thegraph.com/subgraphs/name/solopay/bsc",
       "nativeCurrency": {
         "name": "BNB",
         "symbol": "BNB",

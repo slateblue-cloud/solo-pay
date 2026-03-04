@@ -35,7 +35,7 @@ export const TEST_MERCHANTS: Record<string, MerchantFixture> = {
   // MetaStar Merchant (id=2) - Amoy chain (chain_id=3, network_id=80002)
   metastar: {
     merchantId: 'merchant_metastar_001',
-    apiKey: 'msq_sk_metastar_123',
+    apiKey: 'sp_sk_metastar_123',
     apiKeyHash: '0136f3e97619f4aa51dffe177e9b7d6bf495ffd6b09547f5463ef483d1db705a',
     chainId: 3, // DB chains.id = 3
     networkId: 80002, // Polygon Amoy testnet

@@ -204,25 +204,25 @@ dataSources:
     "chainId": 80002,
     "graphNetwork": "polygon-amoy",
     "service": "hosted",
-    "subgraphName": "msqpay/payment-gateway-amoy"
+    "subgraphName": "solopay/payment-gateway-amoy"
   },
   "polygon": {
     "chainId": 137,
     "graphNetwork": "matic",
     "service": "decentralized",
-    "subgraphName": "msqpay/payment-gateway-polygon"
+    "subgraphName": "solopay/payment-gateway-polygon"
   },
   "ethereum-sepolia": {
     "chainId": 11155111,
     "graphNetwork": "sepolia",
     "service": "hosted",
-    "subgraphName": "msqpay/payment-gateway-sepolia"
+    "subgraphName": "solopay/payment-gateway-sepolia"
   },
   "ethereum": {
     "chainId": 1,
     "graphNetwork": "mainnet",
     "service": "decentralized",
-    "subgraphName": "msqpay/payment-gateway-ethereum"
+    "subgraphName": "solopay/payment-gateway-ethereum"
   }
 }
 ```
@@ -263,8 +263,8 @@ Ignition deployed_addresses.json 키 매핑:
 GRAPH_ACCESS_TOKEN=...           # Hosted Service / Studio 인증
 
 # Subgraph 식별자 (선택적, networks.json에서 관리 가능)
-SUBGRAPH_NAME_POLYGON_AMOY=msqpay/payment-gateway-amoy
-SUBGRAPH_NAME_POLYGON=msqpay/payment-gateway-polygon
+SUBGRAPH_NAME_POLYGON_AMOY=solopay/payment-gateway-amoy
+SUBGRAPH_NAME_POLYGON=solopay/payment-gateway-polygon
 ```
 
 ## 보안 고려사항

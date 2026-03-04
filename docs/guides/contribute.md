@@ -283,7 +283,7 @@ docs/
 
 - **Issue**: https://github.com/supertrust/solo-pay/issues
 - **Discussions**: https://github.com/supertrust/solo-pay/discussions
-- **Email**: support@msq.com
+- **Email**: support@sut.com
 
 ## Related Documentation
 

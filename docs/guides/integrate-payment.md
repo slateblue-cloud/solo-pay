@@ -31,8 +31,8 @@ const client = new SoloPayClient({
 | Environment | API URL                         |
 | ----------- | ------------------------------- |
 | development | http://localhost:3001           |
-| staging     | https://pay-api.staging.msq.com |
-| production  | https://pay-api.msq.com         |
+| staging     | https://pay-api.staging.sut.com |
+| production  | https://pay-api.sut.com         |
 | custom      | Requires `apiUrl` parameter     |
 
 ## Direct Payment Implementation

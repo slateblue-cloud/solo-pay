@@ -6,8 +6,8 @@ SoloPay REST API 전체 명세입니다.
 
 | 환경        | URL                                      |
 | ----------- | ---------------------------------------- |
-| Production  | `https://pay-api.msq.com/api/v1`         |
-| Staging     | `https://pay-api.staging.msq.com/api/v1` |
+| Production  | `https://pay-api.sut.com/api/v1`         |
+| Staging     | `https://pay-api.staging.sut.com/api/v1` |
 | Development | `http://localhost:3001/api/v1`           |
 
 ## 인증

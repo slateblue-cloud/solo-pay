@@ -11,7 +11,7 @@ Do not trust Webhook payload contents directly. Always re-confirm the actual pay
 :::
 
 ```bash
-curl https://pay-api.staging.msq.com/api/v1/payments/0xabc123... \
+curl https://pay-api.staging.sut.com/api/v1/payments/0xabc123... \
   -H "x-public-key: pk_test_xxxxx"
 ```
 

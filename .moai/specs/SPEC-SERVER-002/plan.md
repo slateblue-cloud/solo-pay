@@ -69,17 +69,17 @@ created_at: 2025-11-29
    - 재시도 로직 구현 (exponential backoff)
 
 2. **컨트랙트 인터페이스 정의**
-   - `src/blockchain/contracts/MSQPay.ts`: ABI 정의
+   - `src/blockchain/contracts/SoloPay.ts`: ABI 정의
    - `getPayment()`, `createPayment()` 함수 래핑
 
 3. **환경 변수 검증**
    - `src/config/env.ts`: Zod 스키마로 환경 변수 검증
-   - `POLYGON_RPC_URL`, `MSQPAY_CONTRACT_ADDRESS` 필수 체크
+   - `POLYGON_RPC_URL`, `SOLOPAY_CONTRACT_ADDRESS` 필수 체크
 
 **Deliverables**:
 
 - ✅ viem 클라이언트로 Polygon Mumbai 블록 높이 조회 성공
-- ✅ MSQPay 컨트랙트 ABI 로드 완료
+- ✅ SoloPay 컨트랙트 ABI 로드 완료
 - ✅ 환경 변수 검증 통과
 
 **Dependencies**: Phase 1 완료
@@ -261,7 +261,7 @@ packages/pay-server/
 │   │   ├── client.ts           # viem Public Client
 │   │   ├── relayer.ts          # OZ Defender Relayer
 │   │   └── contracts/
-│   │       └── MSQPay.ts       # 컨트랙트 ABI & 함수
+│   │       └── SoloPay.ts       # 컨트랙트 ABI & 함수
 │   ├── routes/
 │   │   └── payments/
 │   │       ├── create.ts       # POST /payments/create
@@ -303,8 +303,8 @@ packages/pay-server/
 
 ### Internal Dependencies
 
-- **@msq-pay/sdk**: 클라이언트와 타입 공유
-- **@msq-pay/contracts**: MSQPay.sol ABI
+- **@solo-pay/gateway-sdk**: 클라이언트와 타입 공유
+- **@solo-pay/contracts**: SoloPay.sol ABI
 
 ### External Dependencies
 
