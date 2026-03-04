@@ -46,7 +46,7 @@ describe('MerchantService', () => {
       is_enabled: true,
       is_deleted: false,
       webhook_url: null,
-      fee_bps: 0,
+
       recipient_address: '0x70997970C51812dc3A010C7d01b50e0d17dc79C8',
       escrow_duration: null,
       created_at: new Date(),
@@ -81,7 +81,7 @@ describe('MerchantService', () => {
       is_enabled: true,
       is_deleted: false,
       webhook_url: null,
-      fee_bps: 0,
+
       recipient_address: '0x70997970C51812dc3A010C7d01b50e0d17dc79C8',
       escrow_duration: null,
       created_at: new Date(),
@@ -112,7 +112,7 @@ describe('MerchantService', () => {
       is_enabled: true,
       is_deleted: false,
       webhook_url: null,
-      fee_bps: 0,
+
       recipient_address: '0x70997970C51812dc3A010C7d01b50e0d17dc79C8',
       escrow_duration: null,
       created_at: new Date(),
@@ -145,7 +145,7 @@ describe('MerchantService', () => {
       is_enabled: true,
       is_deleted: false,
       webhook_url: null,
-      fee_bps: 0,
+
       recipient_address: '0x70997970C51812dc3A010C7d01b50e0d17dc79C8',
       escrow_duration: null,
       created_at: new Date(),
@@ -178,7 +178,7 @@ describe('MerchantService', () => {
         is_enabled: true,
         is_deleted: false,
         webhook_url: null,
-        fee_bps: 0,
+
         recipient_address: '0x70997970C51812dc3A010C7d01b50e0d17dc79C8',
         escrow_duration: null,
         created_at: new Date(),
@@ -197,7 +197,7 @@ describe('MerchantService', () => {
         is_enabled: true,
         is_deleted: false,
         webhook_url: null,
-        fee_bps: 0,
+
         recipient_address: '0x70997970C51812dc3A010C7d01b50e0d17dc79C8',
         escrow_duration: null,
         created_at: new Date(),
@@ -227,7 +227,7 @@ describe('MerchantService', () => {
       is_enabled: true,
       is_deleted: false,
       webhook_url: 'https://example.com/webhook',
-      fee_bps: 0,
+
       recipient_address: '0x70997970C51812dc3A010C7d01b50e0d17dc79C8',
       escrow_duration: null,
       created_at: new Date(),
@@ -260,7 +260,7 @@ describe('MerchantService', () => {
       is_enabled: true,
       is_deleted: true,
       webhook_url: null,
-      fee_bps: 0,
+
       recipient_address: '0x70997970C51812dc3A010C7d01b50e0d17dc79C8',
       escrow_duration: null,
       created_at: new Date(),
@@ -302,7 +302,7 @@ describe('MerchantService', () => {
       is_enabled: true,
       is_deleted: false,
       webhook_url: null,
-      fee_bps: 0,
+
       recipient_address: '0x70997970C51812dc3A010C7d01b50e0d17dc79C8',
       escrow_duration: null,
       created_at: new Date(),
@@ -336,7 +336,7 @@ describe('MerchantService', () => {
       is_enabled: true,
       is_deleted: false,
       webhook_url: null,
-      fee_bps: 0,
+
       recipient_address: null,
       escrow_duration: null,
       created_at: new Date(),
@@ -389,7 +389,7 @@ describe('MerchantService', () => {
       is_enabled: true,
       is_deleted: false,
       webhook_url: null,
-      fee_bps: 0,
+
       recipient_address: null,
       escrow_duration: null,
       created_at: new Date(),
@@ -441,7 +441,7 @@ describe('MerchantService', () => {
       is_enabled: true,
       is_deleted: false,
       webhook_url: null,
-      fee_bps: 0,
+
       recipient_address: null,
       escrow_duration: null,
       created_at: new Date(),
@@ -486,7 +486,7 @@ describe('MerchantService', () => {
       is_enabled: true,
       is_deleted: false,
       webhook_url: null,
-      fee_bps: 0,
+
       recipient_address: null,
       escrow_duration: null,
       created_at: new Date(),

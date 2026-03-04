@@ -47,7 +47,6 @@ describe('Cancel Flow Integration', () => {
   async function escrowPayment(
     orderId: string,
     amount: bigint,
-    feeBps: number = 0,
     escrowDuration: bigint = DEFAULT_ESCROW_DURATION
   ): Promise<string> {
     const paymentId = generatePaymentId(orderId);
@@ -58,7 +57,6 @@ describe('Cancel Flow Integration', () => {
       amount,
       recipientAddress,
       merchantId,
-      feeBps,
       deadline,
       escrowDuration,
     };
@@ -74,7 +72,6 @@ describe('Cancel Flow Integration', () => {
       amount,
       recipientAddress,
       merchantId,
-      feeBps,
       deadline,
       escrowDuration,
       serverSignature,
@@ -110,10 +107,14 @@ describe('Cancel Flow Integration', () => {
 
     it('should cancel payment with fee and return full amount (no fee deduction)', async () => {
       const amount = parseUnits('100', token.decimals);
-      const feeBps = 500; // 5%
       const initialPayerBalance = await getTokenBalance(token.address, payerAddress);
 
-      const paymentId = await escrowPayment(`ORDER_CANCEL_FEE_${Date.now()}`, amount, feeBps);
+      // Set 5% fee on the contract before pay
+      const deployerWallet = getWallet(HARDHAT_ACCOUNTS.deployer.privateKey);
+      const gatewayAsDeployer = getContract(gatewayAddress, PaymentGatewayABI, deployerWallet);
+      await (await gatewayAsDeployer.setFeeBps(500)).wait();
+
+      const paymentId = await escrowPayment(`ORDER_CANCEL_FEE_${Date.now()}`, amount);
 
       // Cancel returns full amount, not amount minus fee
       const cancelSignature = await signCancelRequest(paymentId, signerPrivateKey);
@@ -124,6 +125,9 @@ describe('Cancel Flow Integration', () => {
 
       const finalPayerBalance = await getTokenBalance(token.address, payerAddress);
       expect(finalPayerBalance).toBe(initialPayerBalance);
+
+      // Reset fee to 0
+      await (await gatewayAsDeployer.setFeeBps(0)).wait();
     });
 
     it('should reject cancel with invalid signature', async () => {
@@ -190,12 +194,7 @@ describe('Cancel Flow Integration', () => {
       const shortEscrow = 60n; // 60 seconds
       const initialPayerBalance = await getTokenBalance(token.address, payerAddress);
 
-      const paymentId = await escrowPayment(
-        `ORDER_CANCEL_PERM_${Date.now()}`,
-        amount,
-        0,
-        shortEscrow
-      );
+      const paymentId = await escrowPayment(`ORDER_CANCEL_PERM_${Date.now()}`, amount, shortEscrow);
 
       // Advance time past escrow deadline
       await increaseTime(Number(shortEscrow) + 1);
@@ -218,7 +217,6 @@ describe('Cancel Flow Integration', () => {
       const paymentId = await escrowPayment(
         `ORDER_FINALIZE_EXPIRED_${Date.now()}`,
         amount,
-        0,
         shortEscrow
       );
 

@@ -250,7 +250,7 @@ const merchants: MerchantModel[] = [
     public_key: 'pk_test_demo',
     public_key_hash: 'cfaaf44f4fcf9f65805b2a4642a68173d0b427f104dd192adbb489f01e392b76',
     webhook_url: 'http://demo:3000/api/webhook',
-    fee_bps: 0,
+
     recipient_address: '0x70997970C51812dc3A010C7d01b50e0d17dc79C8',
     escrow_duration: 300,
     is_enabled: true,
@@ -268,7 +268,7 @@ const merchants: MerchantModel[] = [
     public_key: null,
     public_key_hash: null,
     webhook_url: null,
-    fee_bps: 0,
+
     recipient_address: '0x7bE4CfF95eb3c3d2162410abCd5506f691C624Ed',
     escrow_duration: 300,
     is_enabled: true,
@@ -286,7 +286,7 @@ const merchants: MerchantModel[] = [
     public_key: 'pk_live_xqKZ6PpVdfUaaVBJhS6qI8RbUbZUbvSq',
     public_key_hash: '05994e195c9cde2a1548d848fa5d40d3506da18d0071785981db25daeb86d4f6',
     webhook_url: 'http://sample-merchant:3004/api/webhook',
-    fee_bps: 0,
+
     recipient_address: '0x976EA74026E726554dB657fA54763abd0C3a0aa9',
     escrow_duration: 300,
     is_enabled: true,

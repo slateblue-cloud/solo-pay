@@ -44,7 +44,6 @@ describe('Error Handling Integration', () => {
   describe('Invalid Payment Parameters', () => {
     it('should reject zero amount', async () => {
       const paymentId = generatePaymentId(`ERROR_ZERO_AMOUNT_${Date.now()}`);
-      const feeBps = 0;
 
       const deadline = getDeadline(1);
       const paymentParams: PaymentParams = {
@@ -53,7 +52,6 @@ describe('Error Handling Integration', () => {
         amount: 0n,
         recipientAddress: recipientAddress,
         merchantId,
-        feeBps,
         deadline,
         escrowDuration: DEFAULT_ESCROW_DURATION,
       };
@@ -69,7 +67,6 @@ describe('Error Handling Integration', () => {
           0n,
           recipientAddress,
           merchantId,
-          feeBps,
           deadline,
           DEFAULT_ESCROW_DURATION,
           serverSignature,
@@ -81,7 +78,6 @@ describe('Error Handling Integration', () => {
     it('should reject zero token address', async () => {
       const paymentId = generatePaymentId(`ERROR_ZERO_TOKEN_${Date.now()}`);
       const amount = parseUnits('10', token.decimals);
-      const feeBps = 0;
 
       const deadline = getDeadline(1);
       const paymentParams: PaymentParams = {
@@ -90,7 +86,6 @@ describe('Error Handling Integration', () => {
         amount,
         recipientAddress: recipientAddress,
         merchantId,
-        feeBps,
         deadline,
         escrowDuration: DEFAULT_ESCROW_DURATION,
       };
@@ -106,7 +101,6 @@ describe('Error Handling Integration', () => {
           amount,
           recipientAddress,
           merchantId,
-          feeBps,
           deadline,
           DEFAULT_ESCROW_DURATION,
           serverSignature,
@@ -120,7 +114,6 @@ describe('Error Handling Integration', () => {
     it('should reject payment without approval', async () => {
       const paymentId = generatePaymentId(`ERROR_NO_APPROVAL_${Date.now()}`);
       const amount = parseUnits('1000000', token.decimals);
-      const feeBps = 0;
 
       const deadline = getDeadline(1);
       const paymentParams: PaymentParams = {
@@ -129,7 +122,6 @@ describe('Error Handling Integration', () => {
         amount,
         recipientAddress: recipientAddress,
         merchantId,
-        feeBps,
         deadline,
         escrowDuration: DEFAULT_ESCROW_DURATION,
       };
@@ -145,7 +137,6 @@ describe('Error Handling Integration', () => {
           amount,
           recipientAddress,
           merchantId,
-          feeBps,
           deadline,
           DEFAULT_ESCROW_DURATION,
           serverSignature,
@@ -158,7 +149,6 @@ describe('Error Handling Integration', () => {
       const paymentId = generatePaymentId(`ERROR_LOW_APPROVAL_${Date.now()}`);
       const approvalAmount = parseUnits('50', token.decimals);
       const paymentAmount = parseUnits('100', token.decimals);
-      const feeBps = 0;
 
       await approveToken(token.address, gatewayAddress, approvalAmount, payerPrivateKey);
 
@@ -169,7 +159,6 @@ describe('Error Handling Integration', () => {
         amount: paymentAmount,
         recipientAddress: recipientAddress,
         merchantId,
-        feeBps,
         deadline,
         escrowDuration: DEFAULT_ESCROW_DURATION,
       };
@@ -185,7 +174,6 @@ describe('Error Handling Integration', () => {
           paymentAmount,
           recipientAddress,
           merchantId,
-          feeBps,
           deadline,
           DEFAULT_ESCROW_DURATION,
           serverSignature,
@@ -200,7 +188,6 @@ describe('Error Handling Integration', () => {
       const paymentId = generatePaymentId(`ERROR_EXCEED_BALANCE_${Date.now()}`);
       const balance = await getTokenBalance(token.address, payerAddress);
       const amount = balance + parseUnits('1', token.decimals);
-      const feeBps = 0;
 
       await approveToken(token.address, gatewayAddress, amount, payerPrivateKey);
 
@@ -211,7 +198,6 @@ describe('Error Handling Integration', () => {
         amount,
         recipientAddress: recipientAddress,
         merchantId,
-        feeBps,
         deadline,
         escrowDuration: DEFAULT_ESCROW_DURATION,
       };
@@ -227,7 +213,6 @@ describe('Error Handling Integration', () => {
           amount,
           recipientAddress,
           merchantId,
-          feeBps,
           deadline,
           DEFAULT_ESCROW_DURATION,
           serverSignature,
@@ -241,7 +226,6 @@ describe('Error Handling Integration', () => {
     it('should reject duplicate payment ID', async () => {
       const paymentId = generatePaymentId(`ERROR_DUPLICATE_${Date.now()}`);
       const amount = parseUnits('10', token.decimals);
-      const feeBps = 0;
 
       await approveToken(token.address, gatewayAddress, amount * 2n, payerPrivateKey);
 
@@ -252,7 +236,6 @@ describe('Error Handling Integration', () => {
         amount,
         recipientAddress: recipientAddress,
         merchantId,
-        feeBps,
         deadline,
         escrowDuration: DEFAULT_ESCROW_DURATION,
       };
@@ -267,7 +250,6 @@ describe('Error Handling Integration', () => {
         amount,
         recipientAddress,
         merchantId,
-        feeBps,
         deadline,
         DEFAULT_ESCROW_DURATION,
         serverSignature,
@@ -282,7 +264,6 @@ describe('Error Handling Integration', () => {
           amount,
           recipientAddress,
           merchantId,
-          feeBps,
           deadline,
           DEFAULT_ESCROW_DURATION,
           serverSignature,
@@ -296,7 +277,6 @@ describe('Error Handling Integration', () => {
     it('should reject invalid server signature', async () => {
       const paymentId = generatePaymentId(`ERROR_INVALID_SIG_${Date.now()}`);
       const amount = parseUnits('10', token.decimals);
-      const feeBps = 0;
 
       await approveToken(token.address, gatewayAddress, amount, payerPrivateKey);
 
@@ -308,7 +288,6 @@ describe('Error Handling Integration', () => {
         amount,
         recipientAddress: recipientAddress,
         merchantId,
-        feeBps,
         deadline,
         escrowDuration: DEFAULT_ESCROW_DURATION,
       };
@@ -327,7 +306,6 @@ describe('Error Handling Integration', () => {
           amount,
           recipientAddress,
           merchantId,
-          feeBps,
           deadline,
           DEFAULT_ESCROW_DURATION,
           wrongSignature,
@@ -340,7 +318,6 @@ describe('Error Handling Integration', () => {
       const paymentId = generatePaymentId(`ERROR_TAMPERED_AMOUNT_${Date.now()}`);
       const signedAmount = parseUnits('10', token.decimals);
       const tamperedAmount = parseUnits('100', token.decimals);
-      const feeBps = 0;
 
       await approveToken(token.address, gatewayAddress, tamperedAmount, payerPrivateKey);
 
@@ -352,7 +329,6 @@ describe('Error Handling Integration', () => {
         amount: signedAmount,
         recipientAddress: recipientAddress,
         merchantId,
-        feeBps,
         deadline,
         escrowDuration: DEFAULT_ESCROW_DURATION,
       };
@@ -369,7 +345,6 @@ describe('Error Handling Integration', () => {
           tamperedAmount,
           recipientAddress,
           merchantId,
-          feeBps,
           deadline,
           DEFAULT_ESCROW_DURATION,
           serverSignature,

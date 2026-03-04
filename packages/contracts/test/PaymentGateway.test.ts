@@ -36,7 +36,6 @@ describe('PaymentGatewayV1', function () {
     amount: bigint,
     recipientAddress: string,
     merchantId: string,
-    feeBps: number,
     deadline: bigint,
     escrowDuration: number
   ) {
@@ -54,7 +53,6 @@ describe('PaymentGatewayV1', function () {
         { name: 'amount', type: 'uint256' },
         { name: 'recipientAddress', type: 'address' },
         { name: 'merchantId', type: 'bytes32' },
-        { name: 'feeBps', type: 'uint16' },
         { name: 'deadline', type: 'uint256' },
         { name: 'escrowDuration', type: 'uint256' },
       ],
@@ -66,7 +64,6 @@ describe('PaymentGatewayV1', function () {
       amount,
       recipientAddress,
       merchantId,
-      feeBps,
       deadline,
       escrowDuration,
     };
@@ -237,6 +234,9 @@ describe('PaymentGatewayV1', function () {
     const amount = ethers.parseEther('100');
     const feeBps = 500; // 5%
 
+    // Set fee via storage variable
+    await gateway.setFeeBps(feeBps);
+
     const signature = await createServerSignature(
       signer,
       gateway,
@@ -245,7 +245,6 @@ describe('PaymentGatewayV1', function () {
       amount,
       merchantRecipient.address,
       merchantId,
-      feeBps,
       paymentDeadline,
       ESCROW_DURATION
     );
@@ -260,7 +259,6 @@ describe('PaymentGatewayV1', function () {
         amount,
         merchantRecipient.address,
         merchantId,
-        feeBps,
         paymentDeadline,
         ESCROW_DURATION,
         signature,
@@ -277,7 +275,6 @@ describe('PaymentGatewayV1', function () {
 
     const paymentId = ethers.id('FINALIZED_PAYMENT_001');
     const amount = ethers.parseEther('100');
-    const feeBps = 0; // no fee for simplicity
 
     const signature = await createServerSignature(
       signer,
@@ -287,7 +284,6 @@ describe('PaymentGatewayV1', function () {
       amount,
       merchantRecipient.address,
       merchantId,
-      feeBps,
       paymentDeadline,
       ESCROW_DURATION
     );
@@ -302,7 +298,6 @@ describe('PaymentGatewayV1', function () {
         amount,
         merchantRecipient.address,
         merchantId,
-        feeBps,
         paymentDeadline,
         ESCROW_DURATION,
         signature,
@@ -313,7 +308,7 @@ describe('PaymentGatewayV1', function () {
     const finalizeSignature = await createFinalizeSignature(signer, gateway, paymentId);
     await gateway.finalize(paymentId, finalizeSignature);
 
-    return { ...fixture, paymentId, amount, feeBps };
+    return { ...fixture, paymentId, amount };
   }
 
   // ============ Deployment ============
@@ -349,7 +344,6 @@ describe('PaymentGatewayV1', function () {
 
       const paymentId = ethers.id('ORDER_001');
       const amount = ethers.parseEther('100');
-      const feeBps = 0;
 
       const signature = await createServerSignature(
         signer,
@@ -359,7 +353,6 @@ describe('PaymentGatewayV1', function () {
         amount,
         merchantRecipient.address,
         merchantId,
-        feeBps,
         paymentDeadline,
         ESCROW_DURATION
       );
@@ -378,7 +371,6 @@ describe('PaymentGatewayV1', function () {
             amount,
             merchantRecipient.address,
             merchantId,
-            feeBps,
             paymentDeadline,
             ESCROW_DURATION,
             signature,
@@ -416,7 +408,7 @@ describe('PaymentGatewayV1', function () {
       expect(payment.amount).to.equal(amount);
       expect(payment.recipient).to.equal(merchantRecipient.address);
       expect(payment.merchantId).to.equal(merchantId);
-      expect(payment.feeBps).to.equal(feeBps);
+      expect(payment.feeBps).to.equal(0);
       expect(payment.escrowDeadline).to.be.gt(0n);
     });
 
@@ -426,7 +418,6 @@ describe('PaymentGatewayV1', function () {
 
       const paymentId = ethers.id('ORDER_002');
       const amount = ethers.parseEther('50');
-      const feeBps = 0;
 
       const signature = await createServerSignature(
         signer,
@@ -436,7 +427,6 @@ describe('PaymentGatewayV1', function () {
         amount,
         merchantRecipient.address,
         merchantId,
-        feeBps,
         paymentDeadline,
         ESCROW_DURATION
       );
@@ -452,7 +442,6 @@ describe('PaymentGatewayV1', function () {
           amount,
           merchantRecipient.address,
           merchantId,
-          feeBps,
           paymentDeadline,
           ESCROW_DURATION,
           signature,
@@ -469,7 +458,6 @@ describe('PaymentGatewayV1', function () {
             amount,
             merchantRecipient.address,
             merchantId,
-            feeBps,
             paymentDeadline,
             ESCROW_DURATION,
             signature,
@@ -483,7 +471,6 @@ describe('PaymentGatewayV1', function () {
         await loadFixture(deployFixture);
 
       const paymentId = ethers.id('ORDER_003');
-      const feeBps = 0;
 
       const signature = await createServerSignature(
         signer,
@@ -493,7 +480,6 @@ describe('PaymentGatewayV1', function () {
         0n,
         merchantRecipient.address,
         merchantId,
-        feeBps,
         paymentDeadline,
         ESCROW_DURATION
       );
@@ -507,7 +493,6 @@ describe('PaymentGatewayV1', function () {
             0,
             merchantRecipient.address,
             merchantId,
-            feeBps,
             paymentDeadline,
             ESCROW_DURATION,
             signature,
@@ -522,7 +507,6 @@ describe('PaymentGatewayV1', function () {
 
       const paymentId = ethers.id('ORDER_005');
       const amount = ethers.parseEther('10');
-      const feeBps = 0;
 
       const signature = await createServerSignature(
         signer,
@@ -532,7 +516,6 @@ describe('PaymentGatewayV1', function () {
         amount,
         merchantRecipient.address,
         merchantId,
-        feeBps,
         paymentDeadline,
         ESCROW_DURATION
       );
@@ -546,7 +529,6 @@ describe('PaymentGatewayV1', function () {
             amount,
             merchantRecipient.address,
             merchantId,
-            feeBps,
             paymentDeadline,
             ESCROW_DURATION,
             signature,
@@ -561,7 +543,6 @@ describe('PaymentGatewayV1', function () {
 
       const paymentId = ethers.id('ORDER_INVALID_SIG');
       const amount = ethers.parseEther('10');
-      const feeBps = 0;
 
       // Sign with wrong signer (other instead of signer)
       const signature = await createServerSignature(
@@ -572,7 +553,6 @@ describe('PaymentGatewayV1', function () {
         amount,
         merchantRecipient.address,
         merchantId,
-        feeBps,
         paymentDeadline,
         ESCROW_DURATION
       );
@@ -588,7 +568,6 @@ describe('PaymentGatewayV1', function () {
             amount,
             merchantRecipient.address,
             merchantId,
-            feeBps,
             paymentDeadline,
             ESCROW_DURATION,
             signature,
@@ -598,44 +577,9 @@ describe('PaymentGatewayV1', function () {
     });
 
     it('Should reject fee over 100%', async function () {
-      const { gateway, token, payer, signer, merchantRecipient, merchantId } =
-        await loadFixture(deployFixture);
+      const { gateway } = await loadFixture(deployFixture);
 
-      const paymentId = ethers.id('ORDER_HIGH_FEE');
-      const amount = ethers.parseEther('10');
-      const feeBps = 10001; // Over 100%
-
-      const signature = await createServerSignature(
-        signer,
-        gateway,
-        paymentId,
-        await token.getAddress(),
-        amount,
-        merchantRecipient.address,
-        merchantId,
-        feeBps,
-        paymentDeadline,
-        ESCROW_DURATION
-      );
-
-      await token.connect(payer).approve(await gateway.getAddress(), amount);
-
-      await expect(
-        gateway
-          .connect(payer)
-          .pay(
-            paymentId,
-            await token.getAddress(),
-            amount,
-            merchantRecipient.address,
-            merchantId,
-            feeBps,
-            paymentDeadline,
-            ESCROW_DURATION,
-            signature,
-            ZERO_PERMIT
-          )
-      ).to.be.revertedWith('PG: fee too high');
+      await expect(gateway.setFeeBps(10001)).to.be.revertedWith('PG: fee too high');
     });
 
     it('Should reject zero escrowDuration', async function () {
@@ -644,7 +588,6 @@ describe('PaymentGatewayV1', function () {
 
       const paymentId = ethers.id('ESCROW_ZERO_DURATION');
       const amount = ethers.parseEther('10');
-      const feeBps = 0;
 
       const signature = await createServerSignature(
         signer,
@@ -654,7 +597,6 @@ describe('PaymentGatewayV1', function () {
         amount,
         merchantRecipient.address,
         merchantId,
-        feeBps,
         paymentDeadline,
         0 // zero escrowDuration
       );
@@ -670,7 +612,6 @@ describe('PaymentGatewayV1', function () {
             amount,
             merchantRecipient.address,
             merchantId,
-            feeBps,
             paymentDeadline,
             0,
             signature,
@@ -685,7 +626,6 @@ describe('PaymentGatewayV1', function () {
 
       const paymentId = ethers.id('ESCROW_LONG_DURATION');
       const amount = ethers.parseEther('10');
-      const feeBps = 0;
       const tooLongDuration = 2592001; // MAX_ESCROW_DURATION + 1
 
       const signature = await createServerSignature(
@@ -696,7 +636,6 @@ describe('PaymentGatewayV1', function () {
         amount,
         merchantRecipient.address,
         merchantId,
-        feeBps,
         paymentDeadline,
         tooLongDuration
       );
@@ -712,7 +651,6 @@ describe('PaymentGatewayV1', function () {
             amount,
             merchantRecipient.address,
             merchantId,
-            feeBps,
             paymentDeadline,
             tooLongDuration,
             signature,
@@ -934,6 +872,9 @@ describe('PaymentGatewayV1', function () {
       const paymentId = ethers.id('FEE_ORDER_001');
       const amount = ethers.parseEther('100');
 
+      // Set fee via storage variable
+      await gateway.setFeeBps(feeBps);
+
       const signature = await createServerSignature(
         signer,
         gateway,
@@ -942,7 +883,6 @@ describe('PaymentGatewayV1', function () {
         amount,
         merchantRecipient.address,
         merchantId,
-        feeBps,
         paymentDeadline,
         ESCROW_DURATION
       );
@@ -958,7 +898,6 @@ describe('PaymentGatewayV1', function () {
           amount,
           merchantRecipient.address,
           merchantId,
-          feeBps,
           paymentDeadline,
           ESCROW_DURATION,
           signature,
@@ -994,7 +933,6 @@ describe('PaymentGatewayV1', function () {
 
       const paymentId = ethers.id('NO_FEE_ORDER');
       const amount = ethers.parseEther('100');
-      const feeBps = 0;
 
       const signature = await createServerSignature(
         signer,
@@ -1004,7 +942,6 @@ describe('PaymentGatewayV1', function () {
         amount,
         merchantRecipient.address,
         merchantId,
-        feeBps,
         paymentDeadline,
         ESCROW_DURATION
       );
@@ -1019,7 +956,6 @@ describe('PaymentGatewayV1', function () {
           amount,
           merchantRecipient.address,
           merchantId,
-          feeBps,
           paymentDeadline,
           ESCROW_DURATION,
           signature,
@@ -1043,6 +979,9 @@ describe('PaymentGatewayV1', function () {
       const amount = ethers.parseEther('100');
       const feeBps = 10000; // 100%
 
+      // Set fee via storage variable
+      await gateway.setFeeBps(feeBps);
+
       const signature = await createServerSignature(
         signer,
         gateway,
@@ -1051,7 +990,6 @@ describe('PaymentGatewayV1', function () {
         amount,
         merchantRecipient.address,
         merchantId,
-        feeBps,
         paymentDeadline,
         ESCROW_DURATION
       );
@@ -1066,7 +1004,6 @@ describe('PaymentGatewayV1', function () {
           amount,
           merchantRecipient.address,
           merchantId,
-          feeBps,
           paymentDeadline,
           ESCROW_DURATION,
           signature,
@@ -1112,7 +1049,6 @@ describe('PaymentGatewayV1', function () {
 
       const paymentId = ethers.id('ORDER_006');
       const amount = ethers.parseEther('10');
-      const feeBps = 0;
 
       const signature = await createServerSignature(
         signer,
@@ -1122,7 +1058,6 @@ describe('PaymentGatewayV1', function () {
         amount,
         merchantRecipient.address,
         merchantId,
-        feeBps,
         paymentDeadline,
         ESCROW_DURATION
       );
@@ -1139,7 +1074,6 @@ describe('PaymentGatewayV1', function () {
             amount,
             merchantRecipient.address,
             merchantId,
-            feeBps,
             paymentDeadline,
             ESCROW_DURATION,
             signature,
@@ -1160,7 +1094,6 @@ describe('PaymentGatewayV1', function () {
             amount,
             merchantRecipient.address,
             merchantId,
-            feeBps,
             paymentDeadline,
             ESCROW_DURATION,
             signature,
@@ -1191,7 +1124,6 @@ describe('PaymentGatewayV1', function () {
 
       const paymentId = ethers.id('META_ORDER_001');
       const amount = ethers.parseEther('25');
-      const feeBps = 0;
 
       // Create server signature
       const serverSignature = await createServerSignature(
@@ -1202,7 +1134,6 @@ describe('PaymentGatewayV1', function () {
         amount,
         merchantRecipient.address,
         merchantId,
-        feeBps,
         paymentDeadline,
         ESCROW_DURATION
       );
@@ -1217,7 +1148,6 @@ describe('PaymentGatewayV1', function () {
         amount,
         merchantRecipient.address,
         merchantId,
-        feeBps,
         paymentDeadline,
         ESCROW_DURATION,
         serverSignature,
@@ -1321,7 +1251,6 @@ describe('PaymentGatewayV1', function () {
 
       const paymentId = ethers.id('VIEW_ORDER_001');
       const amount = ethers.parseEther('10');
-      const feeBps = 0;
 
       expect(await gateway.isPaymentProcessed(paymentId)).to.equal(false);
       expect(await gateway.paymentStatus(paymentId)).to.equal(Status.None);
@@ -1334,7 +1263,6 @@ describe('PaymentGatewayV1', function () {
         amount,
         merchantRecipient.address,
         merchantId,
-        feeBps,
         paymentDeadline,
         ESCROW_DURATION
       );
@@ -1348,7 +1276,6 @@ describe('PaymentGatewayV1', function () {
           amount,
           merchantRecipient.address,
           merchantId,
-          feeBps,
           paymentDeadline,
           ESCROW_DURATION,
           signature,
@@ -1631,7 +1558,6 @@ describe('PaymentGatewayV1', function () {
 
       const paymentId = ethers.id('PERMIT_ORDER_001');
       const amount = ethers.parseEther('50');
-      const feeBps = 0;
 
       const serverSignature = await createServerSignature(
         signer,
@@ -1641,7 +1567,6 @@ describe('PaymentGatewayV1', function () {
         amount,
         merchantRecipient.address,
         merchantId,
-        feeBps,
         paymentDeadline,
         ESCROW_DURATION
       );
@@ -1666,7 +1591,6 @@ describe('PaymentGatewayV1', function () {
             amount,
             merchantRecipient.address,
             merchantId,
-            feeBps,
             paymentDeadline,
             ESCROW_DURATION,
             serverSignature,
@@ -1696,7 +1620,6 @@ describe('PaymentGatewayV1', function () {
 
       const paymentId = ethers.id('PERMIT_ORDER_002');
       const amount = ethers.parseEther('50');
-      const feeBps = 0;
 
       const serverSignature = await createServerSignature(
         signer,
@@ -1706,7 +1629,6 @@ describe('PaymentGatewayV1', function () {
         amount,
         merchantRecipient.address,
         merchantId,
-        feeBps,
         paymentDeadline,
         ESCROW_DURATION
       );
@@ -1732,7 +1654,6 @@ describe('PaymentGatewayV1', function () {
             amount,
             merchantRecipient.address,
             merchantId,
-            feeBps,
             paymentDeadline,
             ESCROW_DURATION,
             serverSignature,
@@ -1747,7 +1668,6 @@ describe('PaymentGatewayV1', function () {
 
       const paymentId = ethers.id('TRADITIONAL_ORDER_001');
       const amount = ethers.parseEther('50');
-      const feeBps = 0;
 
       const serverSignature = await createServerSignature(
         signer,
@@ -1757,7 +1677,6 @@ describe('PaymentGatewayV1', function () {
         amount,
         merchantRecipient.address,
         merchantId,
-        feeBps,
         paymentDeadline,
         ESCROW_DURATION
       );
@@ -1775,7 +1694,6 @@ describe('PaymentGatewayV1', function () {
             amount,
             merchantRecipient.address,
             merchantId,
-            feeBps,
             paymentDeadline,
             ESCROW_DURATION,
             serverSignature,
@@ -1793,7 +1711,6 @@ describe('PaymentGatewayV1', function () {
       // First make an escrow payment and finalize it
       const paymentId = ethers.id('REFUND_PERMIT_001');
       const amount = ethers.parseEther('100');
-      const feeBps = 0;
 
       const paymentSignature = await createServerSignature(
         signer,
@@ -1803,7 +1720,6 @@ describe('PaymentGatewayV1', function () {
         amount,
         merchantRecipient.address,
         merchantId,
-        feeBps,
         paymentDeadline,
         ESCROW_DURATION
       );
@@ -1817,7 +1733,6 @@ describe('PaymentGatewayV1', function () {
           amount,
           merchantRecipient.address,
           merchantId,
-          feeBps,
           paymentDeadline,
           ESCROW_DURATION,
           paymentSignature,

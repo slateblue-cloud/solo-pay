@@ -107,7 +107,6 @@ export const PAYMENT_GATEWAY_ABI = [
       { name: 'amount', type: 'uint256' },
       { name: 'recipientAddress', type: 'address' },
       { name: 'merchantId', type: 'bytes32' },
-      { name: 'feeBps', type: 'uint16' },
       { name: 'deadline', type: 'uint256' },
       { name: 'escrowDuration', type: 'uint256' },
       { name: 'serverSignature', type: 'bytes' },

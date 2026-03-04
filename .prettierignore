@@ -15,6 +15,7 @@ cache/
 typechain-types/
 packages/subgraph/generated/
 packages/sample-merchant/app/generated/
+packages/database/src/generated/
 
 # Config/tool files
 .moai/

@@ -79,8 +79,6 @@ export interface PaymentDetails {
   recipientAddress: string;
   /** Merchant ID (bytes32) */
   merchantId: string;
-  /** Fee in basis points (e.g., 100 = 1%) */
-  feeBps: number;
   /** Deadline timestamp for server signature expiration */
   deadline: string;
   /** Escrow duration in seconds (bigint as string from API) */

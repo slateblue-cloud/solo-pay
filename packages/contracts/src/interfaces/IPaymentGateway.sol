@@ -26,6 +26,11 @@ interface IPaymentGateway {
   /// @param newSigner The new signer address
   event SignerChanged(address indexed oldSigner, address indexed newSigner);
 
+  /// @notice Emitted when the fee basis points is changed
+  /// @param oldFeeBps The previous fee in basis points
+  /// @param newFeeBps The new fee in basis points
+  event FeeBpsChanged(uint16 oldFeeBps, uint16 newFeeBps);
+
   /// @notice Emitted when a token's whitelist status is changed
   /// @param tokenAddress The token address
   /// @param supported Whether the token is now supported
@@ -111,7 +116,6 @@ interface IPaymentGateway {
   /// @param amount Payment amount
   /// @param recipientAddress Merchant's wallet address
   /// @param merchantId Merchant identifier
-  /// @param feeBps Fee in basis points
   /// @param deadline Server signature expiration timestamp
   /// @param escrowDuration Escrow duration in seconds
   /// @param serverSignature Server's EIP-712 signature
@@ -122,12 +126,15 @@ interface IPaymentGateway {
     uint256 amount,
     address recipientAddress,
     bytes32 merchantId,
-    uint16 feeBps,
     uint256 deadline,
     uint256 escrowDuration,
     bytes calldata serverSignature,
     PermitSignature calldata permit
   ) external;
+
+  /// @notice Set the fee in basis points
+  /// @param newFeeBps The new fee in basis points (0-10000)
+  function setFeeBps(uint16 newFeeBps) external;
 
   /// @notice Finalize an escrowed payment
   /// @param paymentId The escrowed payment ID

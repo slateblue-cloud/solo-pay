@@ -39,7 +39,6 @@ describe('webhook-queue.service', () => {
     is_enabled: true,
     is_deleted: false,
     webhook_url: 'https://merchant.example/webhook',
-    fee_bps: 0,
     recipient_address: '0xrecv',
     created_at: new Date(),
     updated_at: new Date(),

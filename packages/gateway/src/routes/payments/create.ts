@@ -55,7 +55,7 @@ Creates a payment. Single endpoint for both widget and backend. Uses Public Key 
 
 **Currency conversion:** When \`currency\` is provided (e.g., USD, KRW), \`amount\` is treated as fiat amount and converted to token amount using price-service. Without \`currency\`, \`amount\` is the token amount (existing behavior).
 
-**Response:** paymentId, serverSignature, chainId, tokenAddress, gatewayAddress, amount (wei), tokenDecimals, tokenSymbol, successUrl, failUrl, expiresAt, recipientAddress, merchantId, feeBps, forwarderAddress, currency, fiatAmount, tokenPrice.
+**Response:** paymentId, serverSignature, chainId, tokenAddress, gatewayAddress, amount (wei), tokenDecimals, tokenSymbol, successUrl, failUrl, expiresAt, recipientAddress, merchantId, forwarderAddress, currency, fiatAmount, tokenPrice.
         `,
         headers: {
           type: 'object',
@@ -127,7 +127,6 @@ Creates a payment. Single endpoint for both widget and backend. Uses Public Key 
                 description: 'Merchant recipient wallet address',
               },
               merchantId: { type: 'string', description: 'Merchant ID (bytes32)' },
-              feeBps: { type: 'integer', description: 'Fee in basis points (100 = 1%)' },
               deadline: {
                 type: 'string',
                 description: 'Deadline timestamp for server signature expiration',
@@ -187,7 +186,6 @@ Creates a payment. Single endpoint for both widget and backend. Uses Public Key 
               merchant_key: string;
               chain_id: number;
               recipient_address: string | null;
-              fee_bps: number;
               escrow_duration: number | null;
             };
           }
@@ -328,7 +326,6 @@ Creates a payment. Single endpoint for both widget and backend. Uses Public Key 
               amountInWei,
               recipientAddress,
               merchantId,
-              merchant.fee_bps,
               deadline,
               escrowDuration
             );
@@ -378,7 +375,6 @@ Creates a payment. Single endpoint for both widget and backend. Uses Public Key 
           expiresAt: expiresAt.toISOString(),
           recipientAddress,
           merchantId,
-          feeBps: merchant.fee_bps,
           deadline: deadline.toString(),
           escrowDuration: escrowDuration.toString(),
           forwarderAddress: chain.forwarder_address ?? undefined,

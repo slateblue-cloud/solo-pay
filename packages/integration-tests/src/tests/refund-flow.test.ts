@@ -58,11 +58,7 @@ describe('Refund Flow Integration', () => {
    * Helper: Execute a payment (payer -> escrow -> finalize -> recipient) and return the paymentId.
    * All payments go through escrow, then finalize to release to recipient.
    */
-  async function executePayment(
-    orderId: string,
-    amount: bigint,
-    feeBps: number = 0
-  ): Promise<string> {
+  async function executePayment(orderId: string, amount: bigint): Promise<string> {
     const paymentId = generatePaymentId(orderId);
 
     const deadline = getDeadline(1);
@@ -72,7 +68,6 @@ describe('Refund Flow Integration', () => {
       amount,
       recipientAddress,
       merchantId,
-      feeBps,
       deadline,
       escrowDuration: DEFAULT_ESCROW_DURATION,
     };
@@ -88,7 +83,6 @@ describe('Refund Flow Integration', () => {
       amount,
       recipientAddress,
       merchantId,
-      feeBps,
       deadline,
       DEFAULT_ESCROW_DURATION,
       serverSignature,

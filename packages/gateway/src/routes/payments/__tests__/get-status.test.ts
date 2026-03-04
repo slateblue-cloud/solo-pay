@@ -49,7 +49,6 @@ describe('GET /payments/:id', () => {
       id: 1,
       merchant_key: 'merchant_demo_001',
       recipient_address: '0x' + '1'.repeat(40),
-      fee_bps: 100,
       escrow_duration: 300,
     });
     mockChainService.findByNetworkId.mockResolvedValue({
@@ -130,7 +129,6 @@ describe('GET /payments/:id', () => {
       expect(body.data.tokenAddress).toBe('0x' + '4'.repeat(40));
       expect(body.data.amount).toBe('1000000');
       expect(body.data.recipientAddress).toBe('0x' + '1'.repeat(40));
-      expect(body.data.feeBps).toBe(100);
       expect(body.data.serverSignature).toBeDefined();
     });
 

@@ -129,7 +129,6 @@ describe('Webhook Monitor Integration', () => {
       tokenAmount,
       createRes.recipientAddress,
       createRes.merchantId,
-      createRes.feeBps,
       BigInt(createRes.deadline),
       BigInt(createRes.escrowDuration),
       createRes.serverSignature,
