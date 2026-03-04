@@ -146,6 +146,7 @@ const chains: ChainModel[] = [
 // Tokens
 // id=1: TEST on Localhost (chain_id=1) - MockERC20, no permit
 // id=2: SUT on Polygon (chain_id=5) - permit enabled
+// id=3: DST on Polygon (chain_id=5) - permit enabled
 // id=4: SUT on Amoy (chain_id=3) - permit enabled
 const tokens: TokenModel[] = [
   {
@@ -177,7 +178,7 @@ const tokens: TokenModel[] = [
     updated_at: new Date(),
   },
   {
-    id: 4,
+    id: 3,
     chain_id: 5,
     address: '0x82DbF4227a981211d84f59092889eAdbb9C2a4D2',
     symbol: 'DST',
@@ -191,7 +192,7 @@ const tokens: TokenModel[] = [
     updated_at: new Date(),
   },
   {
-    id: 5,
+    id: 4,
     chain_id: 3,
     address: '0xE4C687167705Abf55d709395f92e254bdF5825a2',
     symbol: 'SUT',
@@ -283,7 +284,7 @@ const paymentMethods: MerchantPaymentMethodModel[] = [
   {
     id: 2,
     merchant_id: 2,
-    token_id: 5,
+    token_id: 4,
     is_enabled: true,
     is_deleted: false,
     deleted_at: null,
