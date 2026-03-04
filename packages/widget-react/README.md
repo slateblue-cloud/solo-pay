@@ -17,7 +17,7 @@ import { useWidget } from '@solo-pay/widget-react';
 
 export default function CheckoutPage() {
   const { openWidget } = useWidget({
-    clientId: 'test_client_key_123',
+    publicKey: 'pk_test_xxxxx',
     onError: (error) => console.error('Popup or server error:', error),
     onClose: () => console.log('User closed the popup.'),
     // Optional: set defaults so you can call openWidget({ orderId, amount }) only
@@ -49,7 +49,7 @@ Success is handled by redirect to `successUrl` (and failure to `failUrl`). Handl
 ## API
 
 - **`useWidget(config)`**
-  - `config.clientId` – Merchant public key (required).
+  - `config.publicKey` – Merchant public key (required).
   - `config.onError` – Called on error.
   - `config.onClose` – Called when the user closes the popup.
   - `config.defaultPaymentRequest` – Optional `tokenAddress`, `successUrl`, `failUrl`, `currency` so you can call `openWidget({ orderId, amount })` only.

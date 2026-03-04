@@ -31,28 +31,34 @@ Contract addresses may differ per chain and per merchant, and may change on upgr
 
 ### PaymentGateway
 
-The core payment contract. It provides two payment functions.
+The core payment contract. A single `pay()` function is used for both direct payment (user sends the transaction) and gasless payment (relayer sends the transaction via `ERC2771Forwarder`).
 
-#### `pay()` — Direct Payment (User submits TX directly)
+#### `pay()` — Escrow Payment (Direct or Gasless)
 
 ```solidity
 function pay(
     bytes32 paymentId,       // Unique payment ID (issued by API)
     address tokenAddress,    // ERC-20 token address for payment
     uint256 amount,          // Payment amount (in wei)
-    address recipient,       // Recipient address (merchant wallet)
+    address recipientAddress,// Recipient address (merchant wallet)
     bytes32 merchantId,      // Merchant ID
-    uint256 feeBps,          // Fee (basis points, 100 = 1%)
-    bytes calldata serverSignature  // Server EIP-712 signature (tamper prevention)
+    uint256 deadline,        // Signature deadline (Unix timestamp, from API)
+    uint256 escrowDuration,  // Escrow duration in seconds (from API)
+    bytes calldata serverSignature,  // Server EIP-712 signature (tamper prevention)
+    PermitSignature calldata permit // EIP-2612 permit; use zero (deadline=0) if not applicable
 ) external
 ```
 
-**Frontend call example (wagmi)**
+All of `deadline`, `escrowDuration`, and `serverSignature` are provided in the payment creation or status API response. Fee is applied on-chain from contract configuration; it is not passed as an argument.
+
+**Frontend call example (wagmi) — direct payment**
 
 ```typescript
 import { useWriteContract } from 'wagmi';
 
 const { writeContract } = useWriteContract();
+
+const zeroPermit = { deadline: 0, v: 0, r: '0x00...', s: '0x00...' };
 
 await writeContract({
   address: gatewayAddress,
@@ -64,27 +70,15 @@ await writeContract({
     BigInt(amount),
     recipientAddress,
     merchantId,
-    BigInt(feeBps),
+    BigInt(deadline),
+    BigInt(escrowDuration),
     serverSignature,
+    zeroPermit,
   ],
 });
 ```
 
-#### `payWithSignature()` — Gasless Payment (Relayer submits TX)
-
-```solidity
-function payWithSignature(
-    bytes32 paymentId,
-    address tokenAddress,
-    uint256 amount,
-    address recipient,
-    bytes32 merchantId,
-    uint256 feeBps,
-    bytes calldata serverSignature  // Server EIP-712 signature
-) external
-```
-
-This function is not called directly. The relayer calls it via `ERC2771Forwarder`. Merchants submit payments by calling the `POST /payments/:id/relay` API.
+**Gasless:** The same `pay()` is encoded and forwarded by the relayer via `ERC2771Forwarder`. The user signs an EIP-712 ForwardRequest whose `data` is the encoded `pay(...)` call. Submit via `POST /payments/:id/relay`.
 
 ### ERC2771Forwarder
 
@@ -117,7 +111,7 @@ const ForwardRequestTypes = {
     { name: 'gas', type: 'uint256' }, // Recommended: 200000
     { name: 'nonce', type: 'uint256' }, // Fetched from Forwarder
     { name: 'deadline', type: 'uint48' }, // Signature expiry (Unix timestamp)
-    { name: 'data', type: 'bytes' }, // Encoded payWithSignature data
+    { name: 'data', type: 'bytes' }, // Encoded pay() call data
   ],
 };
 

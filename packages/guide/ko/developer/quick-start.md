@@ -66,6 +66,6 @@ CREATED ──► FAILED
 ## 다음 단계
 
 - [결제 확정 및 취소](/ko/payments/finalize) - 에스크로 결제 확정/취소
-- [인증](/ko/getting-started/authentication) - API Key / Public Key 상세 사용법
+- [인증](/ko/developer/authentication) - API Key / Public Key 상세 사용법
 - [클라이언트 사이드 연동](/ko/developer/client-side) - 단계별 구현 가이드
 - [결제 생성 API](/ko/payments/create) - 결제 API 상세 가이드

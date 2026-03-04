@@ -82,7 +82,8 @@ curl -X POST https://pay-api.staging.msq.com/api/v1/payments \
   "amount": "10500000000000000000",
   "recipientAddress": "0xMerchantWallet...",
   "merchantId": "0x...",
-  "feeBps": 100,
+  "deadline": "1706281200",
+  "escrowDuration": "300",
   "successUrl": "https://example.com/success",
   "failUrl": "https://example.com/fail",
   "expiresAt": "2024-01-26T13:00:00.000Z"
@@ -103,16 +104,17 @@ curl -X POST https://pay-api.staging.msq.com/api/v1/payments \
 
 ## 응답 필드 설명
 
-| 필드               | 타입       | 설명                                |
-| ------------------ | ---------- | ----------------------------------- |
-| `paymentId`        | `string`   | 결제 고유 식별자 (bytes32 해시)     |
-| `serverSignature`  | `string`   | 서버 EIP-712 서명 (컨트랙트 인증용) |
-| `amount`           | `string`   | wei 단위로 변환된 금액              |
-| `gatewayAddress`   | `address`  | PaymentGateway 컨트랙트 주소        |
-| `forwarderAddress` | `address`  | ERC2771 Forwarder 주소 (Gasless용)  |
-| `merchantId`       | `string`   | bytes32 형태의 가맹점 ID            |
-| `feeBps`           | `number`   | 수수료 (basis points, 100 = 1%)     |
-| `expiresAt`        | `datetime` | 결제 만료 시각 (생성 후 30분)       |
+| 필드               | 타입       | 설명                                                   |
+| ------------------ | ---------- | ------------------------------------------------------ |
+| `paymentId`        | `string`   | 결제 고유 식별자 (bytes32 해시)                        |
+| `serverSignature`  | `string`   | 서버 EIP-712 서명 (컨트랙트 인증용)                    |
+| `amount`           | `string`   | wei 단위로 변환된 금액                                 |
+| `gatewayAddress`   | `address`  | PaymentGateway 컨트랙트 주소                           |
+| `forwarderAddress` | `address`  | ERC2771 Forwarder 주소 (Gasless용)                     |
+| `merchantId`       | `string`   | bytes32 형태의 가맹점 ID                               |
+| `deadline`         | `string`   | 서명 기한 (Unix timestamp); `pay()` 및 가스리스에 필요 |
+| `escrowDuration`   | `string`   | 에스크로 기간(초); `pay()` 및 가스리스에 필요          |
+| `expiresAt`        | `datetime` | 결제 만료 시각 (생성 후 30분)                          |
 
 ## 위젯 사용 시
 

@@ -21,7 +21,7 @@ import { useWidget } from '@solo-pay/widget-react';
 
 function CheckoutButton({ orderId, amount }) {
   const { openWidget } = useWidget({
-    clientId: 'pk_test_xxxxx', // 발급받은 Public Key
+    publicKey: 'pk_test_xxxxx', // 발급받은 Public Key
     defaultPaymentRequest: {
       tokenAddress: '0xE4C687167705Abf55d709395f92e254bdF5825a2',
       successUrl: 'https://myshop.com/payment/success',

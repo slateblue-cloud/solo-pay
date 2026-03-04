@@ -1,13 +1,13 @@
-# SoloPay 클라이언트 SDK
+# SoloPay Client SDK
 
-SoloPay는 결제 위젯을 손쉽게 연동할 수 있는 클라이언트 사이드 SDK를 제공합니다.
+SoloPay provides client-side SDKs to easily integrate the payment widget.
 
-## 패키지 선택
+## Package choice
 
-- `@solo-pay/widget-js` — 프레임워크 독립 (Vanilla JS), 모든 환경에서 사용 가능
-- `@solo-pay/widget-react` — React 훅 래퍼, React 프로젝트에서 사용
+- `@solo-pay/widget-js` — Framework-agnostic (Vanilla JS), works in any environment
+- `@solo-pay/widget-react` — React hook wrapper for React projects
 
-## widget-js 설치 및 사용
+## widget-js install and usage
 
 ```bash
 npm install @solo-pay/widget-js
@@ -17,7 +17,7 @@ npm install @solo-pay/widget-js
 import { SoloPay } from '@solo-pay/widget-js';
 
 const solopay = new SoloPay({
-  publicKey: 'pk_test_xxxxx', // 발급받은 Public Key
+  publicKey: 'pk_test_xxxxx', // Your issued Public Key
 });
 
 solopay.requestPayment({
@@ -29,7 +29,7 @@ solopay.requestPayment({
 });
 ```
 
-## widget-react 설치 및 사용
+## widget-react install and usage
 
 ```bash
 npm install @solo-pay/widget-react
@@ -50,7 +50,7 @@ const { openWidget } = useWidget({
 openWidget({ orderId: 'order-001', amount: '10.5' });
 ```
 
-## 다음 단계
+## Next steps
 
-- [위젯 연동 가이드](/ko/widget/) - 전체 사용 가이드
-- [클라이언트 사이드 연동](/ko/developer/client-side) - 결제 결과 처리 방법
+- [Widget Integration Guide](/en/widget/) - Full usage guide
+- [Client-Side Integration](/en/developer/client-side) - How to handle payment results
