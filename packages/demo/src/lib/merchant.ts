@@ -65,7 +65,7 @@ const CHAIN_CONFIGS: Record<number, Omit<MerchantConfig, 'merchantId' | 'publicK
   137: {
     chainId: 137,
     tokenSymbol: 'TEST-SUT',
-    tokenAddress: '0x3894c0a581eee053f9e220c4d2b4434f825af437',
+    tokenAddress: '0xd5b32FDcE221542D046eca5954CB1D1A32F357D9',
     tokenDecimals: 18,
   },
 };
