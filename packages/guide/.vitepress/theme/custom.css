@@ -4,8 +4,8 @@
 
 /* Navbar logo: slightly larger for visibility */
 .VPNavBar .VPImage.logo {
-  height: 44px !important;
-  width: auto !important;
+  height: 44px;
+  width: auto;
 }
 
 /* Navbar title "SoloPay": gradient text (match logo blue → purple) */
@@ -22,7 +22,7 @@
 .VPSidebar a.link[href*='quick-start'] .text,
 .VPSidebar .item a.link[href*='quick-start'],
 .VPSidebar .item a.link[href*='quick-start'] .text {
-  font-weight: 700 !important;
+  font-weight: 700;
 }
 
 /* Subtitle (first paragraph under H1) slightly larger for clarity */

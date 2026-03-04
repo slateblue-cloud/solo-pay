@@ -39,7 +39,7 @@ npm install @solo-pay/widget-react
 import { useWidget } from '@solo-pay/widget-react';
 
 const { openWidget } = useWidget({
-  clientId: 'pk_test_xxxxx',
+  publicKey: 'pk_test_xxxxx',
   defaultPaymentRequest: {
     tokenAddress: '0xE4C687167705Abf55d709395f92e254bdF5825a2',
     successUrl: 'https://yourshop.com/payment/success',
