@@ -1,4 +1,4 @@
-# SoloPay SDK (`@globalmsq/solopay`)
+# SoloPay SDK (`@solo-pay/gateway-sdk`)
 
 [English](README.md) | [한국어](README.ko.md)
 
@@ -7,7 +7,7 @@ A lightweight TypeScript SDK for store servers to interact with the SoloPay paym
 ## Installation
 
 ```bash
-pnpm add @globalmsq/solopay
+pnpm add @solo-pay/gateway-sdk
 ```
 
 ## Quick Start
@@ -15,7 +15,7 @@ pnpm add @globalmsq/solopay
 ### Basic Usage
 
 ```typescript
-import { SoloPayClient } from '@globalmsq/solopay';
+import { SoloPayClient } from '@solo-pay/gateway-sdk';
 
 // Initialize the client
 const client = new SoloPayClient({
@@ -259,7 +259,7 @@ import {
   PaymentHistoryItem,
   PaymentHistoryResponse,
   ErrorResponse,
-} from '@globalmsq/solopay';
+} from '@solo-pay/gateway-sdk';
 ```
 
 ### Type Definitions
@@ -318,7 +318,7 @@ interface PaymentHistoryItem {
 ## Complete Example
 
 ```typescript
-import { SoloPayClient, SoloPayError } from '@globalmsq/solopay';
+import { SoloPayClient, SoloPayError } from '@solo-pay/gateway-sdk';
 
 async function processPayment() {
   const client = new SoloPayClient({

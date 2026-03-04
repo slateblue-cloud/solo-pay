@@ -16,7 +16,7 @@ updated: '2025-11-30'
 | SPEC            | 설명                               | 상태    | 테스트 커버리지 |
 | --------------- | ---------------------------------- | ------- | --------------- |
 | SPEC-SERVER-002 | 무상태 결제 서버 API               | ✅ 완료 | 82.89% (65개)   |
-| SPEC-SDK-001    | 상점서버용 SDK (@globalmsq/msqpay) | ✅ 완료 | 100% (26개)     |
+| SPEC-SDK-001    | 상점서버용 SDK (@solo-pay/gateway-sdk) | ✅ 완료 | 100% (26개)     |
 | Smart Contracts | PaymentGateway + ERC2771Forwarder  | ✅ 완료 | 16개            |
 
 ### 📊 전체 진행률: ~90%
@@ -34,7 +34,7 @@ updated: '2025-11-30'
 ```json
 // apps/demo/package.json에 추가
 "dependencies": {
-  "@globalmsq/msqpay": "workspace:*"
+  "@solo-pay/gateway-sdk": "workspace:*"
 }
 ```
 
@@ -47,8 +47,8 @@ pnpm install
 
 **검증**:
 
-- `node_modules/@globalmsq/msqpay` symlink 생성 확인
-- `pnpm list @globalmsq/msqpay` 실행 성공
+- `node_modules/@solo-pay/gateway-sdk` symlink 생성 확인
+- `pnpm list @solo-pay/gateway-sdk` 실행 성공
 
 ---
 
@@ -59,7 +59,7 @@ pnpm install
 **구현 내용**:
 
 ```typescript
-import { MSQPayClient } from '@globalmsq/msqpay';
+import { MSQPayClient } from '@solo-pay/gateway-sdk';
 
 let msqpayClient: MSQPayClient | null = null;
 
@@ -340,7 +340,7 @@ MSQPAY_API_KEY=dev-key-not-required
 
 - **Next.js**: 14.2.5 (App Router)
 - **TypeScript**: 5.x
-- **MSQPay SDK**: @globalmsq/msqpay (workspace:\*)
+- **MSQPay SDK**: @solo-pay/gateway-sdk (workspace:\*)
 - **Package Manager**: pnpm workspace
 
 ### 개발 환경
@@ -402,7 +402,7 @@ cd apps/demo && pnpm dev  # Port 3000
 **완화 전략**:
 
 - 모노리포 루트에서 `pnpm install` 실행
-- symlink 확인: `ls -la node_modules/@globalmsq/msqpay`
+- symlink 확인: `ls -la node_modules/@solo-pay/gateway-sdk`
 
 **롤백 방안**:
 

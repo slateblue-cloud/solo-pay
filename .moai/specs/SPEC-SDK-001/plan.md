@@ -2,7 +2,7 @@
 
 ## Overview
 
-상점서버용 결제 SDK (`@globalmsq/msqpay`) 구현 계획입니다.
+상점서버용 결제 SDK (`@solo-pay/gateway-sdk`) 구현 계획입니다.
 
 ---
 
@@ -45,7 +45,7 @@ packages/sdk/
 
 ```json
 {
-  "name": "@globalmsq/msqpay",
+  "name": "@solo-pay/gateway-sdk",
   "version": "0.1.0",
   "description": "MSQPay SDK for store servers",
   "main": "dist/index.js",
@@ -235,7 +235,7 @@ git checkout -b feature/SPEC-SDK-001
 
 ```bash
 git add packages/sdk/
-git commit -m "feat(sdk): implement @globalmsq/msqpay HTTP client
+git commit -m "feat(sdk): implement @solo-pay/gateway-sdk HTTP client
 
 - Add MSQPayClient class with 4 API methods
 - createPayment, getPaymentStatus, submitGasless, executeRelay

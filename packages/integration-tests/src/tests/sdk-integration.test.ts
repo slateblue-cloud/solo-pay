@@ -25,7 +25,7 @@ import {
  * SDK 통합 테스트
  *
  * 전체 스택 테스트를 위해서는 다음이 필요합니다:
- * pnpm --filter @supertrust/integration-tests test:setup
+ * pnpm --filter @solo-pay/integration-tests test:setup
  *
  * 이 테스트는 gateway, simple-relayer, hardhat node가 Docker로 실행 중일 때 동작합니다.
  *
@@ -63,7 +63,7 @@ describe('SDK Integration', () => {
     if (!serverRunning) {
       console.warn(
         '\n⚠️  gateway is not running. SDK integration tests will be skipped.\n' +
-          '   Run: pnpm --filter @supertrust/integration-tests test:setup\n'
+          '   Run: pnpm --filter @solo-pay/integration-tests test:setup\n'
       );
     }
 

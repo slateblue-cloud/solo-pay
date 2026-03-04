@@ -124,7 +124,7 @@ describe('Refund Flow Integration', () => {
     if (!blockchainRunning) {
       console.warn(
         '\n⚠️  Hardhat node is not running. Refund flow tests will be skipped.\n' +
-          '   Run: pnpm --filter @supertrust/integration-tests test:setup\n'
+          '   Run: pnpm --filter @solo-pay/integration-tests test:setup\n'
       );
       return;
     }

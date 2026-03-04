@@ -1,32 +1,32 @@
-# Gasless Implementation
+# 가스리스 구현
 
-A detailed guide to implementing Gasless payments.
+가스리스 결제를 구현하는 상세 가이드입니다.
 
-::: tip Use the Widget (Recommended)
-The easiest way to use Gasless payments is via the `@solo-pay/widget-js` or `@solo-pay/widget-react` SDK. The widget automatically handles token Approve checks, Permit (EIP-2612) detection, EIP-712 signing, and relay submission.
+::: tip 위젯 사용 권장
+가스리스 결제를 사용하는 가장 쉬운 방법은 `@solo-pay/widget-js` 또는 `@solo-pay/widget-react` SDK입니다. 위젯은 토큰 Approve 확인, Permit(EIP-2612) 감지, EIP-712 서명, 릴레이 제출을 자동으로 처리합니다.
 
-See [Widget Integration Guide](/en/widget/) for quick setup.
+빠른 설정은 [위젯 연동 가이드](/ko/widget/)를 참조하세요.
 :::
 
-## Custom Implementation Flow
+## 커스텀 구현 흐름
 
-If you need a custom flow instead of the widget, follow the steps below. All steps are client-side and use the REST API directly.
+위젯 대신 커스텀 흐름이 필요하면 아래 단계를 따르세요. 모든 단계는 클라이언트 사이드에서 REST API를 직접 사용합니다.
 
 ```
-1. Create Payment (REST API — client-side)
+1. 결제 생성 (REST API — 클라이언트)
        ↓
-2. Token Approve check (frontend)
+2. 토큰 Approve 확인 (프론트엔드)
        ↓
-3. Request EIP-712 Signature (frontend)
+3. EIP-712 서명 요청 (프론트엔드)
        ↓
-4. Submit Gasless Request (REST API — client-side)
+4. 가스리스 요청 제출 (REST API — 클라이언트)
        ↓
-5. Check Status (REST API — client-side)
+5. 상태 확인 (REST API — 클라이언트)
 ```
 
-## Step 1: Create Payment
+## Step 1: 결제 생성
 
-Call `POST /payments` with the `x-public-key` header. This can be called directly from the browser.
+`x-public-key` 헤더와 함께 `POST /payments`를 호출합니다. 브라우저에서 직접 호출할 수 있습니다.
 
 ```typescript
 const response = await fetch('https://pay-api.staging.msq.com/api/v1/payments', {
@@ -45,21 +45,21 @@ const response = await fetch('https://pay-api.staging.msq.com/api/v1/payments', 
 });
 
 const payment = await response.json();
-// payment contains: paymentId, forwarderAddress, gatewayAddress, amount, serverSignature, ...
+// payment: paymentId, forwarderAddress, gatewayAddress, amount, serverSignature 등 포함
 ```
 
-::: warning Check forwarderAddress
-`payment.forwarderAddress` must be present to use Gasless on that chain.
+::: warning forwarderAddress 확인
+해당 체인에서 가스리스를 사용하려면 `payment.forwarderAddress`가 반드시 있어야 합니다.
 :::
 
-## Step 2: Token Approve
+## Step 2: 토큰 Approve
 
-Even for Gasless payments, the Relayer cannot transfer tokens unless the user has first **completed an `approve` transaction granting the PaymentGateway contract permission** to use the token.
+가스리스 결제에서도 릴레이어는 사용자가 먼저 **PaymentGateway 컨트랙트에 토큰 사용 권한을 부여하는 `approve` 트랜잭션을 완료**해야만 토큰을 전송할 수 있습니다.
 
 ```typescript
 import { useWriteContract, useReadContract } from 'wagmi';
 
-// 1. Check existing allowance
+// 1. 기존 allowance 확인
 const { data: allowance } = useReadContract({
   address: tokenAddress,
   abi: ERC20ABI,
@@ -67,7 +67,7 @@ const { data: allowance } = useReadContract({
   args: [userAddress, gatewayAddress],
 });
 
-// 2. If insufficient, send Approve transaction (user pays gas for this 1-time setup)
+// 2. 부족하면 Approve 트랜잭션 전송 (1회 설정 시 사용자가 가스 지불)
 if (allowance < BigInt(amount)) {
   await writeContract({
     address: tokenAddress,
@@ -78,18 +78,18 @@ if (allowance < BigInt(amount)) {
 }
 ```
 
-::: info Permit (Signature Approval) Supported Tokens
-Modern tokens like USDC support `Permit` (EIP-2612), which replaces the `approve` transaction with a simple signature.
-**If you use the official SoloPay Widget (`@solo-pay/widget-js` or `@solo-pay/widget-react`), it will automatically detect EIP-2612 support and skip the 1-time `approve` transaction, handling the `Permit` entirely gas-free via signature.**
+::: info Permit(서명 Approve) 지원 토큰
+USDC처럼 `Permit`(EIP-2612)를 지원하는 토큰은 `approve` 트랜잭션을 서명으로 대체할 수 있습니다.
+**공식 SoloPay 위젯(`@solo-pay/widget-js` 또는 `@solo-pay/widget-react`)을 사용하면 EIP-2612 지원을 자동 감지하여 1회 `approve` 트랜잭션을 건너뛰고, Permit을 서명만으로 완전 가스리스 처리합니다.**
 :::
 
 ::: tip
-Once a sufficient amount is approved, all subsequent purchases (Step 3) can be completely gasless via **Signature only**.
+충분한 금액이 approve 되면 이후 모든 결제(Step 3)는 **서명만으로** 완전 가스리스가 가능합니다.
 :::
 
-## Step 3: Request EIP-712 Signature
+## Step 3: EIP-712 서명 요청
 
-Request a signature from the user on the frontend.
+프론트엔드에서 사용자에게 서명을 요청합니다.
 
 ```typescript
 import { useSignTypedData } from 'wagmi';
@@ -97,7 +97,7 @@ import { encodeFunctionData } from 'viem';
 
 const { signTypedDataAsync } = useSignTypedData();
 
-// Fetch current nonce from Forwarder
+// Forwarder에서 현재 nonce 조회
 const nonce = await publicClient.readContract({
   address: forwarderAddress,
   abi: ERC2771ForwarderABI,
@@ -105,14 +105,14 @@ const nonce = await publicClient.readContract({
   args: [userAddress],
 });
 
-// Build Forward Request (PaymentGateway.pay — deadline/escrowDuration from API response)
+// Forward Request 구성 (PaymentGateway.pay — deadline/escrowDuration은 API 응답에서 사용)
 const forwardRequest = {
   from: userAddress,
   to: gatewayAddress,
   value: 0n,
   gas: 200000n,
   nonce,
-  deadline: BigInt(Math.floor(Date.now() / 1000) + 3600), // 1 hour
+  deadline: BigInt(Math.floor(Date.now() / 1000) + 3600), // 1시간
   data: encodeFunctionData({
     abi: PaymentGatewayABI,
     functionName: 'pay',
@@ -122,18 +122,18 @@ const forwardRequest = {
       BigInt(amount),
       recipientAddress,
       merchantId,
-      BigInt(deadline), // from payment.deadline (API)
-      BigInt(escrowDuration), // from payment.escrowDuration (API)
+      BigInt(deadline), // payment.deadline (API)
+      BigInt(escrowDuration), // payment.escrowDuration (API)
       serverSignature,
-      permitData, // EIP-2612 permit, or zero permit { deadline: 0, v: 0, r: '0x00...', s: '0x00...' }
+      permitData, // EIP-2612 permit, 또는 zero permit { deadline: 0, v: 0, r: '0x00...', s: '0x00...' }
     ],
   }),
 };
 
-// EIP-712 Sign — domain name/version must match the forwarder contract used by the relay API (e.g. MSQPay, SoloForwarder, or ERC2771Forwarder)
+// EIP-712 서명 — domain name/version은 릴레이 API가 사용하는 forwarder 컨트랙트와 일치해야 함 (예: MSQPay, SoloForwarder, ERC2771Forwarder)
 const signature = await signTypedDataAsync({
   domain: {
-    name: 'ERC2771Forwarder', // Must match your deployed forwarder; relay server validates this
+    name: 'ERC2771Forwarder', // 배포된 forwarder와 일치해야 함; 릴레이 서버가 검증함
     version: '1',
     chainId: 80002, // Polygon Amoy
     verifyingContract: forwarderAddress,
@@ -154,14 +154,14 @@ const signature = await signTypedDataAsync({
 });
 ```
 
-::: warning Important
-Signing is NOT a transaction, so **no gas fees are charged**.
-The `pay` function requires `deadline`, `escrowDuration`, and `serverSignature` from the API response; use a zero permit when not using EIP-2612.
+::: warning 중요
+서명은 트랜잭션이 아니므로 **가스비가 부과되지 않습니다**.
+`pay` 함수는 API 응답의 `deadline`, `escrowDuration`, `serverSignature`가 필요합니다. EIP-2612를 사용하지 않을 때는 zero permit을 전달하세요.
 :::
 
-## Step 4: Submit Gasless Request
+## Step 4: 가스리스 요청 제출
 
-**Endpoint**: `POST /payments/:id/relay`
+**엔드포인트**: `POST /payments/:id/relay`
 
 ```typescript
 const result = await fetch(
@@ -190,24 +190,24 @@ const result = await fetch(
 ).then((r) => r.json());
 ```
 
-## Step 5: Check Status
+## Step 5: 상태 확인
 
 ```typescript
-// Relay status (by paymentId)
+// 릴레이 상태 (paymentId 기준)
 const relayStatus = await fetch(
   `https://pay-api.staging.msq.com/api/v1/payments/${paymentId}/relay`,
   { headers: { 'x-public-key': 'pk_test_xxxxx' } }
 ).then((r) => r.json());
 // relayStatus.data.status: 'QUEUED' | 'SUBMITTED' | 'CONFIRMED' | 'FAILED'
 
-// Payment status
+// 결제 상태
 const paymentStatus = await fetch(`https://pay-api.staging.msq.com/api/v1/payments/${paymentId}`, {
   headers: { 'x-public-key': 'pk_test_xxxxx' },
 }).then((r) => r.json());
 // paymentStatus.data.status: 'CREATED' | 'ESCROWED' | 'FINALIZE_SUBMITTED' | 'FINALIZED' | 'CANCEL_SUBMITTED' | 'CANCELLED' | 'REFUND_SUBMITTED' | 'REFUNDED' | 'EXPIRED' | 'FAILED'
 ```
 
-## Full Example (React + wagmi)
+## 전체 예시 (React + wagmi)
 
 ```typescript
 function GaslessPayment({ payment }) {
@@ -271,21 +271,21 @@ function GaslessPayment({ payment }) {
     return result;
   };
 
-  return <button onClick={handleGaslessPayment}>Pay without gas</button>;
+  return <button onClick={handleGaslessPayment}>가스 없이 결제</button>;
 }
 ```
 
-## Error Handling
+## 에러 처리
 
-| Error Code               | Cause                                                           | Resolution                                                         |
-| ------------------------ | --------------------------------------------------------------- | ------------------------------------------------------------------ |
-| `INVALID_SIGNATURE`      | Invalid signature format                                        | Ensure signature is a hex string starting with `0x`                |
-| `INVALID_PAYMENT_STATUS` | Payment in terminal state (e.g. ESCROWED, FINALIZED, CANCELLED) | Only send relay when status is CREATED; prevent duplicate requests |
-| `PAYMENT_EXPIRED`        | Payment expired                                                 | Create a new payment and retry                                     |
-| `RELAYER_NOT_CONFIGURED` | No Relayer for this chain                                       | Verify supported chains                                            |
-| `VALIDATION_ERROR`       | Input validation failed                                         | Verify forwardRequest amount matches payment amount                |
+| 에러 코드                | 원인                                                 | 해결 방법                                          |
+| ------------------------ | ---------------------------------------------------- | -------------------------------------------------- |
+| `INVALID_SIGNATURE`      | 잘못된 서명 형식                                     | 서명이 `0x`로 시작하는 hex 문자열인지 확인         |
+| `INVALID_PAYMENT_STATUS` | 결제가 종료 상태(예: ESCROWED, FINALIZED, CANCELLED) | status가 CREATED일 때만 relay 전송; 중복 요청 방지 |
+| `PAYMENT_EXPIRED`        | 결제 만료                                            | 새 결제 생성 후 재시도                             |
+| `RELAYER_NOT_CONFIGURED` | 해당 체인에 릴레이어 없음                            | 지원 체인 확인                                     |
+| `VALIDATION_ERROR`       | 입력 검증 실패                                       | forwardRequest 금액이 결제 금액과 일치하는지 확인  |
 
-## Next Steps
+## 다음 단계
 
-- [Webhooks](/en/webhooks/) - Receive payment completion notifications
-- [Error Codes](/en/api/errors) - Full error list
+- [Webhook 설정](/ko/webhooks/) - 결제 완료 알림 수신
+- [에러 코드](/ko/api/errors) - 전체 에러 목록

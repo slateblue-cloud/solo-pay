@@ -28,7 +28,7 @@ describe('Contract Deployment Verification', () => {
     if (!blockchainRunning) {
       console.warn(
         '\n⚠️  Hardhat node is not running. Contract deployment tests will be skipped.\n' +
-          '   Run: pnpm --filter @supertrust/integration-tests test:setup\n'
+          '   Run: pnpm --filter @solo-pay/integration-tests test:setup\n'
       );
     }
   });

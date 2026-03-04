@@ -22,7 +22,7 @@ A blockchain payment system that multiple services can integrate with.
 
 - **Direct Payment**: Users pay gas fees directly
 - **Gasless Payment**: Gas fee delegation via Meta-transaction (Relayer Service)
-- **TypeScript SDK**: API client for merchant servers (`@globalmsq/solopay`)
+- **TypeScript SDK**: API client for merchant servers (`@solo-pay/gateway-sdk`)
 - **Payment Server**: paymentId issuance, contract state queries, gasless relay
 - **Demo App**: Test web application
 
@@ -155,10 +155,10 @@ pnpm dev
 
 Block Explorer: [amoy.polygonscan.com](https://amoy.polygonscan.com/address/0xF3a0661743cD5cF970144a4Ed022E27c05b33BB5)
 
-## SDK Usage (@globalmsq/solopay)
+## SDK Usage (@solo-pay/gateway-sdk)
 
 ```typescript
-import { SoloPayClient } from '@globalmsq/solopay';
+import { SoloPayClient } from '@solo-pay/gateway-sdk';
 
 // Initialize
 const client = new SoloPayClient({

@@ -113,7 +113,7 @@ External dependency error
 ### SDK Error Handling
 
 ```typescript
-import { SoloPayClient, SoloPayError } from '@globalmsq/solopay';
+import { SoloPayClient, SoloPayError } from '@solo-pay/gateway-sdk';
 
 const client = new SoloPayClient({
   environment: 'development',

@@ -35,7 +35,7 @@ export default function ProductCard({
 }) {
   const [isOpening, setIsOpening] = useState(false);
   const { openWidget } = useWidget({
-    clientId: publicKey,
+    publicKey,
     widgetUrl,
     debug: process.env.NODE_ENV === 'development',
     onClose: () => setIsOpening(false),

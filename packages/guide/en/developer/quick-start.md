@@ -66,6 +66,6 @@ CREATED ──► FAILED
 ## Next Steps
 
 - [Finalize & Cancel](/en/payments/finalize) - Release or cancel escrowed payments
-- [Authentication](/en/getting-started/authentication) - API Key / Public Key details
+- [Authentication](/en/developer/authentication) - API Key / Public Key details
 - [Client-Side Integration](/en/developer/client-side) - Step-by-step implementation guide
 - [Create Payment API](/en/payments/create) - Detailed payment API guide

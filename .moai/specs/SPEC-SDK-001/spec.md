@@ -1,10 +1,10 @@
-# SPEC-SDK-001: 상점서버용 결제 SDK (@globalmsq/msqpay)
+# SPEC-SDK-001: 상점서버용 결제 SDK (@solo-pay/gateway-sdk)
 
 ## TAG BLOCK
 
 ```yaml
 id: SPEC-SDK-001
-title: 상점서버용 결제 SDK (@globalmsq/msqpay)
+title: 상점서버용 결제 SDK (@solo-pay/gateway-sdk)
 category: sdk
 domain: SDK
 priority: high
@@ -68,7 +68,7 @@ SDK는 Node.js 18+ 환경에서 실행되어야 한다 (native fetch 지원).
 
 **E3. 패키지 정보**
 
-- 패키지명: `@globalmsq/msqpay`
+- 패키지명: `@solo-pay/gateway-sdk`
 - 버전: `0.1.0`
 - 라이선스: MIT
 

@@ -54,7 +54,8 @@ Create a payment. **Auth**: `x-public-key` + `Origin`
   "amount": "10500000000000000000",
   "recipientAddress": "0xMerchantWallet...",
   "merchantId": "0x...",
-  "feeBps": 100,
+  "deadline": "1706281200",
+  "escrowDuration": "300",
   "successUrl": "https://example.com/success",
   "failUrl": "https://example.com/fail",
   "expiresAt": "2024-01-26T13:00:00.000Z"

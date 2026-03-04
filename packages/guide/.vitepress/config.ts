@@ -4,10 +4,11 @@ const koDeveloperSidebar = [
   {
     text: '시작하기 및 연동',
     items: [
+      { text: '빠른 시작', link: '/ko/developer/quick-start' },
       { text: '서비스 개요', link: '/ko/developer/introduction' },
       { text: '결제 동작 원리', link: '/ko/developer/how-it-works' },
       { text: '클라이언트 사이드 연동', link: '/ko/developer/client-side' },
-      { text: '빠른 시작', link: '/ko/getting-started/quick-start' },
+      { text: 'API 인증', link: '/ko/developer/authentication' },
       { text: '테스트 및 검증', link: '/ko/developer/testing' },
       { text: 'FAQ 및 트러블슈팅', link: '/ko/developer/troubleshooting' },
     ],
@@ -19,10 +20,10 @@ const koDeveloperSidebar = [
       { text: '상태 조회', link: '/ko/payments/status' },
       { text: '결제 내역', link: '/ko/payments/history' },
       { text: '결제 확정 및 취소', link: '/ko/payments/finalize' },
+      { text: '환불 (Refunds)', link: '/ko/payments/refunds' },
       { text: 'Webhook 설정', link: '/ko/webhooks/' },
       { text: '서명 검증', link: '/ko/webhooks/verify' },
       { text: '이벤트 상세', link: '/ko/webhooks/events' },
-      { text: 'API 인증', link: '/ko/getting-started/authentication' },
     ],
   },
   {
@@ -45,10 +46,11 @@ const enDeveloperSidebar = [
   {
     text: 'Getting Started',
     items: [
+      { text: 'Quick Start', link: '/en/developer/quick-start' },
       { text: 'Service Overview', link: '/en/developer/introduction' },
       { text: 'How Payments Work', link: '/en/developer/how-it-works' },
       { text: 'Client-Side Integration', link: '/en/developer/client-side' },
-      { text: 'Quick Start', link: '/en/getting-started/quick-start' },
+      { text: 'API Authentication', link: '/en/developer/authentication' },
       { text: 'Testing & QA', link: '/en/developer/testing' },
       { text: 'FAQ & Troubleshooting', link: '/en/developer/troubleshooting' },
     ],
@@ -60,10 +62,10 @@ const enDeveloperSidebar = [
       { text: 'Payment Status', link: '/en/payments/status' },
       { text: 'Payment History', link: '/en/payments/history' },
       { text: 'Finalize & Cancel', link: '/en/payments/finalize' },
+      { text: 'Refunds', link: '/en/payments/refunds' },
       { text: 'Webhook Setup', link: '/en/webhooks/' },
       { text: 'Signature Verification', link: '/en/webhooks/verify' },
       { text: 'Event Details', link: '/en/webhooks/events' },
-      { text: 'API Authentication', link: '/en/getting-started/authentication' },
     ],
   },
   {
@@ -86,6 +88,8 @@ export default defineConfig({
   title: 'SoloPay',
   description: 'SoloPay Documentation - Blockchain Payment Gateway',
 
+  head: [['link', { rel: 'icon', href: '/solo-pay.svg', type: 'image/svg+xml' }]],
+
   locales: {
     ko: {
       label: '한국어',
@@ -98,10 +102,11 @@ export default defineConfig({
         ],
         sidebar: {
           '/ko/developer/': koDeveloperSidebar,
-          '/ko/getting-started/': koDeveloperSidebar,
           '/ko/payments/': koDeveloperSidebar,
+          '/ko/gasless/': koDeveloperSidebar,
           '/ko/webhooks/': koDeveloperSidebar,
           '/ko/widget/': koDeveloperSidebar,
+          '/ko/sdk/': koDeveloperSidebar,
           '/ko/api/': koDeveloperSidebar,
           '/ko/user/': [
             {
@@ -127,10 +132,11 @@ export default defineConfig({
         ],
         sidebar: {
           '/en/developer/': enDeveloperSidebar,
-          '/en/getting-started/': enDeveloperSidebar,
           '/en/payments/': enDeveloperSidebar,
+          '/en/gasless/': enDeveloperSidebar,
           '/en/webhooks/': enDeveloperSidebar,
           '/en/widget/': enDeveloperSidebar,
+          '/en/sdk/': enDeveloperSidebar,
           '/en/api/': enDeveloperSidebar,
           '/en/user/': [
             {
@@ -148,6 +154,7 @@ export default defineConfig({
   },
 
   themeConfig: {
+    logo: { src: '/solo-pay.svg', alt: 'SoloPay' },
     socialLinks: [{ icon: 'github', link: 'https://github.com/supertrust/solo-pay' }],
 
     search: {

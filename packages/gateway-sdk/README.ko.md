@@ -1,4 +1,4 @@
-# SoloPay SDK (`@globalmsq/solopay`)
+# SoloPay SDK (`@solo-pay/gateway-sdk`)
 
 [English](README.md) | [한국어](README.ko.md)
 
@@ -7,7 +7,7 @@
 ## 설치
 
 ```bash
-pnpm add @globalmsq/solopay
+pnpm add @solo-pay/gateway-sdk
 ```
 
 ## 빠른 시작
@@ -15,7 +15,7 @@ pnpm add @globalmsq/solopay
 ### 기본 사용법
 
 ```typescript
-import { SoloPayClient } from '@globalmsq/solopay';
+import { SoloPayClient } from '@solo-pay/gateway-sdk';
 
 // 클라이언트 초기화
 const client = new SoloPayClient({
@@ -259,7 +259,7 @@ import {
   PaymentHistoryItem,
   PaymentHistoryResponse,
   ErrorResponse,
-} from '@globalmsq/solopay';
+} from '@solo-pay/gateway-sdk';
 ```
 
 ### 타입 정의
@@ -318,7 +318,7 @@ interface PaymentHistoryItem {
 ## 전체 예제
 
 ```typescript
-import { SoloPayClient, SoloPayError } from '@globalmsq/solopay';
+import { SoloPayClient, SoloPayError } from '@solo-pay/gateway-sdk';
 
 async function processPayment() {
   const client = new SoloPayClient({

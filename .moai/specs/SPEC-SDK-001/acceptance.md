@@ -2,7 +2,7 @@
 
 ## Overview
 
-상점서버용 결제 SDK (`@globalmsq/msqpay`) 인수 조건입니다.
+상점서버용 결제 SDK (`@solo-pay/gateway-sdk`) 인수 조건입니다.
 
 ---
 

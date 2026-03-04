@@ -63,7 +63,8 @@ Example: `amount: 10, currency: "USD"` → pays 10 USD worth of tokens
   "amount": "10500000000000000000",
   "recipientAddress": "0xMerchantWallet...",
   "merchantId": "0x...",
-  "feeBps": 100,
+  "deadline": "1706281200",
+  "escrowDuration": "300",
   "successUrl": "https://example.com/success",
   "failUrl": "https://example.com/fail",
   "expiresAt": "2024-01-26T13:00:00.000Z"
@@ -84,16 +85,17 @@ Example: `amount: 10, currency: "USD"` → pays 10 USD worth of tokens
 
 ## Response Fields
 
-| Field              | Type       | Description                                |
-| ------------------ | ---------- | ------------------------------------------ |
-| `paymentId`        | `string`   | Unique payment identifier (bytes32 hash)   |
-| `serverSignature`  | `string`   | Server EIP-712 signature for contract auth |
-| `amount`           | `string`   | Amount in wei                              |
-| `gatewayAddress`   | `address`  | PaymentGateway contract address            |
-| `forwarderAddress` | `address`  | ERC2771 Forwarder address (for Gasless)    |
-| `merchantId`       | `string`   | Merchant ID (bytes32)                      |
-| `feeBps`           | `number`   | Fee in basis points (100 = 1%)             |
-| `expiresAt`        | `datetime` | Payment expiry (30 minutes from creation)  |
+| Field              | Type       | Description                                                           |
+| ------------------ | ---------- | --------------------------------------------------------------------- |
+| `paymentId`        | `string`   | Unique payment identifier (bytes32 hash)                              |
+| `serverSignature`  | `string`   | Server EIP-712 signature for contract auth                            |
+| `amount`           | `string`   | Amount in wei                                                         |
+| `gatewayAddress`   | `address`  | PaymentGateway contract address                                       |
+| `forwarderAddress` | `address`  | ERC2771 Forwarder address (for Gasless)                               |
+| `merchantId`       | `string`   | Merchant ID (bytes32)                                                 |
+| `deadline`         | `string`   | Signature deadline (Unix timestamp); required for `pay()` and gasless |
+| `escrowDuration`   | `string`   | Escrow duration in seconds; required for `pay()` and gasless          |
+| `expiresAt`        | `datetime` | Payment expiry (30 minutes from creation)                             |
 
 ## When Using the Widget
 

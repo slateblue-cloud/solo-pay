@@ -414,7 +414,7 @@ curl "http://localhost:3001/tokens/0xE4C687167705Abf55d709395f92e254bdF5825a2/ba
 ### JavaScript/TypeScript (SDK)
 
 ```typescript
-import { SoloPayClient } from '@globalmsq/solopay';
+import { SoloPayClient } from '@solo-pay/gateway-sdk';
 
 const client = new SoloPayClient({
   environment: 'development',

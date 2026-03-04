@@ -20,10 +20,10 @@ export interface WidgetError {
   [key: string]: unknown;
 }
 
-/** Config for useWidget. clientId is your merchant public key (pk_xxx or test key). */
+/** Config for useWidget. publicKey is your merchant public key (pk_xxx or test key). */
 export interface UseWidgetConfig {
-  /** Merchant client/public key (e.g. test_client_key_123 or pk_live_xxx) */
-  clientId: string;
+  /** Merchant public key (e.g. pk_test_xxx or pk_live_xxx) */
+  publicKey: string;
   /** Called on payment or popup error */
   onError?: (error: WidgetError) => void;
   /** Called when user closes the popup without completing */
@@ -57,7 +57,7 @@ export interface UseWidgetReturn {
  *
  * @example
  * const { openWidget } = useWidget({
- *   clientId: 'test_client_key_123',
+ *   publicKey: 'pk_test_xxxxx',
  *   onError: (err) => console.error(err),
  *   onClose: () => console.log('closed'),
  *   defaultPaymentRequest: { tokenAddress: '0x...', successUrl: '/success', failUrl: '/fail' }
@@ -71,10 +71,10 @@ export function useWidget(config: UseWidgetConfig): UseWidgetReturn {
   configRef.current = config;
 
   useEffect(() => {
-    const { clientId, widgetUrl, debug } = configRef.current;
-    if (!clientId) return;
+    const { publicKey, widgetUrl, debug } = configRef.current;
+    if (!publicKey) return;
     instanceRef.current = new SoloPay({
-      publicKey: clientId,
+      publicKey,
       widgetUrl,
       debug,
     });
@@ -82,7 +82,7 @@ export function useWidget(config: UseWidgetConfig): UseWidgetReturn {
       instanceRef.current?.destroy();
       instanceRef.current = null;
     };
-  }, [config.clientId, config.widgetUrl]);
+  }, [config.publicKey, config.widgetUrl]);
 
   const openWidget = useCallback((data: OpenWidgetPayload) => {
     const instance = instanceRef.current;

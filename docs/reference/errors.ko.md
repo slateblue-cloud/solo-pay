@@ -113,7 +113,7 @@ SoloPay API 에러 코드 및 해결 방법입니다.
 ### SDK에서 에러 처리
 
 ```typescript
-import { SoloPayClient, SoloPayError } from '@globalmsq/solopay';
+import { SoloPayClient, SoloPayError } from '@solo-pay/gateway-sdk';
 
 const client = new SoloPayClient({
   environment: 'development',

@@ -7,7 +7,7 @@ A guide to integrating blockchain payments into your store using the SoloPay SDK
 ## SDK Installation
 
 ```bash
-pnpm add @globalmsq/solopay
+pnpm add @solo-pay/gateway-sdk
 ```
 
 **Requirements**:
@@ -18,7 +18,7 @@ pnpm add @globalmsq/solopay
 ## SDK Initialization
 
 ```typescript
-import { SoloPayClient } from '@globalmsq/solopay';
+import { SoloPayClient } from '@solo-pay/gateway-sdk';
 
 const client = new SoloPayClient({
   environment: 'development', // or 'staging', 'production', 'custom'
@@ -194,7 +194,7 @@ history.data.forEach((payment) => {
 ### Error Handling Example
 
 ```typescript
-import { SoloPayError } from '@globalmsq/solopay';
+import { SoloPayError } from '@solo-pay/gateway-sdk';
 
 try {
   await client.createPayment(params);
@@ -266,7 +266,7 @@ if (BigInt(allowance) < BigInt(amount)) {
 ### Store Server (Backend)
 
 ```typescript
-import { SoloPayClient } from '@globalmsq/solopay';
+import { SoloPayClient } from '@solo-pay/gateway-sdk';
 
 const client = new SoloPayClient({
   environment: 'production',

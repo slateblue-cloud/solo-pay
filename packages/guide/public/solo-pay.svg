@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="32" height="32" aria-hidden="true">
+  <title>SoloPay</title>
+  <defs>
+    <linearGradient id="solo-pay-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#3B82F6"/>
+      <stop offset="100%" stop-color="#8B5CF6"/>
+    </linearGradient>
+  </defs>
+  <rect x="20" y="20" width="80" height="80" rx="20" fill="url(#solo-pay-grad)"/>
+  <path d="M 70,40 H 55 A 10,10 0 0,0 45,50 A 10,10 0 0,0 55,60 H 65 A 10,10 0 0,1 75,70 A 10,10 0 0,1 65,80 H 50" fill="none" stroke="#ffffff" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

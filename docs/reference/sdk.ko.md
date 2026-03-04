@@ -1,13 +1,13 @@
 [English](sdk.md) | [한국어](sdk.ko.md)
 
-# SoloPay SDK (`@globalmsq/solopay`)
+# SoloPay SDK (`@solo-pay/gateway-sdk`)
 
 상점 서버가 SoloPay 결제 API와 상호작용하기 위한 경량 TypeScript SDK입니다. Node.js 18+ 네이티브 `fetch`를 사용하며 외부 의존성이 없습니다.
 
 ## 설치
 
 ```bash
-pnpm add @globalmsq/solopay
+pnpm add @solo-pay/gateway-sdk
 ```
 
 ## 빠른 시작
@@ -15,7 +15,7 @@ pnpm add @globalmsq/solopay
 ### 기본 사용법
 
 ```typescript
-import { SoloPayClient } from '@globalmsq/solopay';
+import { SoloPayClient } from '@solo-pay/gateway-sdk';
 
 // 클라이언트 초기화
 const client = new SoloPayClient({
@@ -271,7 +271,7 @@ import {
   PaymentHistoryItem,
   PaymentHistoryResponse,
   ErrorResponse,
-} from '@globalmsq/solopay';
+} from '@solo-pay/gateway-sdk';
 ```
 
 ### 타입 정의
@@ -347,7 +347,7 @@ interface PaymentHistoryItem {
 ## 전체 예제
 
 ```typescript
-import { SoloPayClient, SoloPayError } from '@globalmsq/solopay';
+import { SoloPayClient, SoloPayError } from '@solo-pay/gateway-sdk';
 
 async function processPayment() {
   const client = new SoloPayClient({
