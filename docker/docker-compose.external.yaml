@@ -1,0 +1,347 @@
+name: solo-pay-external
+
+services:
+  # MySQL 8.0 - Payment Data
+  mysql:
+    image: mysql:8.0
+    container_name: solo-pay-mysql
+    restart: always
+    ports:
+      - '3306:3306'
+    environment:
+      MYSQL_ROOT_PASSWORD: pass
+      MYSQL_DATABASE: solopay
+      MYSQL_USER: solopay
+      MYSQL_PASSWORD: pass
+    volumes:
+      - mysql-data:/var/lib/mysql
+    networks:
+      - solo-pay-network
+    healthcheck:
+      test: ['CMD', 'mysql', '-h', 'localhost', '-u', 'solopay', '-ppass', 'solopay', '-e', 'SELECT 1']
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 30s
+
+  # Database Init
+  db-init:
+    image: mysql:8.0
+    container_name: solo-pay-db-init
+    restart: 'no'
+    entrypoint: ['mysql', '-h', 'mysql', '-u', 'root', '-ppass', '-e']
+    command:
+      - >
+        CREATE DATABASE IF NOT EXISTS solopay_sample_merchant CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+        GRANT ALL PRIVILEGES ON solopay_sample_merchant.* TO 'solopay'@'%';
+        GRANT CREATE, DROP ON *.* TO 'solopay'@'%';
+        FLUSH PRIVILEGES;
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - solo-pay-network
+
+  # Redis 7 Alpine - Caching
+  redis:
+    image: redis:7-alpine
+    container_name: solo-pay-redis
+    restart: always
+    ports:
+      - '6379:6379'
+    volumes:
+      - redis-data:/data
+    networks:
+      - solo-pay-network
+
+  # Simple Relayer Service (Points to External VM)
+  simple-relayer:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.packages
+      target: simple-relayer
+    image: local/solo-pay-simple-relayer:latest
+    pull_policy: build
+    container_name: solo-pay-simple-relayer
+    restart: always
+    ports:
+      - '3002:3001'
+    environment:
+      NODE_ENV: development
+      HOST: 0.0.0.0
+      PORT: 3001
+      RELAYER_PRIVATE_KEY: '0x5de4111afa1a4b94908f83103eb1f1706367c2e68ca870fc3fb9a804cdab365a'
+      RPC_URL: http://hardhat.must.codes:8545
+      CHAIN_ID: 31337
+      FORWARDER_ADDRESS: '0x5FbDB2315678afecb367f032d93F642f64180aa3'
+    networks:
+      - solo-pay-network
+    healthcheck:
+      test: ['CMD', 'wget', '--no-verbose', '--tries=1', '--spider', 'http://127.0.0.1:3001/health']
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
+
+  # Webhook Manager
+  webhook-manager:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.packages
+      target: webhook-manager
+    image: local/solo-pay-webhook-manager:latest
+    pull_policy: build
+    container_name: solo-pay-webhook-manager
+    restart: always
+    environment:
+      NODE_ENV: production
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      DATABASE_URL: mysql://solopay:pass@mysql:3306/solopay
+    depends_on:
+      redis:
+        condition: service_started
+      database-sync:
+        condition: service_completed_successfully
+    networks:
+      - solo-pay-network
+
+  # Database Migration
+  database-sync:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.packages
+      target: database-sync
+    image: local/solo-pay-database-sync:latest
+    pull_policy: build
+    container_name: solo-pay-database-sync
+    restart: 'no'
+    environment:
+      DATABASE_URL: mysql://solopay:pass@mysql:3306/solopay
+    depends_on:
+      db-init:
+        condition: service_completed_successfully
+    command: >
+      sh -c "npx prisma db push && npx tsx prisma/seed.ts"
+    networks:
+      - solo-pay-network
+
+  # Faucet Manager
+  faucet-manager:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.packages
+      target: faucet-manager
+    image: local/solo-pay-faucet-manager:latest
+    pull_policy: build
+    container_name: solo-pay-faucet-manager
+    restart: always
+    ports:
+      - '3003:3002'
+    environment:
+      NODE_ENV: production
+      PORT: 3002
+      HOST: 0.0.0.0
+      DATABASE_URL: mysql://solopay:pass@mysql:3306/solopay
+      ALLOWED_WIDGET_ORIGIN: http://localhost:3005
+    depends_on:
+      mysql:
+        condition: service_healthy
+      database-sync:
+        condition: service_completed_successfully
+    networks:
+      - solo-pay-network
+
+  # Payment Gateway (Points to External VM)
+  gateway:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.packages
+      target: gateway
+    image: local/solo-pay-gateway:latest
+    pull_policy: build
+    container_name: solo-pay-gateway
+    restart: always
+    ports:
+      - '3001:3001'
+    environment:
+      NODE_ENV: development
+      PORT: 3001
+      MYSQL_HOST: mysql
+      MYSQL_PORT: 3306
+      MYSQL_USER: solopay
+      MYSQL_PASSWORD: pass
+      MYSQL_DATABASE: solopay
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      BLOCKCHAIN_RPC_URL: http://hardhat.must.codes:8545
+      SIGNER_PRIVATE_KEY: '0x47e179ec197488593b187f80a00eb0da91f1b9d0b13f8733639f19c30a34926a'
+      PRICE_SERVICE_URL: http://price-service:3003
+      ALLOWED_WIDGET_ORIGIN: http://localhost:3005
+    depends_on:
+      mysql:
+        condition: service_healthy
+      database-sync:
+        condition: service_completed_successfully
+      redis:
+        condition: service_started
+      simple-relayer:
+        condition: service_healthy
+      price-service:
+        condition: service_healthy
+    networks:
+      - solo-pay-network
+
+  # Demo App (Points to External VM)
+  demo:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.packages
+      target: demo
+    image: local/solo-pay-demo:latest
+    pull_policy: build
+    container_name: solo-pay-demo
+    restart: always
+    ports:
+      - '3000:3000'
+    environment:
+      NODE_ENV: production
+      CHAIN_ID: 31337
+      RPC_URL: http://hardhat.must.codes:8545
+      CHAIN_NAME: Hardhat
+      NEXT_PUBLIC_API_URL: http://localhost:3001
+      SOLO_PAY_API_URL: http://gateway:3001
+      SOLO_PAY_API_KEY: '123'
+      SOLO_PAY_PUBLIC_KEY: 'pk_test_demo'
+    depends_on:
+      gateway:
+        condition: service_healthy
+    networks:
+      - solo-pay-network
+
+  # Widget
+  widget:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.packages
+      target: widget
+    image: local/solo-pay-widget:latest
+    pull_policy: build
+    container_name: solo-pay-widget
+    restart: always
+    ports:
+      - '3005:3005'
+    environment:
+      NODE_ENV: production
+      GATEWAY_PUBLIC_URL: http://localhost:3001
+    depends_on:
+      gateway:
+        condition: service_healthy
+    networks:
+      - solo-pay-network
+
+  # Sample Merchant App
+  sample-merchant-init:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.packages
+      target: sample-merchant-init
+    image: local/solo-pay-sample-merchant-init:latest
+    pull_policy: build
+    container_name: solo-pay-sample-merchant-init
+    restart: 'no'
+    environment:
+      DATABASE_URL: mysql://solopay:pass@mysql:3306/solopay_sample_merchant
+    depends_on:
+      db-init:
+        condition: service_completed_successfully
+    networks:
+      - solo-pay-network
+
+  sample-merchant:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.packages
+      target: sample-merchant
+    image: local/solo-pay-sample-merchant:latest
+    pull_policy: build
+    container_name: solo-pay-sample-merchant
+    restart: always
+    ports:
+      - '3004:3004'
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: mysql://solopay:pass@mysql:3306/solopay_sample_merchant
+      SOLO_PAY_MERCHANT_KEY: merchant_sample_001
+      SOLO_PAY_API_KEY: sample_api_key_001
+      SOLO_PAY_PUBLIC_KEY: ${SOLO_PAY_PUBLIC_KEY:-pk_live_xqKZ6PpVdfUaaVBJhS6qI8RbUbZUbvSq}
+      WIDGET_PUBLIC_URL: ${WIDGET_PUBLIC_URL:-http://localhost:3005}
+      GATEWAY_API_URL: http://gateway:3001
+    depends_on:
+      mysql:
+        condition: service_healthy
+      sample-merchant-init:
+        condition: service_completed_successfully
+      gateway:
+        condition: service_healthy
+    networks:
+      - solo-pay-network
+
+  # Price Service
+  price-service:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.packages
+      target: price-service
+    image: local/solo-pay-price-service:latest
+    pull_policy: build
+    container_name: solo-pay-price-service
+    restart: always
+    ports:
+      - '3006:3003'
+    environment:
+      NODE_ENV: production
+      PORT: 3003
+      HOST: 0.0.0.0
+      DATABASE_URL: mysql://solopay:pass@mysql:3306/solopay
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      CACHE_TTL: 60
+      CMC_API_KEY: ${CMC_API_KEY}
+    depends_on:
+      mysql:
+        condition: service_healthy
+      database-sync:
+        condition: service_completed_successfully
+      redis:
+        condition: service_started
+    networks:
+      - solo-pay-network
+    healthcheck:
+      test: ['CMD', 'curl', '-f', 'http://127.0.0.1:3003/health']
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
+
+  # Documentation
+  guide:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.packages
+      target: guide
+    image: local/solo-pay-guide:latest
+    pull_policy: build
+    container_name: solo-pay-guide
+    ports:
+      - '5173:80'
+    networks:
+      - solo-pay-network
+
+networks:
+  solo-pay-network:
+    driver: bridge
+
+volumes:
+  mysql-data:
+  redis-data:

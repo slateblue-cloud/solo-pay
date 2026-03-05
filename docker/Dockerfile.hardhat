@@ -1,0 +1,37 @@
+# Node.js 20 Alpine - Light and secure base image
+FROM node:20-alpine
+
+# Install essential dependencies for node-gyp and healthcheck
+RUN apk add --no-cache git python3 make g++ curl && \
+    corepack enable && \
+    corepack prepare pnpm@latest --activate
+
+WORKDIR /app
+
+# Copy root workspace configuration and contract-specific files
+COPY pnpm-workspace.yaml package.json pnpm-lock.yaml ./
+COPY packages/contracts/package.json ./packages/contracts/
+
+# Install only necessary dependencies for contracts
+# Using --frozen-lockfile for deterministic builds
+RUN pnpm install --filter @solo-pay/contracts... --frozen-lockfile
+
+# Copy contract source files
+COPY packages/contracts ./packages/contracts
+
+# Compile smart contracts to generate artifacts and typechain types
+WORKDIR /app/packages/contracts
+RUN npx hardhat compile
+
+# Expose Hardhat JSON-RPC port
+EXPOSE 8545
+
+# Healthcheck to verify JSON-RPC availability
+HEALTHCHECK --interval=10s --timeout=5s --start-period=10s --retries=3 \
+  CMD curl -sf -X POST -H 'Content-Type: application/json' \
+      -d '{"jsonrpc":"2.0","method":"eth_blockNumber","params":[],"id":1}' \
+      http://localhost:8545 || exit 1
+
+# Default command to start Hardhat node and deploy contracts
+# --hostname 0.0.0.0 is mandatory for external access
+CMD ["sh", "-c", "npx hardhat node --hostname 0.0.0.0 & sleep 5 && npx hardhat run scripts/check-and-deploy.ts --network localhost && wait"]

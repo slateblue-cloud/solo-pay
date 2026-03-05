@@ -1,0 +1,16 @@
+name: solo-pay-hardhat
+
+services:
+  # Hardhat Local Blockchain + Contract Deployment
+  hardhat-node:
+    image: solopay/hardhat:latest
+    pull_policy: never
+    container_name: solo-pay-hardhat-node
+    restart: always
+    ports:
+      - '8545:8545'
+    command: >
+      sh -c "npx hardhat node --hostname 0.0.0.0 &
+             sleep 5 &&
+             npx hardhat run scripts/check-and-deploy.ts --network localhost &&
+             wait"
