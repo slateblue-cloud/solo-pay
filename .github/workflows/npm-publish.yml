@@ -32,6 +32,11 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Build packages
+        run: |
+          pnpm --filter @solo-pay/widget-js run build
+          pnpm --filter @solo-pay/widget-react run build
+
       - name: Publish packages
         run: |
           set -e
