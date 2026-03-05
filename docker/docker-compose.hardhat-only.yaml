@@ -3,11 +3,8 @@ name: solo-pay-hardhat
 services:
   # Hardhat Local Blockchain + Contract Deployment
   hardhat-node:
-    build:
-      context: ..
-      dockerfile: docker/Dockerfile.hardhat
     image: solopay/hardhat:latest
-    pull_policy: build
+    pull_policy: never
     container_name: solo-pay-hardhat-node
     restart: always
     ports:
