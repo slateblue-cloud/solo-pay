@@ -71,7 +71,7 @@ services:
       HOST: 0.0.0.0
       PORT: 3001
       RELAYER_PRIVATE_KEY: '0x5de4111afa1a4b94908f83103eb1f1706367c2e68ca870fc3fb9a804cdab365a'
-      RPC_URL: http://hardhat.must.codes:8545
+      RPC_URL: https://hardhat.must.codes
       CHAIN_ID: 31337
       FORWARDER_ADDRESS: '0x5FbDB2315678afecb367f032d93F642f64180aa3'
     networks:
@@ -174,7 +174,7 @@ services:
       MYSQL_DATABASE: solopay
       REDIS_HOST: redis
       REDIS_PORT: 6379
-      BLOCKCHAIN_RPC_URL: http://hardhat.must.codes:8545
+      BLOCKCHAIN_RPC_URL: https://hardhat.must.codes
       SIGNER_PRIVATE_KEY: '0x47e179ec197488593b187f80a00eb0da91f1b9d0b13f8733639f19c30a34926a'
       PRICE_SERVICE_URL: http://price-service:3003
       ALLOWED_WIDGET_ORIGIN: http://localhost:3005
@@ -207,7 +207,7 @@ services:
     environment:
       NODE_ENV: production
       CHAIN_ID: 31337
-      RPC_URL: http://hardhat.must.codes:8545
+      RPC_URL: https://hardhat.must.codes
       CHAIN_NAME: Hardhat
       NEXT_PUBLIC_API_URL: http://localhost:3001
       SOLO_PAY_API_URL: http://gateway:3001
