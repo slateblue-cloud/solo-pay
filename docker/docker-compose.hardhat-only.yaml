@@ -3,8 +3,8 @@ name: solo-pay-hardhat
 services:
   # Hardhat Local Blockchain + Contract Deployment
   hardhat-node:
-    image: localhost/solopay/hardhat:latest
-    pull_policy: never
+    image: solopay-hardhat:latest
+    pull_policy: if_not_present
     container_name: solo-pay-hardhat-node
     restart: always
     ports:
